@@ -1,40 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
 import { navigate } from '../App';
-import { Bar, Brand, CheckboxGroup, Chip, RadioGroup } from '../components/ui';
+import { Bar, Brand, CheckboxGroup, Chip, LangSwitch, RadioGroup } from '../components/ui';
 import { hasProgress, useAssessment } from '../lib/store';
-import { COPY, type Lang } from './landing-copy';
+import { useLang, type Lang } from '../lib/i18n';
+import { imprintUrl, privacyUrl } from '../lib/links';
+import { COPY } from './landing-copy';
 
-const LANG_KEY = 'exitiq-landing-lang';
 type Preview = { strengths: number[]; e05: number | string | null; e04: number | string | null };
 const emptyPreview: Preview = { strengths: [], e05: null, e04: null };
 
-function readLang(): Lang {
-  try {
-    return localStorage.getItem(LANG_KEY) === 'de' ? 'de' : 'en';
-  } catch {
-    return 'en';
-  }
-}
-
 export default function Landing() {
-  const [lang, setLangState] = useState<Lang>(readLang);
+  const lang = useLang();
   const t = COPY[lang];
   const state = useAssessment();
   const resumable = hasProgress(state);
 
   useEffect(() => {
-    document.documentElement.lang = lang;
     document.title = 'ExitIQ by atares M&A';
   }, [lang]);
 
-  const setLang = (l: Lang) => {
-    try {
-      localStorage.setItem(LANG_KEY, l);
-    } catch {
-      /* ignore */
-    }
-    setLangState(l);
-  };
   const start = () => navigate('/assessment');
 
   return (
@@ -49,11 +33,7 @@ export default function Landing() {
             <a href="#about">{t.navAbout}</a>
           </nav>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div className="lang" role="group" aria-label="Language">
-              {(['en', 'de'] as Lang[]).map((l) => (
-                <button key={l} type="button" aria-pressed={l === lang} onClick={() => setLang(l)}>{l.toUpperCase()}</button>
-              ))}
-            </div>
+            <LangSwitch />
             {resumable && <button type="button" className="btn btn-ghost btn-sm" onClick={start}>{t.resume}</button>}
           </div>
         </div>
@@ -122,8 +102,8 @@ export default function Landing() {
               <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: 'rgba(255,255,255,0.72)' }}>{t.disclaimer}</p>
             </div>
             <div style={{ display: 'flex', gap: 20, fontSize: 13 }}>
-              <a href="https://atares.team" style={{ color: 'rgba(255,255,255,0.84)' }}>{t.imprint}</a>
-              <a href="https://atares.team" style={{ color: 'rgba(255,255,255,0.84)' }}>{t.privacy}</a>
+              <a href={imprintUrl(lang)} style={{ color: 'rgba(255,255,255,0.84)' }}>{t.imprint}</a>
+              <a href={privacyUrl(lang)} style={{ color: 'rgba(255,255,255,0.84)' }}>{t.privacy}</a>
               <a href="https://atares.team" style={{ color: 'rgba(255,255,255,0.84)' }}>atares.team</a>
             </div>
           </footer>

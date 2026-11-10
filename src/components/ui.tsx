@@ -1,12 +1,28 @@
 import type { KeyboardEvent, ReactNode } from 'react';
+import { useT } from '../i18n/ui';
+import { setLang, useLang, type Lang } from '../lib/i18n';
 
 export function Brand({ href = '/' }: { href?: string }) {
+  const t = useT();
   return (
-    <a href={href} className="brand" aria-label="ExitIQ by atares, home">
+    <a href={href} className="brand" aria-label={t.brandAria}>
       <img src="/media/atares-logo-white.png" alt="atares" />
       <span className="divider" aria-hidden="true" />
       <span className="name">Exit<b>IQ</b></span>
     </a>
+  );
+}
+
+/** EN/DE switch for the shared site language (landing page and assessment). */
+export function LangSwitch() {
+  const lang = useLang();
+  const t = useT();
+  return (
+    <div className="lang" role="group" aria-label={t.langAria}>
+      {(['en', 'de'] as Lang[]).map((l) => (
+        <button key={l} type="button" lang={l} aria-pressed={l === lang} onClick={() => setLang(l)}>{l.toUpperCase()}</button>
+      ))}
+    </div>
   );
 }
 

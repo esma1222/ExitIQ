@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Brand } from '../../components/ui';
+import { Brand, LangSwitch } from '../../components/ui';
+import { useT } from '../../i18n/ui';
+import { locale, useLang } from '../../lib/i18n';
 import { onSyncStatus, type SyncStatus } from '../../lib/remote';
 import { go, hasProgress, hydrateFromRemote, useAssessment, type Screen } from '../../lib/store';
 import { ContextScreen } from './Context';
@@ -11,7 +13,6 @@ import { Saved } from './Saved';
 import { Summary } from './Summary';
 import { Banners } from './Banners';
 
-const STEPS = ['Context', 'Discovery', 'Initial picture', 'Assessment', 'Action plan'];
 const PHASE: Record<Screen, number> = { c1: 0, c2: 0, c3: 0, summary: 0, discovery: 1, picture: 2, deep: 3, result: 4, saved: -1 };
 
 function useSync(): [SyncStatus, string | undefined] {
@@ -24,41 +25,46 @@ export default function AssessmentApp() {
   const state = useAssessment();
   const [sync, syncDetail] = useSync();
   const [ready, setReady] = useState(hasProgress(state));
+  const lang = useLang();
+  const t = useT();
 
   useEffect(() => {
-    document.title = 'ExitIQ assessment';
-    document.documentElement.lang = 'en';
+    document.title = t.docTitle;
+  }, [t]);
+
+  useEffect(() => {
     if (ready) return;
     // A returning visitor on a fresh browser tab (or after confirming their email) gets their saved assessment back.
     void hydrateFromRemote().finally(() => setReady(true));
   }, [ready]);
 
   const phase = PHASE[state.screen];
-  const time = state.savedAt ? new Date(state.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
-  const saveLabel = !time ? 'Saves after every answer'
-    : sync === 'saving' ? 'Saving…'
-    : sync === 'error' ? `Saved in this browser at ${time} · online copy failed`
-    : sync === 'local-only' ? `Saved in this browser at ${time}`
-    : `Saved ${time}`;
+  const time = state.savedAt ? new Date(state.savedAt).toLocaleTimeString(locale(lang), { hour: '2-digit', minute: '2-digit' }) : null;
+  const saveLabel = !time ? t.saveIdle
+    : sync === 'saving' ? t.saving
+    : sync === 'error' ? t.savedError(time)
+    : sync === 'local-only' ? t.savedLocal(time)
+    : t.saved(time);
 
   return (
     <div className="app-bg">
-      <a href="#main" className="sr-only">Skip to content</a>
+      <a href="#main" className="sr-only">{t.skip}</a>
       <header className="app-header no-print">
         <div className="app-header-inner">
           <Brand />
-          <ol className="stepper" aria-label="Progress">
-            {STEPS.map((l, i) => (
-              <li key={l} className={i < phase ? 'done' : i === phase ? 'current' : ''} aria-current={i === phase ? 'step' : undefined}>
+          <ol className="stepper" aria-label={t.progressAria}>
+            {t.steps.map((l, i) => (
+              <li key={i} className={i < phase ? 'done' : i === phase ? 'current' : ''} aria-current={i === phase ? 'step' : undefined}>
                 <span className="dot" aria-hidden="true">{i < phase ? '✓' : i + 1}</span>
                 <span className="label">{l}</span>
               </li>
             ))}
           </ol>
           <div className="save-state">
+            <LangSwitch />
             <span aria-live="polite" title={syncDetail}>{saveLabel}</span>
             {state.screen !== 'saved' && hasProgress(state) && (
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => go('saved')}>Save and return later</button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => go('saved')}>{t.saveReturnLater}</button>
             )}
           </div>
         </div>
@@ -66,7 +72,7 @@ export default function AssessmentApp() {
 
       <div id="main" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {!ready ? (
-          <main className="app-main"><p className="muted-light">Loading your assessment…</p></main>
+          <main className="app-main"><p className="muted-light">{t.loading}</p></main>
         ) : (
           <Screens />
         )}
@@ -74,7 +80,7 @@ export default function AssessmentApp() {
 
       {state.screen !== 'result' && (
         <footer className="app-footer no-print">
-          ExitIQ is a structured self-assessment. It does not replace legal, tax or financial advice, and its results are not a valuation.
+          {t.disclaimer}
         </footer>
       )}
     </div>

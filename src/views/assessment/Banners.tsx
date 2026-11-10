@@ -1,3 +1,4 @@
+import { useT } from '../../i18n/ui';
 import { useAssessment } from '../../lib/store';
 
 type Tone = 'red' | 'lime' | 'white';
@@ -20,17 +21,18 @@ export function Banner({ tone, tag, children }: { tone: Tone; tag: string; child
 /** Section 3/4: specialist routes, liquidity review and pending profile are always visible. */
 export function Banners() {
   const { ctx } = useAssessment();
+  const t = useT();
   const out: React.ReactNode[] = [];
   if (ctx.liquidity === 'acute') {
-    out.push(<Banner key="acute" tone="red" tag="Specialist route">You confirmed acute payment pressure. Your progress is kept and preparatory observations are shown, but a standard readiness conclusion is withheld. Please obtain a qualified assessment first; ExitIQ does not diagnose insolvency.</Banner>);
+    out.push(<Banner key="acute" tone="red" tag={t.specialistRoute}>{t.bannerAcute}</Banner>);
   } else if (ctx.liquidity === 'potential' || ctx.liquidity === 'unknown') {
-    out.push(<Banner key="liq" tone="lime" tag="Review task">Liquidity over the next six months needs a review. A task has been added to your action plan.</Banner>);
+    out.push(<Banner key="liq" tone="lime" tag={t.reviewTask}>{t.bannerLiquidity}</Banner>);
   }
   if (ctx.objectives.includes('ipo') || ctx.objectives.includes('distress')) {
-    out.push(<Banner key="ipo" tone="lime" tag="Specialist route">IPO and distress situations need a specialist route. Your progress is kept and relevant preparation is shown, without a standard readiness conclusion.</Banner>);
+    out.push(<Banner key="ipo" tone="lime" tag={t.specialistRoute}>{t.bannerIpo}</Banner>);
   }
   if (ctx.profile === 'UNDECIDED') {
-    out.push(<Banner key="prof" tone="white" tag="Scoring pending">Confirm a perspective to enable scoring. Discovery and the detailed questions work without it.</Banner>);
+    out.push(<Banner key="prof" tone="white" tag={t.scoringPending}>{t.bannerProfile}</Banner>);
   }
   return out.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{out}</div> : null;
 }

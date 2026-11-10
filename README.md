@@ -15,6 +15,8 @@ The app is React + Vite + TypeScript on Supabase (project `elpjwoujqzskgydytvob`
 - **Action plan (section 19).** Context chips, three dimension cards, risk status, up to 3 supported strengths linked to answer IDs, a filterable task list with per-task status, and a tax section split into company, seller and cross-border. It also offers print to PDF, a CSV task export, an optional "Discuss with atares" link, and delete.
 - **Analytics (section 20).** Stage views, starts, theme completion, route changes, saves, resumes, result views, exports and contact requests. Events carry no answer content.
 - **Landing page.** Ported from *ExitIQ Landing v2* with EN/DE copy and the interactive 3-question preview.
+- **English and German.** One language switch for the whole site (`src/lib/i18n.ts`). The English catalogue in `src/model/catalogue.ts` stays the scored and stored source of truth; German is a text-only overlay (`src/i18n/catalogue-de.ts`), the UI strings are in `src/i18n/ui.ts` and the model's risk/task/observation text in `src/model/text.ts`. Stored answers, task keys and result snapshots are language-neutral (English). The German wording should be reviewed by the M&A content owner before launch.
+- **Written summary (optional, section 20).** On the action plan a user can ask for an AI-written summary. The `generate-narrative` Edge Function builds it from the stored result snapshot only (no evidence references, no seller tax details), labels each statement as "You reported" / "This may imply" / "Suggested next step", and rejects output that is truncated, cites unknown questions, quotes numbers not in the result, or uses valuation, probability, tax-saving or verification language. Rejected output is never shown; the deterministic plan is complete without it. Cached per snapshot and language; 10 generations per user per day.
 
 ## Supabase setup (one time, in the dashboard / CLI)
 
@@ -34,7 +36,15 @@ The Supabase connector used to build this had no access to the project, so **the
 2. **Enable anonymous sign-ins**: Dashboard → Authentication → Sign In / Providers → *Allow anonymous sign-ins*. Each visitor then gets a real `auth.uid()`, and RLS enforces owner-only access. Without it, the app still works, but only in the browser ("Saved in this browser").
 3. **Turn on abuse protection** for anonymous sign-ins: Authentication → Attack Protection → CAPTCHA with **Cloudflare Turnstile**, using the Turnstile *secret* key. Then set the Turnstile *site* key as `VITE_TURNSTILE_SITE_KEY` on Vercel (and in `.env.local`), and redeploy. Without the site key, Supabase rejects every anonymous sign-in, and the app quietly falls back to saving in the browser only. In Cloudflare, the widget's allowed hostnames must include the production domain (and `localhost` for development).
 4. **URL configuration**: Authentication → URL Configuration. Set the Site URL to the production domain and add `https://<domain>/assessment` as a redirect URL. "Save and return" uses these when it links an email to the anonymous user.
-5. **Check the advisors**: Dashboard → Advisors (security and performance) after the migration.
+5. **Written summary (optional)**: deploy the function and add the API key:
+
+   ```bash
+   npx supabase functions deploy generate-narrative
+   ```
+
+   Then Dashboard → Edge Functions → Secrets → add `ANTHROPIC_API_KEY`. Without it the button reports that the summary is unavailable and everything else works.
+6. **Legal links**: set `VITE_IMPRINT_URL` and `VITE_PRIVACY_URL` on Vercel (plus `VITE_IMPRINT_URL_DE` / `VITE_PRIVACY_URL_DE` if the German pages differ) and redeploy. Until then the links go to the atares homepage.
+7. **Check the advisors**: Dashboard → Advisors (security and performance) after the migration.
 
 ## Database
 
@@ -46,6 +56,7 @@ The Supabase connector used to build this had no access to the project, so **the
 | `evidence_refs` | Dated reference, responsible role, review status, access scope | owner adds; can't self-certify `reviewed` |
 | `tasks` | Action plan with user status / agreed due date | owner |
 | `result_snapshots` | Versioned deterministic result objects | owner reads and appends |
+| `narratives` | Generated summaries (and rejected attempts, for the daily limit) | owner reads; written only by the Edge Function |
 | `analytics_events` | Minimal events | insert only |
 
 Clients can't write the states that need an authorised reviewer: confirmed N/A, reviewed evidence and contradiction resolution. The reviewer role and seller-private access scopes are part of Release 2.

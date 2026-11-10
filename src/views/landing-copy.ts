@@ -3,7 +3,7 @@
 // collaboration is release 2, so the page offers a task-list export instead of
 // promising invitations.
 
-export type Lang = 'en' | 'de';
+export type { Lang } from '../lib/i18n';
 
 export const COPY = {
   en: {
@@ -109,7 +109,7 @@ export const COPY = {
     closeTitle: 'Beginnen Sie mit acht Fragen. Danach entscheiden Sie, wie weit Sie gehen.',
     closeSub: 'Kostenlos und vertraulich. Kontaktdaten, Berichtsversand und Newsletter sind getrennte, freiwillige Optionen.',
     disclaimer: 'ExitIQ ist eine strukturierte Selbsteinschätzung. Sie ersetzt keine rechtliche, steuerliche oder finanzielle Beratung, und die Ergebnisse sind keine Unternehmensbewertung.',
-    imprint: 'Impressum', privacy: 'Datenschutz', assessmentLang: 'Die Selbsteinschätzung ist derzeit auf Englisch verfügbar.',
+    imprint: 'Impressum', privacy: 'Datenschutz', assessmentLang: '',
     promises: [{ a: 'Kostenlos', b: 'Ohne Kosten, unverbindlich' }, { a: 'Laufend gespeichert', b: 'Jederzeit pausieren und fortsetzen' }, { a: 'Für Teams gemacht', b: 'Jede Aufgabe nennt eine Verantwortung' }, { a: 'Vertraulich', b: 'Weitergabe nur mit Ihrer Zustimmung' }],
     strengths: ['Persönliche Kundenbeziehungen', 'Spezialwissen', 'Wiederkehrende Umsätze', 'Starke Marke oder Reputation', 'Eigene Technologie', 'Erfahrenes Team'],
     q1: { title: 'Welche Stärke würden Sie einem potenziellen Käufer zuerst zeigen?', help: 'Wählen Sie bis zu drei.' },

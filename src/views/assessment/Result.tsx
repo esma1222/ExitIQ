@@ -1,56 +1,70 @@
 import { useEffect, useMemo, useState } from 'react';
 import { navigate } from '../../App';
 import { Bar, pct } from '../../components/ui';
-import { DIMENSIONS, PROFILES, ROUTE_LABELS } from '../../model/catalogue';
-import { HORIZON_OPTIONS, OBJECTIVE_OPTIONS, PERIMETER_OPTIONS, labelOf } from '../../model/options';
+import { dimensionName, domainName, localOptions, profileText, routeLabel } from '../../i18n/localize';
+import { useT, type UIText } from '../../i18n/ui';
+import { locale, useLang, type Lang } from '../../lib/i18n';
+import { DIMENSIONS, PROFILES } from '../../model/catalogue';
+import { HORIZON_OPTIONS, OBJECTIVE_OPTIONS, PERIMETER_OPTIONS, type Opt } from '../../model/options';
 import { buildResult, type Task } from '../../model/plan';
 import type { DimensionResult } from '../../model/scoring';
+import type { Profile } from '../../model/types';
 import { track } from '../../lib/remote';
 import { deleteEverything, go, recordResult, setTaskStatus, useAssessment, type TaskStatus } from '../../lib/store';
 import { deepList } from './Deep';
+import Narrative from './Narrative';
 
-const STATUS_PILL: Record<DimensionResult['status'], { label: string; bg: string; fg: string }> = {
-  complete: { label: 'Complete', bg: 'var(--navy-2)', fg: 'var(--lime)' },
-  indicative: { label: 'Indicative, incomplete', bg: 'rgba(0,195,191,0.16)', fg: 'var(--teal-dark)' },
-  insufficient_coverage: { label: 'Insufficient coverage', bg: 'var(--grey-1)', fg: 'var(--grey-4)' },
-  pending_profile: { label: 'Scoring pending', bg: 'var(--grey-1)', fg: 'var(--grey-4)' },
-  specialist_route: { label: 'Specialist route', bg: 'rgba(243,72,50,0.12)', fg: 'var(--red)' },
-  model_exception: { label: 'Model exception', bg: 'var(--grey-1)', fg: 'var(--grey-4)' },
+const STATUS_PILL: Record<DimensionResult['status'], { bg: string; fg: string }> = {
+  complete: { bg: 'var(--navy-2)', fg: 'var(--lime)' },
+  indicative: { bg: 'rgba(0,195,191,0.16)', fg: 'var(--teal-dark)' },
+  insufficient_coverage: { bg: 'var(--grey-1)', fg: 'var(--grey-4)' },
+  pending_profile: { bg: 'var(--grey-1)', fg: 'var(--grey-4)' },
+  specialist_route: { bg: 'rgba(243,72,50,0.12)', fg: 'var(--red)' },
+  model_exception: { bg: 'var(--grey-1)', fg: 'var(--grey-4)' },
 };
 
-const TASK_PILL: Record<string, { bg: string; fg: string }> = {
-  Critical: { bg: 'var(--red)', fg: 'var(--white)' },
-  'Needs review': { bg: 'var(--lime-2)', fg: 'var(--navy)' },
-  Clarify: { bg: 'var(--lime-2)', fg: 'var(--navy)' },
-  Reconfirm: { bg: 'var(--lime-2)', fg: 'var(--navy)' },
-  'Adviser review': { bg: 'var(--lime-2)', fg: 'var(--navy)' },
-  Confirm: { bg: 'var(--lime-2)', fg: 'var(--navy)' },
-  Unanswered: { bg: 'var(--grey-1)', fg: 'var(--grey-4)' },
-  Gap: { bg: 'var(--navy-2)', fg: 'var(--white)' },
-  Partial: { bg: 'var(--navy-2)', fg: 'var(--white)' },
+const PILL = {
+  red: { bg: 'var(--red)', fg: 'var(--white)' },
+  lime: { bg: 'var(--lime-2)', fg: 'var(--navy)' },
+  grey: { bg: 'var(--grey-1)', fg: 'var(--grey-4)' },
+  navy: { bg: 'var(--navy-2)', fg: 'var(--white)' },
 };
 
-function dimensionNote(d: DimensionResult): string {
+/** Badge colour from language-neutral task fields (the label text itself is localised). */
+function taskPill(t: Task, answered: boolean) {
+  if (t.kind === 'critical') return PILL.red;
+  if (t.kind === 'gap') return PILL.navy;
+  if (t.ruleId == null && !answered) return PILL.grey; // "Unanswered"
+  return PILL.lime;
+}
+
+function dimensionNote(d: DimensionResult, t: UIText): string {
   switch (d.status) {
-    case 'complete': return 'All applicable questions answered';
-    case 'indicative': return `Missing-answer range ${Math.round(d.lower)} to ${Math.round(d.upper)}${d.pendingApplicability ? ' · applicability pending' : ''}`;
-    case 'insufficient_coverage': return `${d.openCount} question${d.openCount === 1 ? '' : 's'} open. An index needs 80% coverage and every area at least half answered.`;
-    case 'pending_profile': return 'Confirm a perspective to see an index.';
-    case 'specialist_route': return 'A standard readiness conclusion is withheld on the specialist route.';
-    case 'model_exception': return 'An area has no applicable questions. This needs an approved model exception.';
+    case 'complete': return t.noteComplete;
+    case 'indicative': return t.noteIndicative(Math.round(d.lower), Math.round(d.upper), !!d.pendingApplicability);
+    case 'insufficient_coverage': return t.noteInsufficient(d.openCount);
+    case 'pending_profile': return t.notePending;
+    case 'specialist_route': return t.noteSpecialist;
+    case 'model_exception': return t.noteException;
   }
 }
 
-function csv(tasks: Task[], status: Record<string, TaskStatus>): string {
+function labelIn<T extends string>(lang: Lang, group: string, opts: Opt<T>[], v: T | null | undefined, fallback: string): string {
+  return localOptions(lang, group, opts).find((o) => o.value === v)?.label ?? fallback;
+}
+
+function csv(tasks: Task[], status: Record<string, TaskStatus>, t: UIText): string {
   const esc = (v: string | number | null | undefined) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const head = ['Priority', 'Type', 'Title', 'Reason', 'Action', 'Suggested owner', 'Suggested timing', 'Depends on', 'Evidence required', 'Dimension', 'Area', 'Questions', 'Status'];
-  const rows = tasks.map((t) => [t.priorityClass, t.label, t.title, t.reason, t.action, t.accountableRole, t.suggestedTiming, t.dependencies.join(' '), t.evidenceRequired, t.dimension, t.domain, t.sourceQuestionIds.join(' '), status[t.key] ?? 'open']);
-  return [head, ...rows].map((r) => r.map(esc).join(',')).join('\r\n');
+  const rows = tasks.map((x) => [x.priorityClass, x.label, x.title, x.reason, x.action, x.accountableRole, x.suggestedTiming, x.dependencies.join(' '), x.evidenceRequired, x.dimension, x.domain, x.sourceQuestionIds.join(' '), t.taskStatus[status[x.key] ?? 'open']]);
+  return [t.csvHead, ...rows].map((r) => r.map(esc).join(',')).join('\r\n');
 }
 
 export function Result() {
   const s = useAssessment();
-  const r = useMemo(() => buildResult(s.ctx, s.answers), [s.ctx, s.answers]);
+  const lang = useLang();
+  const t = useT();
+  // Rendered in the user's language. recordResult() stores the canonical English snapshot.
+  const r = useMemo(() => buildResult(s.ctx, s.answers, undefined, lang), [s.ctx, s.answers, lang]);
   const [filter, setFilter] = useState<'all' | 'critical' | 'open' | 'gap'>('all');
   const [showAll, setShowAll] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -60,13 +74,13 @@ export function Result() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [r.dataStatus, JSON.stringify(r.dimensions.map((d) => d.displayIndex)), r.profile]);
 
-  const profileName = PROFILES.find((p) => p.key === r.score.weightingProfile)!.name;
+  const profileName = profileText(lang, r.score.weightingProfile).name;
   const chips = [
-    s.ctx.profile && s.ctx.profile !== 'UNDECIDED' ? profileName : 'Perspective not confirmed',
-    s.ctx.objectives.map((o) => labelOf(OBJECTIVE_OPTIONS, o)).join(', ') || 'Objective not set',
-    labelOf(PERIMETER_OPTIONS, s.ctx.perimeter),
-    labelOf(HORIZON_OPTIONS, s.ctx.horizon),
-    ...r.activeModules.map((k) => ROUTE_LABELS[k]),
+    s.ctx.profile && s.ctx.profile !== 'UNDECIDED' ? profileName : t.perspectiveNotConfirmed,
+    s.ctx.objectives.map((o) => labelIn(lang, 'objective', OBJECTIVE_OPTIONS, o, t.notSet)).join(', ') || t.objectiveNotSet,
+    labelIn(lang, 'perimeter', PERIMETER_OPTIONS, s.ctx.perimeter, t.notSet),
+    labelIn(lang, 'horizon', HORIZON_OPTIONS, s.ctx.horizon, t.notSet),
+    ...r.activeModules.map((k) => routeLabel(lang, k)),
   ];
   const list = deepList(s.ctx);
   const openQuestion = (qid: string) => go('deep', { qIdx: Math.max(0, list.findIndex((x) => x.q.id === qid)) });
@@ -78,10 +92,10 @@ export function Result() {
   const complete = r.dataStatus === 'data_complete';
 
   const download = () => {
-    const blob = new Blob(['﻿' + csv(r.tasks, s.taskStatus)], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob(['﻿' + csv(r.tasks, s.taskStatus, t)], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `exitiq-action-plan-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `${t.csvFile}-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
     track('export', s.remoteId, { stage: 'RESULT' });
@@ -91,15 +105,15 @@ export function Result() {
     <main style={{ flex: 1 }}>
       <section className="result-hero">
         <div className="wrap" style={{ padding: '44px 24px 40px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <span className="kicker">Action plan · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+          <span className="kicker">{t.planKicker(new Date().toLocaleDateString(locale(lang), { day: 'numeric', month: 'long', year: 'numeric' }))}</span>
           <h1 className="h1" style={{ color: 'var(--lime)', maxWidth: 900 }}>
-            {r.specialist.length ? 'Your progress is kept. A specialist route comes first.' : complete ? 'Your assessment is complete. Here is where preparation stands.' : 'Here is where preparation stands, and what is still open.'}
+            {r.specialist.length ? t.heroSpecialist : complete ? t.heroComplete : t.heroOpen}
           </h1>
           <div className="chips">
             {chips.map((c) => <span key={c} className="pill" style={{ border: '1px solid rgba(255,255,255,0.3)', padding: '7px 12px', fontSize: 13, fontWeight: 500 }}>{c}</span>)}
           </div>
           {complete && r.riskStatus !== 'none' && (
-            <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.8)', maxWidth: 760 }}>“Complete” describes the data, not approval to transact. Open risks are shown separately below.</p>
+            <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.8)', maxWidth: 760 }}>{t.completeNote}</p>
           )}
         </div>
       </section>
@@ -108,35 +122,37 @@ export function Result() {
         <div className="wrap" style={{ padding: '40px 24px 64px', display: 'flex', flexDirection: 'column', gap: 48 }}>
           <section aria-labelledby="dims-title" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'baseline' }}>
-              <h2 className="h3" id="dims-title" style={{ fontSize: 26 }}>Three readiness dimensions</h2>
+              <h2 className="h3" id="dims-title" style={{ fontSize: 26 }}>{t.dimsTitle}</h2>
               <span style={{ fontSize: 13, color: 'var(--grey-4)' }}>
-                {r.profile ? `Weighted for: ${profileName}` : 'No perspective confirmed'} · Model v1, proposed parameters
+                {r.profile ? t.weightedFor(profileName) : t.noPerspective} · {t.modelNote}
               </span>
             </div>
             {prev && prev.profile !== r.profile && (
               <p style={{ margin: 0, fontSize: 14, color: 'var(--grey-4)' }}>
-                Recalculated after a change of perspective. Previously ({prev.profile ? PROFILES.find((p) => p.key === prev.profile)?.name : 'not confirmed'}):{' '}
-                {DIMENSIONS.map((d, i) => `${d.name} ${prev.indices[i] ?? 'not shown'}`).join(' · ')}.
+                {t.recalculated(
+                  prev.profile ? (PROFILES.some((p) => p.key === prev.profile) ? profileText(lang, prev.profile as Profile).name : prev.profile) : t.notConfirmed,
+                  DIMENSIONS.map((d, i) => `${dimensionName(lang, d.key)} ${prev.indices[i] ?? t.notShownLower}`).join(' · '),
+                )}
               </p>
             )}
             <div className="dim-grid">
-              {r.dimensions.map((d) => <DimensionCard key={d.key} d={d} />)}
+              {r.dimensions.map((d) => <DimensionCard key={d.key} d={d} lang={lang} t={t} />)}
             </div>
             <p style={{ margin: 0, fontSize: 13, color: 'var(--grey-4)', lineHeight: 1.6, maxWidth: 820 }}>
-              An index is shown when at least 80% of a dimension’s weighted questions are answered and every area is at least half answered. The range shows the lowest and highest result your open answers could still produce; it is not a statistical confidence interval. Hatched bars mark open questions. Evidence support is shown separately from answer points.
+              {t.indexNote}
             </p>
           </section>
 
           <div className="two-col">
             <section aria-labelledby="risk-title" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <h2 className="h3" id="risk-title">Risk status</h2>
-              <p style={{ margin: 0, fontSize: 14, color: 'var(--grey-4)' }}>Shown separately so that a strong result elsewhere cannot hide a time-critical issue.</p>
+              <h2 className="h3" id="risk-title">{t.riskTitle}</h2>
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--grey-4)' }}>{t.riskSub}</p>
               {r.risks.length === 0 && (
-                <div style={{ border: '1px solid var(--grey-2)', borderRadius: 14, padding: '12px 14px', fontSize: 14 }}>No critical prerequisites or open review items based on your answers. This does not replace specialist review.</div>
+                <div style={{ border: '1px solid var(--grey-2)', borderRadius: 14, padding: '12px 14px', fontSize: 14 }}>{t.noRisks}</div>
               )}
               {r.risks.map((k) => (
                 <div key={k.rule + k.title} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', border: `1px solid ${k.severity === 'critical' ? 'var(--red)' : 'var(--grey-2)'}`, borderRadius: 14, padding: '12px 14px', fontSize: 14, lineHeight: 1.5 }}>
-                  <span className="pill" style={k.severity === 'critical' ? { background: 'var(--red)', color: 'var(--white)' } : { background: 'var(--grey-1)', border: '1px solid var(--grey-2)' }}>{k.severity === 'critical' ? 'Critical' : 'Needs review'}</span>
+                  <span className="pill" style={k.severity === 'critical' ? { background: 'var(--red)', color: 'var(--white)' } : { background: 'var(--grey-1)', border: '1px solid var(--grey-2)' }}>{k.severity === 'critical' ? t.critical : t.needsReview}</span>
                   <span>
                     <b>{k.title}.</b> {k.text}
                     {k.questionIds.length > 0 && <span style={{ color: 'var(--grey-4)' }}> ({k.questionIds.join(', ')})</span>}
@@ -145,13 +161,13 @@ export function Result() {
               ))}
             </section>
             <section aria-labelledby="str-title" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <h2 className="h3" id="str-title">Supported strengths</h2>
-              <p style={{ margin: 0, fontSize: 14, color: 'var(--grey-4)' }}>Up to three, each linked to the answer it comes from. “You reported” statements, not independent verification.</p>
-              {r.strengths.length === 0 && <div style={{ background: 'var(--grey-1)', borderRadius: 14, padding: '12px 14px', fontSize: 14 }}>Strengths appear here once answers support them.</div>}
+              <h2 className="h3" id="str-title">{t.strTitle}</h2>
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--grey-4)' }}>{t.strSub}</p>
+              {r.strengths.length === 0 && <div style={{ background: 'var(--grey-1)', borderRadius: 14, padding: '12px 14px', fontSize: 14 }}>{t.strEmpty}</div>}
               {r.strengths.map((x) => (
                 <div key={x.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: 'var(--grey-1)', borderRadius: 14, padding: '12px 14px', fontSize: 14, lineHeight: 1.5 }}>
                   <span className="pill" style={{ background: 'var(--navy-2)', color: 'var(--white)' }}>{x.id}</span>
-                  <span><b>{x.name}.</b> You reported: {x.text}</span>
+                  <span><b>{x.name}.</b> {t.youReported} {x.text}</span>
                 </div>
               ))}
             </section>
@@ -159,67 +175,67 @@ export function Result() {
 
           <section aria-labelledby="tasks-title" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-              <h2 className="h3" id="tasks-title" style={{ fontSize: 26 }}>Priority actions</h2>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} role="group" aria-label="Filter tasks">
-                {([['all', `All · ${r.tasks.length}`], ['critical', `Critical · ${count('critical')}`], ['open', `Open facts · ${count('open')}`], ['gap', `Preparation · ${count('gap')}`]] as const).map(([k, l]) => (
+              <h2 className="h3" id="tasks-title" style={{ fontSize: 26 }}>{t.tasksTitle}</h2>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} role="group" aria-label={t.filterAria}>
+                {([['all', `${t.filterAll} · ${r.tasks.length}`], ['critical', `${t.filterCritical} · ${count('critical')}`], ['open', `${t.filterOpen} · ${count('open')}`], ['gap', `${t.filterGap} · ${count('gap')}`]] as const).map(([k, l]) => (
                   <button key={k} type="button" className="filter-btn" aria-pressed={filter === k} onClick={() => { setFilter(k); setShowAll(false); }}>{l}</button>
                 ))}
               </div>
             </div>
             <div className="task-list">
-              {shown.length === 0 && <div style={{ padding: 18, fontSize: 14 }}>Nothing in this view.</div>}
-              {shown.map((t) => {
-                const pill = TASK_PILL[t.label] ?? TASK_PILL.Gap;
-                const qid = t.sourceQuestionIds[0];
+              {shown.length === 0 && <div style={{ padding: 18, fontSize: 14 }}>{t.nothingHere}</div>}
+              {shown.map((task) => {
+                const qid = task.sourceQuestionIds[0];
+                const pill = taskPill(task, !!(qid && s.answers[qid]));
                 return (
-                  <div key={t.key} className="task">
-                    <span className="pill" style={{ background: pill.bg, color: pill.fg, alignSelf: 'start' }}>{t.label}</span>
+                  <div key={task.key} className="task">
+                    <span className="pill" style={{ background: pill.bg, color: pill.fg, alignSelf: 'start' }}>{task.label}</span>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <b style={{ fontSize: 15 }}>{t.title}</b>
-                      <span style={{ fontSize: 14, lineHeight: 1.5 }}>{t.reason}</span>
-                      <span style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--grey-4)' }}>Suggested next step: {t.action}</span>
+                      <b style={{ fontSize: 15 }}>{task.title}</b>
+                      <span style={{ fontSize: 14, lineHeight: 1.5 }}>{task.reason}</span>
+                      <span style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--grey-4)' }}>{t.nextStep(task.action)}</span>
                       <span style={{ fontSize: 12, color: 'var(--grey-4)' }}>
-                        {[t.dimension, t.domain, `Suggested: ${t.accountableRole}`, t.suggestedTiming, t.dependencies.length ? `After ${t.dependencies.join(', ')}` : null, t.sourceQuestionIds.join(', ') || null].filter(Boolean).join(' · ')}
+                        {[task.dimension, task.domain, t.suggestedOwner(task.accountableRole), task.suggestedTiming, task.dependencies.length ? t.after(task.dependencies.join(', ')) : null, task.sourceQuestionIds.join(', ') || null].filter(Boolean).join(' · ')}
                       </span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }} className="no-print">
-                      <select className="input input-light" style={{ width: 'auto', padding: '6px 10px', fontSize: 13 }} aria-label={`Status of ${t.title}`}
-                        value={s.taskStatus[t.key] ?? 'open'} onChange={(e) => setTaskStatus(t.key, e.target.value as TaskStatus)}>
-                        <option value="open">Open</option>
-                        <option value="in_progress">In progress</option>
-                        <option value="done">Done</option>
+                      <select className="input input-light" style={{ width: 'auto', padding: '6px 10px', fontSize: 13 }} aria-label={t.statusOf(task.title)}
+                        value={s.taskStatus[task.key] ?? 'open'} onChange={(e) => setTaskStatus(task.key, e.target.value as TaskStatus)}>
+                        <option value="open">{t.taskStatus.open}</option>
+                        <option value="in_progress">{t.taskStatus.in_progress}</option>
+                        <option value="done">{t.taskStatus.done}</option>
                       </select>
-                      {qid && t.kind !== 'critical' && t.ruleId !== 'APP' && (
-                        <button type="button" onClick={() => openQuestion(qid)} style={{ background: 'none', border: 0, color: 'var(--teal-dark)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Open question</button>
+                      {qid && task.kind !== 'critical' && task.ruleId !== 'APP' && (
+                        <button type="button" onClick={() => openQuestion(qid)} style={{ background: 'none', border: 0, color: 'var(--teal-dark)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>{t.openQuestion}</button>
                       )}
-                      {t.ruleId === 'APP' && <button type="button" onClick={() => go('c3')} style={{ background: 'none', border: 0, color: 'var(--teal-dark)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Clarify setup</button>}
+                      {task.ruleId === 'APP' && <button type="button" onClick={() => go('c3')} style={{ background: 'none', border: 0, color: 'var(--teal-dark)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>{t.clarifySetup}</button>}
                     </div>
                   </div>
                 );
               })}
               {tasks.length > 8 && (
                 <button type="button" className="no-print" onClick={() => setShowAll((x) => !x)} style={{ width: '100%', padding: 14, border: 0, borderTop: '1px solid var(--grey-1)', background: 'var(--grey-1)', fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}>
-                  {showAll ? 'Show fewer' : `Show all ${tasks.length} items`}
+                  {showAll ? t.showFewer : t.showAll(tasks.length)}
                 </button>
               )}
             </div>
-            <p style={{ margin: 0, fontSize: 13, color: 'var(--grey-4)' }}>Timings are planning suggestions, not legal deadlines. Critical items come first, then open facts, then preparation gaps ranked by their weight within the dimension.</p>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--grey-4)' }}>{t.timingNote}</p>
           </section>
 
           <div className="two-col">
             <section aria-labelledby="tax-title" style={{ background: 'var(--navy-2)', color: 'var(--white)', borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <h2 className="h3" id="tax-title">Tax preparation</h2>
-              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: 'rgba(255,255,255,0.84)' }}>This measures preparation and specialist review. It is not tax advice and does not assess how tax-efficient a structure is. Seller-level matters are kept separate from company-level work.</p>
+              <h2 className="h3" id="tax-title">{t.taxTitle}</h2>
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: 'rgba(255,255,255,0.84)' }}>{t.taxSub}</p>
               {(['company', 'seller', 'cross_border'] as const).map((scope) => {
                 const rows = r.tax.filter((x) => x.scope === scope);
                 if (!rows.length) return null;
                 return (
                   <div key={scope} style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', margin: '8px 0 4px' }}>{scope === 'company' ? 'Company level' : scope === 'seller' ? 'Seller level' : 'Cross-border'}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', margin: '8px 0 4px' }}>{t.taxScope[scope]}</span>
                     {rows.map((x) => (
                       <div key={x.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.12)', fontSize: 14 }}>
                         <span>{x.name}</span>
-                        <b style={{ color: x.status === 'Prepared' ? 'var(--lime)' : x.status === 'In progress' || x.status === 'Not started' ? 'var(--white)' : 'var(--lime-2)', whiteSpace: 'nowrap' }}>{x.status}</b>
+                        <b style={{ color: x.status === 'Prepared' ? 'var(--lime)' : x.status === 'In progress' || x.status === 'Not started' ? 'var(--white)' : 'var(--lime-2)', whiteSpace: 'nowrap' }}>{t.taxStatus[x.status]}</b>
                       </div>
                     ))}
                   </div>
@@ -227,65 +243,69 @@ export function Result() {
               })}
             </section>
             <section style={{ background: 'var(--grey-1)', borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', gap: 14, alignSelf: 'start' }}>
-              <h2 className="h3">What this report does not show</h2>
-              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>No overall exit score, no valuation, no sale probability and no implied multiple. A high readiness result describes preparation. It does not mean maximum attractiveness to investors, and business economics or customer structure can matter to buyers regardless.</p>
+              <h2 className="h3">{t.notShowTitle}</h2>
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{t.notShowBody}</p>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }} className="no-print">
-                <button type="button" className="btn btn-navy" onClick={() => go('deep')}>Continue answering</button>
-                <button type="button" className="btn btn-outline" onClick={() => window.print()}>Print or save as PDF</button>
-                <button type="button" className="btn btn-outline" onClick={download}>Export task list (CSV)</button>
+                <button type="button" className="btn btn-navy" onClick={() => go('deep')}>{t.continueAnswering}</button>
+                <button type="button" className="btn btn-outline" onClick={() => window.print()}>{t.print}</button>
+                <button type="button" className="btn btn-outline" onClick={download}>{t.exportCsv}</button>
               </div>
               <div style={{ borderTop: '1px solid var(--grey-2)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }} className="no-print">
-                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>Would you like an atares adviser to review the gaps with you? This is optional and separate from your result.</p>
-                <a className="btn btn-outline" style={{ alignSelf: 'flex-start' }} href="https://atares.team" target="_blank" rel="noreferrer" onClick={() => track('contact_request', s.remoteId, { stage: 'RESULT' })}>Discuss with atares</a>
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{t.adviserQ}</p>
+                <a className="btn btn-outline" style={{ alignSelf: 'flex-start' }} href="https://atares.team" target="_blank" rel="noreferrer" onClick={() => track('contact_request', s.remoteId, { stage: 'RESULT' })}>{t.discuss}</a>
               </div>
             </section>
           </div>
 
+          <Narrative />
+
           <section className="no-print" style={{ borderTop: '1px solid var(--grey-2)', paddingTop: 20, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', fontSize: 13, color: 'var(--grey-4)' }}>
-            <span>Model {r.versions.catalogue} · {r.versions.scoring} · {r.versions.report}</span>
+            <span>{t.modelLine(r.versions.catalogue, r.versions.scoring, r.versions.report)}</span>
             <span style={{ marginLeft: 'auto' }} />
             {!confirmDelete ? (
-              <button type="button" onClick={() => setConfirmDelete(true)} style={{ background: 'none', border: 0, color: 'var(--red)', cursor: 'pointer', fontSize: 13 }}>Delete this assessment</button>
+              <button type="button" onClick={() => setConfirmDelete(true)} style={{ background: 'none', border: 0, color: 'var(--red)', cursor: 'pointer', fontSize: 13 }}>{t.deleteThis}</button>
             ) : (
               <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                This removes your answers from this browser and from the ExitIQ database.
-                <button type="button" className="btn btn-sm" style={{ background: 'var(--red)', color: 'var(--white)' }} onClick={async () => { await deleteEverything(); navigate('/'); }}>Delete</button>
-                <button type="button" className="btn btn-sm btn-outline" onClick={() => setConfirmDelete(false)}>Cancel</button>
+                {t.deleteWarn}
+                <button type="button" className="btn btn-sm" style={{ background: 'var(--red)', color: 'var(--white)' }} onClick={async () => { await deleteEverything(); navigate('/'); }}>{t.delete}</button>
+                <button type="button" className="btn btn-sm btn-outline" onClick={() => setConfirmDelete(false)}>{t.cancel}</button>
               </span>
             )}
           </section>
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--grey-4)', textAlign: 'center' }}>ExitIQ is a structured self-assessment. It does not replace legal, tax or financial advice, and its results are not a valuation.</p>
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--grey-4)', textAlign: 'center' }}>{t.disclaimer}</p>
         </div>
       </div>
     </main>
   );
 }
 
-function DimensionCard({ d }: { d: DimensionResult }) {
+function DimensionCard({ d, lang, t }: { d: DimensionResult; lang: Lang; t: UIText }) {
   const pill = STATUS_PILL[d.status];
+  const name = dimensionName(lang, d.key);
   const shown = d.displayIndex != null;
   return (
     <article className="dim-card" aria-labelledby={`dim-${d.key}`}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <h3 id={`dim-${d.key}`} style={{ margin: 0, fontSize: 19 }}>{d.name}</h3>
-        <span className="pill" style={{ background: pill.bg, color: pill.fg }}>{pill.label}</span>
+        <h3 id={`dim-${d.key}`} style={{ margin: 0, fontSize: 19 }}>{name}</h3>
+        <span className="pill" style={{ background: pill.bg, color: pill.fg }}>{t.dimStatus[d.status]}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-        <span className="big-index" style={{ color: shown ? 'var(--navy)' : 'var(--grey-3)' }}>{shown ? d.displayIndex : 'Not shown'}</span>
-        <span style={{ fontSize: 13, color: 'var(--grey-4)' }}>{dimensionNote(d)}</span>
+        <span className="big-index" style={{ color: shown ? 'var(--navy)' : 'var(--grey-3)' }}>{shown ? d.displayIndex : t.notShown}</span>
+        <span style={{ fontSize: 13, color: 'var(--grey-4)' }}>{dimensionNote(d, t)}</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 12, color: 'var(--grey-4)' }}>
-        <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>Answer coverage {pct(d.coverage)}<Bar value={d.coverage * 100} label={`Answer coverage ${pct(d.coverage)}`} /></span>
-        <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>Evidence support {pct(d.evidenceSupport)}<Bar value={d.evidenceSupport * 100} color="var(--teal-dark)" label={`Evidence support ${pct(d.evidenceSupport)}`} /></span>
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{t.answerCoverage} {pct(d.coverage)}<Bar value={d.coverage * 100} label={`${t.answerCoverage} ${pct(d.coverage)}`} /></span>
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{t.evidenceSupport} {pct(d.evidenceSupport)}<Bar value={d.evidenceSupport * 100} color="var(--teal-dark)" label={`${t.evidenceSupport} ${pct(d.evidenceSupport)}`} /></span>
       </div>
       <div style={{ borderTop: '1px solid var(--grey-1)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {d.domains.map((m) => {
           const lc = m.localCoverage;
-          const label = m.index == null ? 'Open' : `${Math.round(m.index)}${lc < 1 ? ` · ${Math.round(lc * 100)}% answered` : ''}`;
+          const label = m.index == null ? t.open : `${Math.round(m.index)}${lc < 1 ? ` · ${t.pctAnswered(Math.round(lc * 100))}` : ''}`;
+          const mName = domainName(lang, m.key);
           return (
             <div key={m.key} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 14 }}><b>{m.name}</b><span style={{ whiteSpace: 'nowrap', color: 'var(--grey-4)' }}>{label}</span></div>
-              <Bar value={(m.index ?? 0) * lc} open={(1 - lc) * 100} label={`${m.name}: ${label}`} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 14 }}><b>{mName}</b><span style={{ whiteSpace: 'nowrap', color: 'var(--grey-4)' }}>{label}</span></div>
+              <Bar value={(m.index ?? 0) * lc} open={(1 - lc) * 100} label={`${mName}: ${label}`} />
             </div>
           );
         })}

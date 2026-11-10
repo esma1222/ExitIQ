@@ -2,6 +2,8 @@
 // Module membership controls applicability only; it never adds a second score
 // for the same control.
 
+import type { Lang } from '../lib/i18n';
+import { localQuestion } from '../i18n/localize';
 import { QUESTIONS } from './catalogue';
 import type { AssessmentContext, Profile, QuestionDef, RouteCode, RouteMap, RouteState, TriState, TriggerKey } from './types';
 
@@ -87,7 +89,7 @@ export function confirmedProfile(ctx: AssessmentContext): Profile | null {
   return ctx.profile && ctx.profile !== 'UNDECIDED' ? ctx.profile : null;
 }
 
-/** IPO, distress or confirmed acute liquidity pressure: specialist pathway, no standard conclusion. */
+/** IPO, distress or confirmed acute liquidity pressure: specialist pathway, no standard conclusion. Returns reason codes, not display text. */
 export function specialistReasons(ctx: AssessmentContext): string[] {
   const r: string[] = [];
   if (ctx.liquidity === 'acute') r.push('liquidity');
@@ -97,7 +99,8 @@ export function specialistReasons(ctx: AssessmentContext): string[] {
 }
 
 /** Wording variants (section 5). Same anchors and score semantics. */
-export function questionText(q: QuestionDef, ctx: AssessmentContext): string {
+export function questionText(q0: QuestionDef, ctx: AssessmentContext, lang: Lang = 'en'): string {
+  const q = localQuestion(lang, q0);
   const v = q.variants;
   if (!v) return q.question;
   const venture = ctx.profile === 'VC' || ctx.ownershipTags.includes('vc');

@@ -1,6 +1,10 @@
 import { navigate } from '../../App';
 import { CheckboxGroup, Field, RadioGroup, Segmented } from '../../components/ui';
 import { PROFILES } from '../../model/catalogue';
+import { bandLabel, localOptions, profileText } from '../../i18n/localize';
+import { useT } from '../../i18n/ui';
+import { useLang } from '../../lib/i18n';
+import { privacyUrl } from '../../lib/links';
 import {
   BUSINESS_MODELS, EMPLOYEE_BANDS, HORIZON_OPTIONS, LIQUIDITY_OPTIONS, MANAGEMENT_OPTIONS, OBJECTIVE_OPTIONS, OWNERSHIP_OPTIONS,
   PERIMETER_OPTIONS, REVENUE_BANDS, ROLE_OPTIONS, SELLER_TAX_OPTIONS, SELLER_TYPE_OPTIONS, TRIGGER_OPTIONS,
@@ -14,15 +18,14 @@ function toggle<T>(xs: T[], v: T): T[] {
   return xs.includes(v) ? xs.filter((x) => x !== v) : [...xs, v];
 }
 
-const TRI: { value: TriState; label: string }[] = [
-  { value: 'yes', label: 'Yes' },
-  { value: 'no', label: 'No' },
-  { value: 'unknown', label: 'Not sure' },
-];
+const TRI_VALUES: TriState[] = ['yes', 'no', 'unknown'];
 
 export function ContextScreen({ screen }: { screen: 'c1' | 'c2' | 'c3' }) {
   const { ctx } = useAssessment();
   const set = (p: Partial<AssessmentContext>) => setContext(p);
+  const lang = useLang();
+  const t = useT();
+  const TRI = TRI_VALUES.map((value) => ({ value, label: t.tri[value] }));
 
   let kicker = '';
   let title = '';
@@ -31,31 +34,31 @@ export function ContextScreen({ screen }: { screen: 'c1' | 'c2' | 'c3' }) {
   let body: React.ReactNode = null;
 
   if (screen === 'c1') {
-    kicker = 'Context · 1 of 3';
-    title = 'Tell us about you and the business.';
-    sub = 'These answers are not scored. They decide which questions apply to you and how they are worded.';
+    kicker = t.ctxKicker(1);
+    title = t.c1Title;
+    sub = t.c1Sub;
     ok = !!ctx.role && ctx.ownershipTags.length > 0 && !!ctx.managementModel;
     body = (
       <>
         <PrivacyNotice />
-        <Field id="f-role" label="Which best describes your role?" why="Used to phrase questions. It does not change access rights or scoring.">
-          <RadioGroup label="Your role" choices={ROLE_OPTIONS} value={ctx.role} onChange={(role) => set({ role })} />
+        <Field id="f-role" label={t.roleLabel} why={t.roleWhy}>
+          <RadioGroup label={t.roleAria} choices={localOptions(lang, 'role', ROLE_OPTIONS)} value={ctx.role} onChange={(role) => set({ role })} />
         </Field>
-        <Field id="f-own" label="Who owns the business today?" why="Select all that apply. Mixed ownership is common and fully supported.">
-          <CheckboxGroup label="Ownership" choices={OWNERSHIP_OPTIONS} values={ctx.ownershipTags}
+        <Field id="f-own" label={t.ownLabel} why={t.ownWhy}>
+          <CheckboxGroup label={t.ownAria} choices={localOptions(lang, 'ownership', OWNERSHIP_OPTIONS)} values={ctx.ownershipTags}
             onToggle={(v: OwnershipTag) => set({ ownershipTags: v === 'unknown' ? (ctx.ownershipTags.includes('unknown') ? [] : ['unknown']) : toggle(ctx.ownershipTags.filter((x) => x !== 'unknown'), v) })} />
         </Field>
-        <Field id="f-mgmt" label="Who runs the business day to day?" why="Changes the wording of some questions, for example who would be absent.">
-          <RadioGroup label="Management" choices={MANAGEMENT_OPTIONS} value={ctx.managementModel} onChange={(managementModel) => set({ managementModel })} />
+        <Field id="f-mgmt" label={t.mgmtLabel} why={t.mgmtWhy}>
+          <RadioGroup label={t.mgmtAria} choices={localOptions(lang, 'management', MANAGEMENT_OPTIONS)} value={ctx.managementModel} onChange={(managementModel) => set({ managementModel })} />
         </Field>
-        <Field id="f-company" label="About the company (optional)" why="Helps us describe your result. Not scored and not used for routing. The company’s country is never used to infer where sellers pay tax.">
+        <Field id="f-company" label={t.companyLabel} why={t.companyWhy}>
           <div className="grid-auto" style={{ ['--min' as string]: '200px', gap: 12 }}>
-            <Select label="Business model" value={ctx.company.businessModel} options={BUSINESS_MODELS} onChange={(businessModel) => set({ company: { ...ctx.company, businessModel } })} />
-            <Select label="Annual revenue" value={ctx.company.revenueBand} options={REVENUE_BANDS} onChange={(revenueBand) => set({ company: { ...ctx.company, revenueBand } })} />
-            <Select label="Employees" value={ctx.company.employeeBand} options={EMPLOYEE_BANDS} onChange={(employeeBand) => set({ company: { ...ctx.company, employeeBand } })} />
+            <Select label={t.businessModel} value={ctx.company.businessModel} options={BUSINESS_MODELS} onChange={(businessModel) => set({ company: { ...ctx.company, businessModel } })} />
+            <Select label={t.revenue} value={ctx.company.revenueBand} options={REVENUE_BANDS} onChange={(revenueBand) => set({ company: { ...ctx.company, revenueBand } })} />
+            <Select label={t.employees} value={ctx.company.employeeBand} options={EMPLOYEE_BANDS} onChange={(employeeBand) => set({ company: { ...ctx.company, employeeBand } })} />
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
-              Company country
-              <input className="input" value={ctx.company.jurisdiction ?? ''} maxLength={60} placeholder="e.g. Germany"
+              {t.country}
+              <input className="input" value={ctx.company.jurisdiction ?? ''} maxLength={60} placeholder={t.countryPlaceholder}
                 onChange={(e) => set({ company: { ...ctx.company, jurisdiction: e.target.value || null } })} />
             </label>
           </div>
@@ -64,54 +67,54 @@ export function ContextScreen({ screen }: { screen: 'c1' | 'c2' | 'c3' }) {
     );
   } else if (screen === 'c2') {
     const sug = suggestProfile(ctx);
-    kicker = 'Context · 2 of 3';
-    title = 'What kind of transaction are you preparing?';
-    sub = 'Timing changes the urgency of tasks, never the readiness result.';
+    kicker = t.ctxKicker(2);
+    title = t.c2Title;
+    sub = t.c2Sub;
     ok = ctx.objectives.length > 0 && !!ctx.perimeter && !!ctx.horizon && !!ctx.profile;
     body = (
       <>
-        <Field id="f-obj" label="What should the transaction achieve?" why="Select all that apply. Exploring options is a valid objective and is not penalised.">
-          <CheckboxGroup label="Objectives" choices={OBJECTIVE_OPTIONS} values={ctx.objectives} onToggle={(v) => set({ objectives: toggle(ctx.objectives, v) })} />
+        <Field id="f-obj" label={t.objLabel} why={t.objWhy}>
+          <CheckboxGroup label={t.objAria} choices={localOptions(lang, 'objective', OBJECTIVE_OPTIONS)} values={ctx.objectives} onToggle={(v) => set({ objectives: toggle(ctx.objectives, v) })} />
         </Field>
-        <Field id="f-per" label="What would be transferred?" why="The perimeter decides whether separation and asset transfer questions apply.">
-          <RadioGroup label="Perimeter" choices={PERIMETER_OPTIONS} value={ctx.perimeter} onChange={(perimeter) => set({ perimeter })} />
+        <Field id="f-per" label={t.perLabel} why={t.perWhy}>
+          <RadioGroup label={t.perAria} choices={localOptions(lang, 'perimeter', PERIMETER_OPTIONS)} value={ctx.perimeter} onChange={(perimeter) => set({ perimeter })} />
         </Field>
-        <Field id="f-hor" label="When could a transaction start?" why="Used to order your tasks. It does not change the readiness result.">
-          <RadioGroup label="Horizon" choices={HORIZON_OPTIONS} value={ctx.horizon} onChange={(horizon) => set({ horizon })} min="160px" />
+        <Field id="f-hor" label={t.horLabel} why={t.horWhy}>
+          <RadioGroup label={t.horAria} choices={localOptions(lang, 'horizon', HORIZON_OPTIONS)} value={ctx.horizon} onChange={(horizon) => set({ horizon })} min="160px" />
         </Field>
-        <Field id="f-prof" label="Which perspective best describes the transaction you are preparing?" why="This sets how the areas are weighted. We suggest one from your answers; you confirm it and can change it later. Mixed ownership keeps all its questions, whichever perspective drives the weighting.">
-          <RadioGroup label="Perspective" min="280px"
-            choices={[...PROFILES.map((p) => ({ value: p.key as AssessmentContext['profile'] & string, label: p.name, sub: p.description, tag: p.key === sug ? 'Suggested' : '' })),
-              { value: 'UNDECIDED', label: 'Not decided yet', sub: 'Discovery works. Scoring stays pending until you confirm a perspective.', tag: '' }]}
+        <Field id="f-prof" label={t.profLabel} why={t.profWhy}>
+          <RadioGroup label={t.profAria} min="280px"
+            choices={[...PROFILES.map((p) => ({ value: p.key as AssessmentContext['profile'] & string, label: profileText(lang, p.key).name, sub: profileText(lang, p.key).description, tag: p.key === sug ? t.suggested : '' })),
+              { value: 'UNDECIDED', label: t.undecided, sub: t.undecidedSub, tag: '' }]}
             value={ctx.profile} onChange={(profile) => set({ profile })} />
         </Field>
       </>
     );
   } else {
-    kicker = 'Context · 3 of 3';
-    title = 'A few specialist topics.';
-    sub = 'Each one switches on a short set of extra questions only if it applies. “Not sure” keeps those questions open until clarified, so nothing is hidden by accident.';
+    kicker = t.ctxKicker(3);
+    title = t.c3Title;
+    sub = t.c3Sub;
     ok = !!ctx.liquidity && TRIGGER_OPTIONS.every((t) => !!ctx.triggers[t.value]) && !!ctx.sellerType && !!ctx.sellerTaxStatus;
     body = (
       <>
-        <Field id="f-liq" label="Are there known or expected difficulties meeting payment obligations during the next six months?" why="Not scored. It decides whether a specialist route should come first. ExitIQ does not diagnose insolvency.">
-          <RadioGroup label="Liquidity" choices={LIQUIDITY_OPTIONS} value={ctx.liquidity} onChange={(liquidity) => set({ liquidity })} min="220px" />
+        <Field id="f-liq" label={t.liqLabel} why={t.liqWhy}>
+          <RadioGroup label={t.liqAria} choices={localOptions(lang, 'liquidity', LIQUIDITY_OPTIONS)} value={ctx.liquidity} onChange={(liquidity) => set({ liquidity })} min="220px" />
         </Field>
-        <Field id="f-trig" label="Do any of these apply?" why="One answer per line.">
+        <Field id="f-trig" label={t.trigLabel} why={t.trigWhy}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {TRIGGER_OPTIONS.map((t) => (
-              <div key={t.value} className="opt" style={{ cursor: 'default', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-                <span id={`trig-${t.value}`}>{t.label}</span>
-                <Segmented label={t.label} choices={TRI} value={ctx.triggers[t.value]} onChange={(v) => set({ triggers: { ...ctx.triggers, [t.value]: v } })} />
+            {localOptions(lang, 'trigger', TRIGGER_OPTIONS).map((o) => (
+              <div key={o.value} className="opt" style={{ cursor: 'default', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                <span id={`trig-${o.value}`}>{o.label}</span>
+                <Segmented label={o.label} choices={TRI} value={ctx.triggers[o.value]} onChange={(v) => set({ triggers: { ...ctx.triggers, [o.value]: v } })} />
               </div>
             ))}
           </div>
         </Field>
-        <Field id="f-sel" label="Who would sell?" why="The legal form of the sellers matters for tax preparation. Exact identities are not needed here.">
-          <RadioGroup label="Seller type" choices={SELLER_TYPE_OPTIONS} value={ctx.sellerType} onChange={(sellerType) => set({ sellerType })} />
+        <Field id="f-sel" label={t.selLabel} why={t.selWhy}>
+          <RadioGroup label={t.selAria} choices={localOptions(lang, 'sellerType', SELLER_TYPE_OPTIONS)} value={ctx.sellerType} onChange={(sellerType) => set({ sellerType })} />
         </Field>
-        <Field id="f-tax" label="Where are the sellers resident for tax?" why="Decides whether cross-border tax coordination applies. We do not infer this from the company’s address.">
-          <RadioGroup label="Seller tax residence" choices={SELLER_TAX_OPTIONS} value={ctx.sellerTaxStatus} onChange={(sellerTaxStatus) => set({ sellerTaxStatus })} min="220px" />
+        <Field id="f-tax" label={t.taxLabel} why={t.taxWhy}>
+          <RadioGroup label={t.taxAria} choices={localOptions(lang, 'sellerTax', SELLER_TAX_OPTIONS)} value={ctx.sellerTaxStatus} onChange={(sellerTaxStatus) => set({ sellerTaxStatus })} min="220px" />
         </Field>
       </>
     );
@@ -129,10 +132,10 @@ export function ContextScreen({ screen }: { screen: 'c1' | 'c2' | 'c3' }) {
       {screen !== 'c1' && <Banners />}
       {body}
       <div className="nav-row">
-        <button type="button" className="btn btn-ghost" onClick={() => (i === 0 ? navigate('/') : go(order[i - 1]))}>Back</button>
+        <button type="button" className="btn btn-ghost" onClick={() => (i === 0 ? navigate('/') : go(order[i - 1]))}>{t.back}</button>
         <div className="right">
-          {!ok && <span className="hint">Answer each question to continue</span>}
-          <button type="button" className="btn btn-lime" disabled={!ok} onClick={() => go(order[i + 1])}>{screen === 'c3' ? 'Review setup' : 'Continue'}</button>
+          {!ok && <span className="hint">{t.answerEach}</span>}
+          <button type="button" className="btn btn-lime" disabled={!ok} onClick={() => go(order[i + 1])}>{screen === 'c3' ? t.reviewSetup : t.continue}</button>
         </div>
       </div>
     </main>
@@ -140,27 +143,29 @@ export function ContextScreen({ screen }: { screen: 'c1' | 'c2' | 'c3' }) {
 }
 
 function Select({ label, value, options, onChange }: { label: string; value: string | null; options: string[]; onChange: (v: string | null) => void }) {
+  const lang = useLang();
+  const t = useT();
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
       {label}
       <select className="input" value={value ?? ''} onChange={(e) => onChange(e.target.value || null)}>
-        <option value="">Not specified</option>
-        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+        <option value="">{t.notSpecified}</option>
+        {options.map((o) => <option key={o} value={o}>{bandLabel(lang, o)}</option>)}
       </select>
     </label>
   );
 }
 
 function PrivacyNotice() {
+  const t = useT();
+  const lang = useLang();
   return (
     <section className="glass" aria-labelledby="privacy-title" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14, lineHeight: 1.6 }}>
-      <h2 id="privacy-title" style={{ margin: 0, fontSize: 15 }}>How your answers are stored</h2>
+      <h2 id="privacy-title" style={{ margin: 0, fontSize: 15 }}>{t.privacyTitle}</h2>
       <p style={{ margin: 0, color: 'rgba(255,255,255,0.84)' }}>
-        Each answer is saved in this browser and in the ExitIQ database run by atares, linked to an anonymous session, so you can pause and return.
-        This is not anonymous: the answers are stored against that session, and they would be linked to you if you later add an email address or contact atares.
-        No AI processes your answers in this version. Contacting atares, report delivery and newsletters are separate, optional choices.
-        You can delete the assessment at any time from the action plan or the save screen; retention otherwise follows the atares privacy notice.
+        {t.privacyBody}
       </p>
+      <a href={privacyUrl(lang)} target="_blank" rel="noreferrer" style={{ alignSelf: 'flex-start', fontSize: 13 }}>{t.privacyLink}</a>
     </section>
   );
 }
