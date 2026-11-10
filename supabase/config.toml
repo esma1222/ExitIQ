@@ -9,3 +9,9 @@ site_url = "http://localhost:5173"
 additional_redirect_urls = ["http://localhost:5173/assessment"]
 # Every visitor gets a real auth.uid() so RLS can enforce owner-only access.
 enable_anonymous_sign_ins = true
+
+# generate-narrative checks the caller's token itself (auth.getUser) and then
+# ownership of the assessment, so the platform JWT gate is off. This also keeps
+# the function working with the new publishable/secret API keys.
+[functions.generate-narrative]
+verify_jwt = false

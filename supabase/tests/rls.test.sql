@@ -125,6 +125,33 @@ do $$ begin
   if (select count(*) from public.assessments) <> 1 then raise exception 'B deleted A assessment'; end if;
 end $$;
 
+-- narratives: written only by the server (service role), readable only by the owner
+insert into public.narratives (assessment_id, snapshot_id, owner_id, lang, status, content, model)
+  select 'aaaaaaaa-0000-0000-0000-000000000001', id, '11111111-1111-1111-1111-111111111111', 'en', 'ok', '{"sections":[]}', 'test'
+  from public.result_snapshots limit 1;
+do $$ begin
+  if (select count(*) from public.narratives) <> 1 then raise exception 'narrative fixture missing (needs a snapshot)'; end if;
+end $$;
+select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+do $$ begin
+  if (select count(*) from public.narratives) <> 1 then raise exception 'owner cannot read narrative'; end if;
+  begin
+    insert into public.narratives (assessment_id, snapshot_id, owner_id, lang, status, content)
+      select assessment_id, snapshot_id, owner_id, 'de', 'ok', '{"forged":true}' from public.narratives limit 1;
+    raise exception 'client inserted a narrative';
+  exception when insufficient_privilege then null; end;
+  begin
+    update public.narratives set content = '{"forged":true}';
+    raise exception 'client updated a narrative';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+do $$ begin
+  if (select count(*) from public.narratives) <> 0 then raise exception 'B sees A narrative'; end if;
+end $$;
+reset role;
+
 -- deleting the auth user removes everything they own
 delete from auth.users where id = '11111111-1111-1111-1111-111111111111';
 do $$ begin
