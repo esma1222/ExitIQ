@@ -317,7 +317,7 @@ const BASE: QuestionDef[] = [
     ["Material future governance expectations conflict or are undefined.", "A proposal exists with material open points.", "Governance expectations and required negotiation points are aligned."],
     "Shareholders / legal"),
   q("Q55", "T1", 2, "PRIMARY_CAPITAL", "Capital purpose and proceeds",
-    "How clearly are the company\\'s primary capital needs distinguished from proceeds paid to selling shareholders?",
+    "How clearly are the company’s primary capital needs distinguished from proceeds paid to selling shareholders?",
     ["Company funding needs and seller liquidity are not distinguished.", "An initial split exists without a fully linked funding plan.", "Primary funding uses and any secondary proceeds are explicitly separated."],
     "CFO / shareholders"),];
 

@@ -20,183 +20,183 @@ const ev = (shows: string): string =>
 const questions: Record<string, QuestionText> = {
   Q01: {
     name: 'Transaktionsziele',
-    question: 'Was soll diese Transaktion für die jeweiligen Verkäufer oder Kapitalgeber erreichen?',
+    question: 'Wie klar haben Sie definiert und priorisiert, was die geplante Transaktion erreichen soll?',
     anchors: [
-      'Die Ziele sind nicht formuliert.',
-      'Die Ziele sind beschrieben, die Prioritäten aber noch nicht geklärt.',
-      'Priorisierte Ziele sind dokumentiert.',
+      'Wir haben die Ziele der Transaktion noch nicht definiert.',
+      'Wir haben unsere Ziele umrissen, ihre Priorisierung untereinander ist aber noch nicht geklärt.',
+      'Wir haben die Ziele der geplanten Transaktion dokumentiert und priorisiert.',
     ],
     contributor: 'Führender Gesellschafter / Finanzinvestor',
     evidenceRequest: ev('die dokumentierten, priorisierten Ziele'),
   },
   Q02: {
     name: 'Zeitplan und Vorbereitung',
-    question: 'Wie klar ist der geplante Zeitplan mit den noch erforderlichen Vorbereitungsarbeiten verknüpft?',
+    question: 'Wie gut berücksichtigt Ihr geplanter Transaktionszeitplan die erforderlichen Vorbereitungsarbeiten und Abhängigkeiten?',
     anchors: [
-      'Es gibt weder einen Zeitplan noch eine Abfolge der Vorbereitung.',
-      'Ein Zeitplan besteht, ohne vollständige Prüfung der Abhängigkeiten.',
-      'Zeitplan und Abhängigkeiten der Vorbereitung sind dokumentiert.',
+      'Wir haben weder einen geplanten Zeitplan noch eine festgelegte Abfolge der Vorbereitung.',
+      'Wir haben einen Zeitplan, Abhängigkeiten und Vorbereitungsschritte sind aber noch nicht vollständig geprüft.',
+      'Wir haben den Zeitplan sowie die dafür nötigen Vorbereitungsschritte und Abhängigkeiten dokumentiert.',
     ],
     contributor: 'Transaktionsleitung',
     evidenceRequest: ev('den Zeitplan und die Abhängigkeiten der Vorbereitung'),
   },
   Q03: {
     name: 'Einigkeit der Entscheider',
-    question: 'Inwieweit haben sich die maßgeblichen Entscheider auf die angestrebten Transaktionsziele geeinigt?',
+    question: 'Inwieweit sind sich die maßgeblichen Entscheider über die Transaktionsziele einig?',
     anchors: [
-      'Wesentliche Meinungsverschiedenheiten sind ungelöst.',
-      'Die Positionen sind eingeholt, einige Differenzen sind noch offen.',
-      'Die Ziele sind über den maßgeblichen Governance-Prozess vereinbart.',
+      'Wesentliche Meinungsverschiedenheiten zwischen den maßgeblichen Entscheidern sind ungelöst.',
+      'Wir haben die Positionen der Beteiligten eingeholt, einige wesentliche Differenzen sind aber noch offen.',
+      'Die maßgeblichen Entscheider haben die Ziele über den dafür vorgesehenen Governance-Prozess vereinbart.',
     ],
     contributor: 'Führender Gesellschafter / Gremien',
     evidenceRequest: ev('die über den maßgeblichen Governance-Prozess vereinbarten Ziele'),
   },
   Q04: {
     name: 'Entscheidungsbefugnisse',
-    question: 'Sind die Zustimmungen erfasst, die für den Start und den Abschluss der geplanten Transaktion erforderlich sind?',
+    question: 'Haben Sie die Zustimmungen und Entscheidungsbefugnisse ermittelt, die für den Start und den Abschluss der Transaktion erforderlich sind?',
     anchors: [
-      'Die erforderlichen Zustimmungen sind nicht erfasst.',
-      'Die zustimmenden Gremien sind bekannt, Ablauf oder Zeitplan sind unvollständig.',
-      'Erforderliche Gremien, Befugnisse und Entscheidungszeitplan sind dokumentiert.',
+      'Wir haben die für Start und Abschluss der Transaktion erforderlichen Zustimmungen nicht ermittelt.',
+      'Wir kennen die zuständigen Gremien, Ablauf oder Zeitplan der Zustimmungen sind aber unvollständig.',
+      'Wir haben die zuständigen Gremien, die Anforderungen an die Befugnisse und den Entscheidungszeitplan dokumentiert.',
     ],
     contributor: 'Recht / Gremienbüro',
     evidenceRequest: ev('die erforderlichen Gremien, Befugnisse und den Entscheidungszeitplan'),
   },
   Q05: {
     name: 'Umsetzbare Transaktionsoptionen',
-    question: 'Wurden die realistischen Transaktionsoptionen anhand der festgelegten Ziele verglichen?',
+    question: 'Wie gründlich wurden umsetzbare Transaktionsoptionen und ihre Vor- und Nachteile anhand Ihrer Ziele bewertet?',
     anchors: [
-      'Es wurde kein Vergleich angestellt.',
-      'Die Optionen sind aufgelistet, aber nicht vollständig verglichen.',
-      'Umsetzbare Optionen und ihre Vor- und Nachteile sind dokumentiert.',
+      'Wir haben umsetzbare Transaktionsoptionen nicht verglichen.',
+      'Wir haben mögliche Strukturen identifiziert, ihre Vor- und Nachteile gemessen an unseren Zielen aber nicht vollständig bewertet.',
+      'Wir haben einen Vergleich der umsetzbaren Optionen und ihrer jeweiligen Vor- und Nachteile dokumentiert.',
     ],
     contributor: 'Transaktionsleitung / Berater',
     evidenceRequest: ev('die umsetzbaren Optionen und ihre Vor- und Nachteile'),
   },
   Q06: {
     name: 'Künftige Rolle der Führung',
-    question: 'Ist festgelegt, welche Rolle die heutige Führung nach der Transaktion haben soll?',
+    question: 'Wie klar definiert und abgestimmt sind die vorgesehenen Rollen der heutigen Führung nach der Transaktion?',
     anchors: [
-      'Die Erwartungen sind ungeklärt.',
-      'Eine vorgesehene Rolle besteht, Umsetzbarkeit oder Nachfolge sind noch offen.',
-      'Rollen und Anforderungen an die Kontinuität sind dokumentiert und abgestimmt.',
+      'Die Erwartungen an die heutige Führung nach der Transaktion sind ungeklärt.',
+      'Wir haben vorgesehene Rollen benannt, Umsetzbarkeit oder Nachfolgeregelungen sind aber noch offen.',
+      'Wir haben die vorgesehenen Rollen und die Anforderungen an die Kontinuität dokumentiert und abgestimmt.',
     ],
     contributor: 'Management / Eigentümer',
     evidenceRequest: ev('die dokumentierten und abgestimmten Rollen und Anforderungen an die Kontinuität'),
   },
   Q07: {
     name: 'Nachhaltige Wirtschaftlichkeit',
-    question: 'Können Sie die Wirtschaftlichkeit erläutern, die unter normalen Geschäftsbedingungen fortbestehen würde?',
+    question: 'Wie überzeugend können Sie die nachhaltigen Ergebnisse oder die zugrunde liegende Wachstumsökonomie Ihres Unternehmens erläutern?',
     anchors: [
-      'Die zugrunde liegende Wirtschaftlichkeit ist nicht verstanden.',
-      'Die wesentlichen Treiber sind bekannt, die Analyse ist aber unvollständig.',
-      'Nachhaltige Ergebnisse oder die Unit Economics des Wachstumsmodells sind abgestimmt und erläutert.',
+      'Wir können die zugrunde liegenden nachhaltigen Ergebnisse oder die Wirtschaftlichkeit unseres Wachstumsmodells noch nicht erläutern.',
+      'Wir kennen die wesentlichen wirtschaftlichen Treiber, die unterstützende Analyse ist aber noch unvollständig.',
+      'Wir können die nachhaltigen Ergebnisse oder, je nach Geschäftsmodell, die relevanten Unit Economics erläutern und abstimmen.',
     ],
     contributor: 'CFO',
     variants: {
-      growth: 'Können Sie Ihre abgestimmten Kohorten- oder Unit Economics und den dokumentierten Weg zu einer nachhaltigen Wirtschaftlichkeit erläutern?',
+      growth: 'Wie überzeugend können Sie Ihre abgestimmten Kohorten- oder Unit Economics und den dokumentierten Weg zu einer nachhaltigen Wirtschaftlichkeit erläutern?',
     },
     evidenceRequest: ev('abgestimmte und erläuterte nachhaltige Ergebnisse oder Unit Economics des Wachstumsmodells'),
   },
   Q08: {
     name: 'Liquiditätsplanung',
-    question: 'Zeigt Ihre Liquiditätsplanung den Finanzierungsbedarf über den geplanten Transaktionszeitraum?',
+    question: 'Wie wirksam zeigt Ihre Liquiditätsplanung den Finanzierungsbedarf und mögliche Gegenmaßnahmen über den geplanten Transaktionszeitraum?',
     anchors: [
-      'Es gibt keine belastbare Liquiditätsprognose.',
-      'Eine Prognose besteht, die Finanzierungsszenarien sind aber unvollständig.',
-      'Eine laufend gepflegte Szenarioplanung zeigt den Bedarf und finanzierte Gegenmaßnahmen.',
+      'Wir haben keine belastbare Liquiditätsprognose für den geplanten Transaktionszeitraum.',
+      'Wir haben eine Liquiditätsprognose, Finanzierungsszenarien und Gegenmaßnahmen sind aber unvollständig.',
+      'Wir pflegen szenariobasierte Liquiditätsprognosen, die den Finanzierungsbedarf und glaubwürdige, finanzierte Gegenmaßnahmen zeigen.',
     ],
     contributor: 'CFO',
     evidenceRequest: ev('eine laufend gepflegte Szenarioplanung mit dem Finanzierungsbedarf und finanzierten Gegenmaßnahmen'),
   },
   Q09: {
     name: 'Umgang mit Kundenabhängigkeit',
-    question: 'Wie gut sind Sie auf den Verlust eines wesentlichen Kunden vorbereitet?',
+    question: 'Wie gut ist Ihr Unternehmen darauf vorbereitet, den Verlust eines wesentlichen Kunden zu bewältigen?',
     anchors: [
-      'Abhängigkeit und Gegenmaßnahmen sind nicht bewertet.',
-      'Die Abhängigkeit ist quantifiziert, die Gegenmaßnahmen sind unvollständig.',
-      'Die Abhängigkeit und angemessene Gegenmaßnahmen sind dokumentiert.',
+      'Wir haben nicht beurteilt, wie stark uns der Verlust eines wesentlichen Kunden träfe und wie wir reagieren würden.',
+      'Wir haben die Abhängigkeit quantifiziert, unser Plan für Gegenmaßnahmen ist aber unvollständig.',
+      'Wir haben die Abhängigkeit und einen angemessenen Plan zur Begrenzung der Auswirkungen dokumentiert.',
     ],
     contributor: 'Vertriebsleitung / CFO',
     evidenceRequest: ev('die Abhängigkeit und angemessene Gegenmaßnahmen'),
   },
   Q10: {
     name: 'Beständigkeit der Umsätze',
-    question: 'Können Sie zeigen, wie bestehende Kundenumsätze gehalten oder verlängert werden?',
+    question: 'Welche Nachweise zeigen, dass Umsätze mit bestehenden Kunden gehalten oder verlängert werden?',
     anchors: [
-      'Kundenbindung oder Wiederholungskäufe werden nicht verfolgt.',
-      'Es gibt einige Daten zu Kundenbindung oder Folgeaufträgen.',
-      'Eine abgestimmte Historie und die relevanten Vertragsbedingungen erklären die Beständigkeit.',
+      'Wir verfolgen Kundenbindung oder Wiederholungskäufe nicht.',
+      'Wir haben einige Daten zu Kundenbindung oder Folgeaufträgen, die Nachweise sind aber unvollständig.',
+      'Wir haben abgestimmte historische Nachweise zu Kundenbindung oder Wiederholungskäufen sowie die relevanten Vertragsbedingungen.',
     ],
     contributor: 'Vertriebsleitung',
     evidenceRequest: ev('eine abgestimmte Historie und die relevanten Vertragsbedingungen, die die Beständigkeit erklären'),
   },
   Q11: {
     name: 'Kontinuität kritischer Lieferungen',
-    question: 'Wodurch bliebe die Lieferfähigkeit erhalten, wenn ein kritischer Lieferant ausfiele?',
+    question: 'Wie gut ist Ihr Unternehmen darauf vorbereitet, lieferfähig zu bleiben, wenn ein kritischer Lieferant ausfällt?',
     anchors: [
-      'Für kritische Abhängigkeiten gibt es keine Vorkehrungen zur Kontinuität.',
-      'Alternativen oder Maßnahmen sind benannt, aber unvollständig.',
-      'Abhängigkeiten und angemessene Vorkehrungen zur Kontinuität sind dokumentiert.',
+      'Wir haben für wesentliche Abhängigkeiten von kritischen Lieferanten keine Vorkehrungen zur Kontinuität.',
+      'Wir haben Alternativen oder Maßnahmen benannt, sie sind aber nicht vollständig vorbereitet.',
+      'Wir haben die Abhängigkeiten von kritischen Lieferanten und angemessene Vorkehrungen zur Kontinuität dokumentiert.',
     ],
     contributor: 'Operations',
     evidenceRequest: ev('die Abhängigkeiten und angemessene Vorkehrungen zur Kontinuität'),
   },
   Q12: {
     name: 'Entscheidungskontinuität',
-    question: 'Welche Entscheidungen würden warten, wenn ein zentraler Entscheider vier Wochen ausfiele?',
+    question: 'Welche wichtigen Entscheidungen würden sich verzögern, wenn ein zentraler Entscheider vier Wochen ausfiele?',
     anchors: [
-      'Viele Routineentscheidungen würden warten.',
-      'Einige wesentliche Entscheidungen würden warten.',
-      'Wesentliche Entscheidungen laufen im Rahmen dokumentierter Vollmachten weiter.',
+      'Viele Routineentscheidungen würden sich bei einem vierwöchigen Ausfall verzögern.',
+      'Trotz bestehender Delegation würden sich einige wichtige Entscheidungen weiterhin verzögern.',
+      'Wichtige Entscheidungen können auf Grundlage dokumentierter Vollmachten weiter getroffen werden.',
     ],
     contributor: 'Geschäftsführung',
     variants: {
-      owner_led: 'Sie sind vier Wochen nicht erreichbar. Welche Entscheidungen warten?',
-      employed: 'Eine zentrale Führungskraft ist vier Wochen nicht erreichbar. Welche Entscheidungen warten?',
+      owner_led: 'Welche wichtigen Entscheidungen würden sich verzögern, wenn Sie vier Wochen nicht verfügbar wären?',
+      employed: 'Welche wichtigen Entscheidungen würden sich verzögern, wenn eine zentrale Führungskraft vier Wochen nicht verfügbar wäre?',
     },
     evidenceRequest: ev('die dokumentierten Vollmachten, in deren Rahmen wesentliche Entscheidungen weiterlaufen'),
   },
   Q13: {
     name: 'Vertretung für kritisches Fachwissen',
-    question: 'Wer könnte wesentliche Aufgaben übernehmen, wenn eine Schlüsselperson mit Spezialwissen längere Zeit ausfiele?',
+    question: 'Wie gut könnte wesentliche Arbeit weiterlaufen, wenn eine Schlüsselperson mit Spezialwissen längere Zeit ausfiele?',
     anchors: [
-      'Für kritische Aufgaben gibt es keine Vertretung.',
-      'Eine Vertretung ist benannt, aber nicht ausreichend vorbereitet.',
-      'Eine fähige Vertretung und die Übergabe des wesentlichen Wissens sind sichergestellt.',
+      'Für wesentliche Arbeit von Schlüsselpersonen mit Spezialwissen gibt es keine fähige Vertretung.',
+      'Eine mögliche Vertretung ist benannt, Vorbereitung oder Wissensübergabe sind aber unvollständig.',
+      'Eine fähige Vertretung ist vorhanden und durch die nötige Wissensübergabe abgesichert.',
     ],
     contributor: 'Operations / Personalleitung',
     evidenceRequest: ev('eine fähige Vertretung und die Übergabe des wesentlichen Wissens'),
   },
   Q14: {
     name: 'Kontinuität der Kundenbeziehungen',
-    question: 'Wie gut werden wichtige Kundenbeziehungen über eine einzelne Person hinaus gepflegt?',
+    question: 'Wie gut sind Ihre wichtigsten Kundenbeziehungen über eine einzelne Person hinaus abgesichert?',
     anchors: [
-      'Wesentliche Beziehungen hängen ohne Vertretung an einer Person.',
-      'Weitere Ansprechpartner gibt es, die Kundenverantwortung ist aber nicht vollständig geregelt.',
-      'Kundenverantwortung und Kontinuität der Beziehungen sind etabliert.',
+      'Wichtige Kundenbeziehungen hängen ohne ausreichende Vertretung an einer Person.',
+      'Es gibt weitere Ansprechpartner, Kundenverantwortung und Kontinuität der Beziehungen sind aber nicht vollständig geregelt.',
+      'Kundenverantwortung und Regelungen zur Kontinuität sind über einzelne Personen hinaus etabliert.',
     ],
     contributor: 'Vertriebsleitung',
     evidenceRequest: ev('die geregelte Kundenverantwortung und die Kontinuität der Beziehungen'),
   },
   Q15: {
     name: 'Wiederholbare Kernprozesse',
-    question: 'Könnte eine neue Person den dokumentierten Schritten Ihrer wesentlichen Betriebsprozesse folgen?',
+    question: 'Könnte eine neue Person die wesentlichen Betriebsprozesse anhand Ihrer vorhandenen Dokumentation ausführen?',
     anchors: [
-      'Wesentliche Prozesse beruhen auf undokumentiertem persönlichem Wissen.',
-      'Einige wesentliche Prozesse sind dokumentiert.',
-      'Wesentliche Prozesse sind brauchbar dokumentiert und haben klare Verantwortliche.',
+      'Wesentliche Prozesse hängen von undokumentiertem individuellem Wissen ab.',
+      'Einige wesentliche Prozesse sind dokumentiert, die Abdeckung ist aber noch unvollständig.',
+      'Für wesentliche Prozesse gibt es brauchbare Dokumentation und klar zugewiesene Verantwortliche.',
     ],
     contributor: 'Operations',
     evidenceRequest: ev('die brauchbare Dokumentation der wesentlichen Prozesse und ihre klaren Verantwortlichen'),
   },
   Q16: {
     name: 'Kapazität für Wachstum',
-    question: 'Haben Sie geprüft, was einen deutlichen Anstieg der Nachfrage begrenzen würde?',
+    question: 'Was würde einen deutlichen Anstieg der Nachfrage begrenzen, und wie gut sind Sie darauf vorbereitet, diese Engpässe zu beheben?',
     anchors: [
-      'Engpässe wurden nicht geprüft.',
-      'Die wichtigsten Engpässe sind bekannt, vollständige Gegenmaßnahmen fehlen.',
-      'Kapazitätsengpässe und mit Ressourcen hinterlegte Gegenmaßnahmen sind dokumentiert.',
+      'Wir haben nicht geprüft, was einen wesentlichen Anstieg der Nachfrage begrenzen würde.',
+      'Wir kennen die wichtigsten Engpässe, haben aber noch keine vollständigen Gegenmaßnahmen.',
+      'Wir haben die Kapazitätsengpässe und mit angemessenen Ressourcen hinterlegte Gegenmaßnahmen dokumentiert.',
     ],
     contributor: 'Operations / CFO',
     help: 'Verwenden Sie ein Nachfrageszenario, das für Ihr Unternehmen relevant ist. Es gibt kein allgemeingültiges Wachstumsziel.',
@@ -204,11 +204,11 @@ const questions: Record<string, QuestionText> = {
   },
   Q17: {
     name: 'Kontinuität der IT',
-    question: 'Wie gut sind Ihre wesentlichen Systeme auf einen längeren Ausfall vorbereitet?',
+    question: 'Wie gut sind Ihre wesentlichen Systeme darauf vorbereitet, nach einem längeren Ausfall wiederhergestellt zu werden?',
     anchors: [
-      'Es gibt keine brauchbaren Vorkehrungen zur Wiederherstellung.',
-      'Vorkehrungen zur Wiederherstellung bestehen, haben aber wesentliche ungetestete Lücken.',
-      'Vorkehrungen zur Wiederherstellung sind dokumentiert und angemessen getestet.',
+      'Wir haben keine brauchbaren Vorkehrungen zur Wiederherstellung bei Ausfällen wesentlicher Systeme.',
+      'Vorkehrungen zur Wiederherstellung bestehen, es gibt aber wesentliche Lücken oder die Tests reichen nicht aus.',
+      'Die Vorkehrungen zur Wiederherstellung sind dokumentiert und wurden angemessen getestet.',
     ],
     contributor: 'IT / Informationssicherheit',
     help: 'Ein bekanntes schwerwiegendes Sicherheitsproblem kann eine Aufgabe für Spezialisten erfordern. Es schließt eine Transaktion nicht automatisch aus.',
@@ -216,22 +216,22 @@ const questions: Record<string, QuestionText> = {
   },
   Q18: {
     name: 'Integration von Zukäufen',
-    question: 'Sind wesentliche Abhängigkeiten aus früheren Zukäufen unter Kontrolle?',
+    question: 'Wie wirksam werden offene Abhängigkeiten aus früheren Zukäufen gesteuert?',
     anchors: [
-      'Für wesentliche Integrationsabhängigkeiten fehlt ein Plan mit Verantwortlichen.',
-      'Ein Plan besteht, Verantwortlichkeiten oder Meilensteine sind ungeklärt.',
-      'Die Abhängigkeiten haben Verantwortliche und Meilensteine, der Fortschritt wird überwacht.',
+      'Für wesentliche Abhängigkeiten aus der Integration von Zukäufen gibt es keinen Plan mit klarer Verantwortung.',
+      'Ein Integrationsplan besteht, Verantwortlichkeiten oder Meilensteine sind aber ungeklärt.',
+      'Für wesentliche Abhängigkeiten sind Verantwortliche und Meilensteine festgelegt, der Fortschritt wird überwacht.',
     ],
     contributor: 'Integrationsleitung',
     evidenceRequest: ev('Verantwortliche, Meilensteine und den überwachten Fortschritt für die Abhängigkeiten'),
   },
   Q19: {
     name: 'Belegbare Differenzierung',
-    question: 'Welche Nachweise stützen den Grund, aus dem sich Kunden für Ihr Unternehmen entscheiden?',
+    question: 'Welche Nachweise stützen die Gründe, aus denen sich Kunden für Ihr Unternehmen und nicht für Alternativen entscheiden?',
     anchors: [
-      'Das Leistungsversprechen wird ohne Nachweise behauptet.',
-      'Einige Nachweise stützen das Leistungsversprechen.',
-      'Relevante Kunden-, Produkt- oder Marktnachweise stützen das Leistungsversprechen.',
+      'Wir können die Gründe, aus denen sich Kunden für uns entscheiden, noch nicht belegen.',
+      'Wir haben einige Nachweise, sie decken aber nicht das gesamte Leistungsversprechen ab.',
+      'Relevante Kunden-, Produkt- oder Marktnachweise stützen die von uns dargestellte Differenzierung.',
     ],
     contributor: 'Vertriebs- / Produktleitung',
     help: 'Gemessen wird, ob sich das Leistungsversprechen belegen lässt, nicht ob ein starker, dauerhafter Wettbewerbsvorteil besteht.',
@@ -239,18 +239,18 @@ const questions: Record<string, QuestionText> = {
   },
   Q20: {
     name: 'Belastbare Entwicklungs-Roadmap',
-    question: 'Wie gut ist der nächste wesentliche Entwicklungsschritt bei Produkten oder Leistungen vorbereitet?',
+    question: 'Wie umsetzungsreif ist Ihre nächste wesentliche Entwicklungsinitiative bei Produkten oder Leistungen?',
     anchors: [
-      'Es sind keine Entwicklungsprioritäten festgelegt.',
-      'Prioritäten bestehen ohne umsetzbaren Plan.',
-      'Prioritäten, Ressourcen, Meilensteine und Erfolgskennzahlen sind dokumentiert.',
+      'Wir haben die Prioritäten für den nächsten wesentlichen Entwicklungsschritt nicht festgelegt.',
+      'Die Prioritäten sind benannt, es gibt aber noch keinen umsetzbaren Plan.',
+      'Wir haben Prioritäten, Ressourcen, Meilensteine und Erfolgskennzahlen dokumentiert.',
     ],
     contributor: 'Produkt / Strategie',
     evidenceRequest: ev('die Prioritäten, Ressourcen, Meilensteine und Erfolgskennzahlen'),
   },
   Q21: {
     name: 'Paket historischer Finanzinformationen',
-    question: 'Könnten Sie für den geplanten Transaktionsperimeter ein konsistentes Paket historischer Finanzinformationen bereitstellen?',
+    question: 'Wie problemlos könnten Sie für den geplanten Transaktionsperimeter ein konsistentes, abgestimmtes Paket historischer Finanzinformationen bereitstellen?',
     anchors: [
       'Wesentliche Finanzunterlagen sind unvollständig oder widersprüchlich.',
       'Die meisten Unterlagen liegen vor, wesentliche Abstimmungen sind noch offen.',
@@ -261,7 +261,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q22: {
     name: 'Grundlagen der Planung',
-    question: 'Lässt sich die Finanzplanung auf ausdrückliche operative Annahmen zurückführen?',
+    question: 'Wie klar lässt sich Ihre Finanzplanung auf dokumentierte operative Annahmen zurückführen?',
     anchors: [
       'Die Planung lässt sich nicht auf operative Annahmen zurückführen.',
       'Die wichtigsten Annahmen sind dokumentiert, es bestehen aber Lücken.',
@@ -272,7 +272,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q23: {
     name: 'Überleitung vom Unternehmenswert zum Eigenkapitalwert',
-    question: 'Sind Barmittel, Finanzverbindlichkeiten und weitere mögliche Kaufpreisanpassungen identifiziert?',
+    question: 'Wie gut sind Barmittel, Finanzverbindlichkeiten und weitere Anpassungen dokumentiert, die sich auf den endgültigen Kaufpreis für das Eigenkapital auswirken könnten?',
     anchors: [
       'Mögliche Anpassungen sind nicht erfasst.',
       'Eine vorläufige Erfassung liegt vor.',
@@ -283,7 +283,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q24: {
     name: 'Freigaben aus der Finanzierung',
-    question: 'Ist der Weg zu den erforderlichen Zustimmungen der Kreditgeber und zur Freigabe von Sicherheiten bekannt?',
+    question: 'Wie gut sind Sie darauf vorbereitet, etwa erforderliche Zustimmungen der Kreditgeber und Freigaben von Sicherheiten einzuholen?',
     anchors: [
       'Erforderliche Zustimmungen oder Freigaben sind nicht geprüft.',
       'Die Anforderungen sind bekannt, ein vollständiger Umsetzungsplan fehlt.',
@@ -294,7 +294,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q25: {
     name: 'Steuerlicher Workstream',
-    question: 'Wurde ein transaktionserfahrener Steuerberater für die geplante Transaktion mandatiert?',
+    question: 'Haben Sie einen transaktionserfahrenen Steuerberater mandatiert und den Umfang seiner Prüfung vereinbart?',
     anchors: [
       'Weder ein Berater noch ein verantwortlicher steuerlicher Workstream ist bestimmt.',
       'Ein Berater ist benannt, der Umfang ist aber nicht vereinbart.',
@@ -306,7 +306,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q26: {
     name: 'Steuerliches Profil der Verkäufer',
-    question: 'Ist das rechtliche und steuerliche Profil der jeweiligen Verkäufer dokumentiert?',
+    question: 'Wie klar sind die Rechtsformen, Beteiligungsketten und Steuerjurisdiktionen der jeweiligen Verkäufer dokumentiert?',
     anchors: [
       'Die relevanten verkaufenden Rechtsträger oder Jurisdiktionen sind nicht erfasst.',
       'Eine vorläufige Übersicht der Verkäufer liegt vor.',
@@ -317,7 +317,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q27: {
     name: 'Strukturalternativen',
-    question: 'Wurden die steuerlichen Folgen umsetzbarer Transaktionsstrukturen verglichen?',
+    question: 'Wie gründlich wurden die steuerlichen Folgen umsetzbarer Transaktionsstrukturen verglichen?',
     anchors: [
       'Es gibt keinen transaktionsspezifischen Vergleich.',
       'Eine erste Analyse liegt vor, mit wesentlichen offenen Annahmen.',
@@ -328,7 +328,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q28: {
     name: 'Steuerliche Beschränkungen aus der Vergangenheit',
-    question: 'Wurden frühere Umstrukturierungen und Übertragungen auf transaktionsrelevante Beschränkungen geprüft?',
+    question: 'Wurden frühere Umstrukturierungen oder Übertragungen auf steuerliche Beschränkungen oder Fristen geprüft, die für die Transaktion relevant sind?',
     anchors: [
       'Die relevante Historie wurde nicht geprüft.',
       'Die Historie ist zusammengetragen, die fachliche Beurteilung ist noch unvollständig.',
@@ -340,7 +340,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q29: {
     name: 'Übersicht steuerlicher Risiken',
-    question: 'Sind wesentliche ungeklärte steuerliche Sachverhalte für den geplanten Perimeter identifiziert?',
+    question: 'Wie umfassend wurden wesentliche ungeklärte steuerliche Sachverhalte identifiziert und mit einer Maßnahme hinterlegt?',
     anchors: [
       'Es gibt keine verlässliche Übersicht.',
       'Bekannte Sachverhalte sind aufgelistet, aber nicht vollständig beurteilt.',
@@ -351,7 +351,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q30: {
     name: 'Verfügbarkeit steuerlicher Unterlagen',
-    question: 'Können die relevanten steuerlichen Unterlagen zur Prüfung bereitgestellt werden?',
+    question: 'Wie problemlos könnten Sie die für die Transaktionsprüfung erforderlichen steuerlichen Unterlagen bereitstellen?',
     anchors: [
       'Wesentliche Unterlagen fehlen.',
       'Die meisten Unterlagen liegen vor, mit ungeklärten Lücken.',
@@ -362,7 +362,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q31: {
     name: 'Rückbeteiligung und variable Kaufpreisbestandteile',
-    question: 'Wurden die steuerlichen Folgen der geplanten Rückbeteiligung oder variabler bzw. aufgeschobener Kaufpreiszahlungen geprüft?',
+    question: 'Wurden die steuerlichen Folgen einer geplanten Rückbeteiligung, eines Earn-outs oder aufgeschobener Kaufpreiszahlungen geprüft?',
     anchors: [
       'Es gibt keine Prüfung.',
       'Eine Prüfung läuft, mit wesentlichen offenen Punkten.',
@@ -373,7 +373,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q32: {
     name: 'Rechtliches Eigentum',
-    question: 'Lässt sich das rechtliche Eigentum an den zu verkaufenden Anteilen mit den Eigentumsnachweisen abstimmen?',
+    question: 'Wie sicher können Sie das rechtliche Eigentum an den zu verkaufenden Anteilen mit den zugrunde liegenden Nachweisen abstimmen?',
     anchors: [
       'Eigentumsnachweise oder Übertragungskette weisen wesentliche ungeklärte Lücken auf.',
       'Die Nachweise stimmen weitgehend überein, einzelne Punkte sind offen.',
@@ -381,13 +381,13 @@ const questions: Record<string, QuestionText> = {
     ],
     contributor: 'Recht',
     variants: {
-      venture: 'Lässt sich das rechtliche Eigentum an den zu verkaufenden Anteilen mit der voll verwässerten Cap Table abstimmen?',
+      venture: 'Wie sicher können Sie das rechtliche Eigentum an den zu verkaufenden Anteilen mit der voll verwässerten Cap Table abstimmen?',
     },
     evidenceRequest: ev('das abgestimmte Eigentum und die relevante Übertragungshistorie'),
   },
   Q33: {
     name: 'Wesentliches geistiges Eigentum',
-    question: 'Kann das Unternehmen seine Rechte an der Technologie oder dem sonstigen geistigen Eigentum nachweisen, das für sein Geschäft wesentlich ist?',
+    question: 'Verfügt Ihr Unternehmen über dokumentierte Rechte an dem geistigen Eigentum, das für sein Geschäft wesentlich ist?',
     anchors: [
       'Wesentliche Rechte sind nicht dokumentiert oder ungeklärt.',
       'Zentrale Rechte sind dokumentiert, Fragen zu Übertragungen oder Lizenzen sind offen.',
@@ -398,7 +398,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q34: {
     name: 'Folgen für wesentliche Verträge',
-    question: 'Wurden die Folgen der geplanten Transaktion für wesentliche Verträge beurteilt?',
+    question: 'Haben Sie beurteilt, wie sich die geplante Transaktion auf wesentliche Verträge und etwa erforderliche Zustimmungen auswirken könnte?',
     anchors: [
       'Die relevanten Vertragsfolgen sind nicht geprüft.',
       'Zentrale Verträge sind geprüft, wesentliche Folgemaßnahmen sind noch offen.',
@@ -409,7 +409,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q35: {
     name: 'Streitigkeiten und Ansprüche',
-    question: 'Sind wesentliche laufende oder drohende Streitigkeiten im Hinblick auf die geplante Transaktion beurteilt?',
+    question: 'Wie gründlich wurden bestehende oder drohende Streitigkeiten im Hinblick auf die Transaktion beurteilt?',
     anchors: [
       'Es gibt keine verlässliche Beurteilung.',
       'Bekannte Sachverhalte sind erfasst, mit wesentlichen Lücken.',
@@ -420,7 +420,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q36: {
     name: 'Vorbereitung Datenschutz',
-    question: 'Sind wesentliche Datenschutzthemen identifiziert und mit einer Maßnahme hinterlegt?',
+    question: 'Wie wirksam wurden wesentliche Datenschutzthemen identifiziert und Verantwortlichkeiten für ihre Behebung festgelegt?',
     anchors: [
       'Wesentliche Themen wurden nicht beurteilt.',
       'Eine Beurteilung liegt vor, die Maßnahmen sind unvollständig.',
@@ -431,7 +431,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q37: {
     name: 'Regulatorische Kontinuität',
-    question: 'Wurde geprüft, ob wesentliche Lizenzen oder Genehmigungen über die Transaktion hinweg fortbestehen?',
+    question: 'Haben Sie geprüft, ob wesentliche Lizenzen und behördliche Genehmigungen über die Transaktion hinweg fortbestehen?',
     anchors: [
       'Die Anforderungen an die Kontinuität sind nicht geprüft.',
       'Die Anforderungen sind bekannt, die Umsetzung ist unvollständig.',
@@ -442,7 +442,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q38: {
     name: 'Erlösverteilungsrechte der Investoren',
-    question: 'Lassen sich die Auswirkungen von Liquidationspräferenzen und anderen Erlösverteilungsrechten der Investoren in verschiedenen Exit-Szenarien erklären?',
+    question: 'Wie klar können Sie die Auswirkungen von Liquidationspräferenzen und Erlösverteilungsrechten der Investoren in verschiedenen Exit-Szenarien erklären?',
     anchors: [
       'Die Erlösverteilungsrechte sind nicht erfasst.',
       'Die Rechte sind erfasst, die Ergebnisse je Szenario sind unvollständig.',
@@ -453,7 +453,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q39: {
     name: 'Mitarbeiter- und Managementbeteiligung',
-    question: 'Sind die Beteiligungsrechte von Mitarbeitenden oder Management auf die geplante Transaktion vorbereitet?',
+    question: 'Wie gut sind die Beteiligungsprogramme für Mitarbeitende und Management auf die geplante Transaktion vorbereitet?',
     anchors: [
       'Rechte aus den Programmen oder die Folgen der Transaktion sind ungeklärt.',
       'Die Programme sind erfasst, Fragen zu ihrer Behandlung sind offen.',
@@ -464,7 +464,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q40: {
     name: 'Datenraumbereitschaft',
-    question: 'Kann das Team die für die Prüfung benötigten Informationen auffinden und strukturieren?',
+    question: 'Wie effizient könnte Ihr Team die für die Due Diligence benötigten Informationen auffinden, strukturieren und sicher bereitstellen?',
     anchors: [
       'Die Informationen sind verstreut, ohne Index oder Verantwortliche.',
       'Ein Index besteht, für wesentliche Lücken fehlt eine vollständige Lösung.',
@@ -475,7 +475,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q41: {
     name: 'Projektteam',
-    question: 'Wer ist für die Arbeit und die Entscheidungen während der Transaktion verantwortlich?',
+    question: 'Sind Verantwortlichkeiten, Entscheidungsregeln, Kapazitäten und Meilensteine für die Transaktion klar zugewiesen?',
     anchors: [
       'Es ist kein verantwortliches Team festgelegt.',
       'Zentrale Rollen sind besetzt, Kapazität oder Entscheidungsregeln sind offen.',
@@ -486,7 +486,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q42: {
     name: 'Klärung bekannter Themen',
-    question: 'Wie werden erkannte Themen aus der Vorbereitung geklärt?',
+    question: 'Wie wirksam werden bekannte Themen aus der Transaktionsvorbereitung nachverfolgt und geklärt?',
     anchors: [
       'Für wesentliche bekannte Themen gibt es keine nachverfolgte Lösung.',
       'Eine Liste besteht, ohne vollständige Verantwortlichkeiten oder Meilensteine.',
@@ -497,7 +497,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q43: {
     name: 'Kontrollierte Offenlegung',
-    question: 'Gibt es einen abgestimmten Plan für die Offenlegung sensibler Informationen im Prozess?',
+    question: 'Wie gut ist Ihr Unternehmen darauf vorbereitet, die gestufte Offenlegung sensibler Informationen während des Prozesses zu steuern?',
     anchors: [
       'Es gibt keinen Offenlegungsplan.',
       'Grundlegende Kontrollen bestehen, mit wesentlichen Lücken.',
@@ -508,7 +508,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q44: {
     name: 'Transaktionsperimeter',
-    question: 'Ist der genaue Umfang des zu übertragenden Geschäfts dokumentiert?',
+    question: 'Können Sie die Gesellschaften, Vermögenswerte, Mitarbeitenden und Verpflichtungen, die übertragen werden sollen, klar abgrenzen?',
     anchors: [
       'Wesentliche Grenzen des Perimeters sind nicht festgelegt.',
       'Ein Entwurf des Perimeters liegt vor, Zuordnungen sind offen.',
@@ -519,7 +519,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q45: {
     name: 'Stand-alone-Zahlen',
-    question: 'Lässt sich die finanzielle Entwicklung des geplanten Perimeters getrennt vom verbleibenden Konzern darstellen?',
+    question: 'Wie verlässlich können Sie die finanzielle Entwicklung des abzutrennenden Geschäfts auf Stand-alone-Basis darstellen?',
     anchors: [
       'Stand-alone-Zahlen liegen nicht vor.',
       'Carve-out-Zahlen liegen vor, Allokationsanpassungen sind ungeklärt.',
@@ -530,7 +530,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q46: {
     name: 'Fortführung von Konzernleistungen',
-    question: 'Ist geplant, wie wesentliche vom Konzern erbrachte Leistungen ab dem Vollzug fortgeführt werden?',
+    question: 'Wie gut ist das Geschäft darauf vorbereitet, wesentliche vom Konzern erbrachte Leistungen nach der Separierung fortzuführen?',
     anchors: [
       'Für wesentliche Abhängigkeiten fehlt eine tragfähige Lösung zur Fortführung.',
       'Die Abhängigkeiten sind erfasst, einige Vereinbarungen zur Fortführung sind noch offen.',
@@ -541,7 +541,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q47: {
     name: 'Trennung der Systeme',
-    question: 'Ist die Trennung oder die weitere rechtmäßige Nutzung wesentlicher Konzernsysteme umsetzbar?',
+    question: 'Wie umsetzbar ist Ihr Plan, wesentliche Systeme zu trennen oder ihre weitere rechtmäßige Nutzung zu sichern?',
     anchors: [
       'Trennung oder Zugriff für wesentliche Systeme sind nicht geplant.',
       'Ein Plan besteht, mit wesentlichen Lücken.',
@@ -552,7 +552,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q48: {
     name: 'Umsetzung des Übergangs',
-    question: 'Sind Übergangsleistungsvereinbarungen (Transitional Service Agreements) und die Pläne für den Ausstieg daraus vorbereitet?',
+    question: 'Wie klar sind die nach der Separierung erforderlichen Übergangsleistungsvereinbarungen (Transitional Service Agreements), Verantwortlichkeiten und Ausstiegspläne festgelegt?',
     anchors: [
       'Erforderliche Übergangsleistungsvereinbarungen sind nicht geplant.',
       'Entwürfe liegen vor, mit wesentlichen Lücken.',
@@ -563,7 +563,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q49: {
     name: 'Steuerliche Trennung',
-    question: 'Wurden die steuerlichen Folgen des Ausscheidens aus dem Konzern oder der Übertragung aus dem Konzern geprüft?',
+    question: 'Wurden die steuerlichen Folgen und Abhängigkeiten der Herauslösung des Geschäfts aus dem bisherigen Konzern geprüft?',
     anchors: [
       'Es gibt keine transaktionsspezifische steuerliche Prüfung der Separierung.',
       'Eine erste Prüfung liegt vor, ihr Umfang ist in wesentlichen Teilen ungeklärt.',
@@ -575,7 +575,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q50: {
     name: 'Nachgewiesene Wertsteigerung',
-    question: 'Lassen sich die Verbesserungen seit dem Einstieg des Investors von Marktbewegungen trennen und mit Nachweisen erklären?',
+    question: 'Wie überzeugend können Sie die vom Investor angestoßene Wertsteigerung anhand von Nachweisen von allgemeinen Marktentwicklungen abgrenzen?',
     anchors: [
       'Die Darstellung der Verbesserungen ist nicht belegt.',
       'Die wichtigsten Initiativen sind dokumentiert, eine vollständige Überleitung der Ergebnisentwicklung fehlt.',
@@ -586,7 +586,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q51: {
     name: 'Wandelinstrumente',
-    question: 'Ist für ausstehende Wandelinstrumente erfasst, wie sie sich auf die Transaktionsergebnisse auswirken?',
+    question: 'Wie klar sind ausstehende Wandelinstrumente und ihre Folgen in verschiedenen Transaktionsszenarien dokumentiert?',
     anchors: [
       'Instrumente oder Folgen einer Wandlung sind ungeklärt.',
       'Die Instrumente sind erfasst, ihre Behandlung je Szenario ist offen.',
@@ -597,7 +597,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q52: {
     name: 'Koordination grenzüberschreitender Steuern',
-    question: 'Sind die steuerlichen Workstreams in den relevanten Jurisdiktionen koordiniert?',
+    question: 'Wie wirksam sind die steuerlichen Workstreams der Transaktion über die relevanten Jurisdiktionen hinweg koordiniert?',
     anchors: [
       'Für relevante Jurisdiktionen fehlt eine koordinierte Abdeckung.',
       'Berater sind benannt, Umfang oder Abhängigkeiten sind offen.',
@@ -608,7 +608,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q53: {
     name: 'Umsetzung des Asset Deals',
-    question: 'Sind die rechtlichen Anforderungen an die Übertragung der vorgesehenen Vermögenswerte oder des Geschäftsbetriebs erfasst?',
+    question: 'Haben Sie die rechtlichen Anforderungen und die Schritte mit Dritten für die Übertragung der vorgesehenen Vermögenswerte oder des Geschäftsbetriebs erfasst?',
     anchors: [
       'Wesentliche Anforderungen an die Übertragung sind nicht geprüft.',
       'Die Anforderungen sind erfasst, mit wesentlichen Lücken.',
@@ -619,7 +619,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q54: {
     name: 'Governance nach der Transaktion',
-    question: 'Sind die Governance-Rechte nach dem geplanten Teilverkauf verstanden und abgestimmt?',
+    question: 'Wie abgestimmt sind die erwarteten Governance-Rechte und Entscheidungsregeln nach einem Teilverkauf?',
     anchors: [
       'Wesentliche Erwartungen an die künftige Governance widersprechen sich oder sind nicht festgelegt.',
       'Ein Vorschlag liegt vor, mit wesentlichen offenen Punkten.',
@@ -630,7 +630,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q55: {
     name: 'Kapitalverwendung und Erlöse',
-    question: 'Wird der Bedarf an Primärkapital von etwaigen Erlösen an verkaufende Gesellschafter unterschieden?',
+    question: 'Wie klar wird der Primärkapitalbedarf des Unternehmens von Erlösen an verkaufende Gesellschafter unterschieden?',
     anchors: [
       'Finanzierungsbedarf des Unternehmens und Liquidität der Verkäufer werden nicht unterschieden.',
       'Eine erste Aufteilung besteht, ohne vollständig verknüpften Finanzierungsplan.',
@@ -721,34 +721,35 @@ export const DE: CatalogueTranslation = {
   discovery: {
     E01: {
       theme: 'Stärken',
-      title: 'Welche Stärke Ihres Unternehmens würden Sie einem potenziellen Käufer zuerst zeigen?',
+      title: 'Was ist der stärkste Grund, aus dem sich ein potenzieller Käufer für Ihr Unternehmen interessieren sollte?',
       help: 'Wählen Sie bis zu drei. Dies ist eine Präferenz und wird nicht bewertet.',
       options: [
-        'Persönliche Kundenbeziehungen',
-        'Spezialwissen',
+        'Kundentreue',
+        'Differenzierende Produkte oder Technologie',
+        'Erfahrenes Team',
         'Wiederkehrende Umsätze',
-        'Starke Marke oder Reputation',
-        'Eigene Technologie',
-        'Erfahrenes Managementteam',
-        'Effiziente Abläufe',
+        'Marktposition',
+        'Operative Fähigkeiten',
+        'Wachstumschancen',
+        'Sonstiges',
       ],
     },
     E02: {
       theme: 'Stärken',
-      title: 'Warum entscheiden sich Kunden für Sie, wenn ein Wettbewerber einen niedrigeren Preis anbietet?',
+      title: 'Welche Nachweise stützen die Gründe, aus denen sich Kunden für Ihr Unternehmen und nicht für günstigere Alternativen entscheiden?',
       help: 'Wählen Sie die Aussage, die Ihre heute vorhandenen Nachweise beschreibt.',
     },
     E03: {
       theme: 'Umsatz',
-      title: 'Welcher Anteil Ihres Umsatzes der nächsten 12 Monate ist bereits vertraglich gesichert?',
-      help: 'Optional. Eine grobe Spanne genügt. Wird nicht bewertet.',
-      options: ['Unter 25%', '25 bis 50%', '50 bis 75%', 'Über 75%'],
+      title: 'Welcher Anteil Ihres Umsatzes der nächsten 12 Monate ist bereits durch vertragliche Zusagen gesichert?',
+      help: 'Optional. Eine grobe Spanne genügt. Wird nicht bewertet. Ein niedriger Anteil ist nicht automatisch eine Schwäche.',
+      options: ['Unter 25%', '25 bis 50%', '50 bis 75%', 'Über 75%', 'Noch nicht berechnet'],
     },
     E04: {
       theme: 'Umsatz',
-      title: 'Wenn Ihr größter Kunde wegfiele, welcher Anteil am Jahresumsatz wäre betroffen?',
+      title: 'Welcher Anteil Ihres Jahresumsatzes wäre vom Verlust Ihres größten Kunden betroffen?',
       help: 'Optional. Eine grobe Spanne genügt. Wird nicht bewertet.',
-      options: ['Unter 10%', '10 bis 20%', '20 bis 30%', 'Über 30%'],
+      options: ['Unter 10%', '10 bis 20%', '20 bis 30%', 'Über 30%', 'Noch nicht berechnet'],
     },
     E05: {
       theme: 'Personen',
@@ -757,25 +758,26 @@ export const DE: CatalogueTranslation = {
     },
     E06: {
       theme: 'Personen',
-      title: 'Eine Schlüsselperson mit Spezialwissen fällt für längere Zeit aus. Wer kann die kritische Arbeit übernehmen?',
+      title: 'Wie gut könnte wesentliche Arbeit weiterlaufen, wenn eine Schlüsselperson mit Spezialwissen längere Zeit ausfiele?',
       help: 'Denken Sie an die ein oder zwei Personen, deren Ausfall am meisten schaden würde.',
     },
     E07: {
       theme: 'Wachstum',
-      title: 'Wenn die Nachfrage um 30% stiege, was würde zuerst an seine Grenze stoßen?',
+      title: 'Wo würde Ihr Unternehmen am stärksten unter Druck geraten, wenn die Nachfrage um 30% stiege?',
       help: 'Die 30% dienen nur der Veranschaulichung. Wird nicht bewertet.',
       options: [
-        'Qualifizierte Mitarbeitende',
-        'Produktions- oder Lieferkapazität',
-        'Systeme und IT',
-        'Kapazität des Managements',
-        'Finanzierung',
-        'Nichts Wesentliches',
+        'Mitarbeitende und Qualifikationen',
+        'Produktions- oder Leistungskapazität',
+        'Lieferanten',
+        'Technologie und Systeme',
+        'Working Capital',
+        'Sonstiges',
+        'Nicht geprüft',
       ],
     },
     E08: {
       theme: 'Vorbereitung',
-      title: 'Wurde ein transaktionserfahrener Steuerberater mandatiert, um eine mögliche Transaktion zu prüfen?',
+      title: 'Haben Sie einen transaktionserfahrenen Steuerberater mandatiert und den Umfang seiner Prüfung vereinbart?',
       help: 'Ein allgemeiner Steuerberater ersetzt keine transaktionsspezifische Analyse.',
     },
   },
@@ -889,25 +891,39 @@ export const DE: CatalogueTranslation = {
     'Trade and distribution': 'Handel und Distribution',
     'Other services': 'Sonstige Dienstleistungen',
     'Other': 'Sonstiges',
-    // Discovery E01
-    'Personal customer relationships': 'Persönliche Kundenbeziehungen',
-    'Specialist know-how': 'Spezialwissen',
+    // Discovery E01 ('Other' is shared with BUSINESS_MODELS)
+    'Customer loyalty': 'Kundentreue',
+    'Distinctive products or technology': 'Differenzierende Produkte oder Technologie',
+    'Experienced team': 'Erfahrenes Team',
     'Recurring revenue': 'Wiederkehrende Umsätze',
-    'Strong brand or reputation': 'Starke Marke oder Reputation',
-    'Proprietary technology': 'Eigene Technologie',
-    'Experienced management team': 'Erfahrenes Managementteam',
-    'Efficient operations': 'Effiziente Abläufe',
-    // Discovery E03
+    'Market position': 'Marktposition',
+    'Operational capabilities': 'Operative Fähigkeiten',
+    'Growth opportunities': 'Wachstumschancen',
+    // Discovery E03 / E04 ('Not yet calculated' is shared)
     'Under 25%': 'Unter 25%',
     '25 to 50%': '25 bis 50%',
     '50 to 75%': '50 bis 75%',
     'Over 75%': 'Über 75%',
-    // Discovery E04
     'Under 10%': 'Unter 10%',
     '10 to 20%': '10 bis 20%',
     '20 to 30%': '20 bis 30%',
     'Over 30%': 'Über 30%',
-    // Discovery E07
+    'Not yet calculated': 'Noch nicht berechnet',
+    // Discovery E07 ('Other' is shared with BUSINESS_MODELS)
+    'People and skills': 'Mitarbeitende und Qualifikationen',
+    'Production or service capacity': 'Produktions- oder Leistungskapazität',
+    'Suppliers': 'Lieferanten',
+    'Technology and systems': 'Technologie und Systeme',
+    'Working capital': 'Working Capital',
+    'Not assessed': 'Nicht geprüft',
+    // Earlier discovery options (E01, E07 before catalogue v1.1). Kept so that
+    // assessments saved with these English values still render in German.
+    'Personal customer relationships': 'Persönliche Kundenbeziehungen',
+    'Specialist know-how': 'Spezialwissen',
+    'Strong brand or reputation': 'Starke Marke oder Reputation',
+    'Proprietary technology': 'Eigene Technologie',
+    'Experienced management team': 'Erfahrenes Managementteam',
+    'Efficient operations': 'Effiziente Abläufe',
     'Qualified people': 'Qualifizierte Mitarbeitende',
     'Production or delivery capacity': 'Produktions- oder Lieferkapazität',
     'Systems and IT': 'Systeme und IT',
