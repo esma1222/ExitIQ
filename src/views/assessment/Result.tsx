@@ -13,6 +13,7 @@ import { track } from '../../lib/remote';
 import { deleteEverything, go, recordResult, setTaskStatus, useAssessment, type TaskStatus } from '../../lib/store';
 import { deepList } from './Deep';
 import Narrative from './Narrative';
+import { CONTACT_EMAIL, contactMailto } from '../../lib/links';
 
 const STATUS_PILL: Record<DimensionResult['status'], { bg: string; fg: string }> = {
   complete: { bg: 'var(--navy-2)', fg: 'var(--lime)' },
@@ -53,11 +54,6 @@ function labelIn<T extends string>(lang: Lang, group: string, opts: Opt<T>[], v:
   return localOptions(lang, group, opts).find((o) => o.value === v)?.label ?? fallback;
 }
 
-function csv(tasks: Task[], status: Record<string, TaskStatus>, t: UIText): string {
-  const esc = (v: string | number | null | undefined) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const rows = tasks.map((x) => [x.priorityClass, x.label, x.title, x.reason, x.action, x.accountableRole, x.suggestedTiming, x.dependencies.join(' '), x.evidenceRequired, x.dimension, x.domain, x.sourceQuestionIds.join(' '), t.taskStatus[status[x.key] ?? 'open']]);
-  return [t.csvHead, ...rows].map((r) => r.map(esc).join(',')).join('\r\n');
-}
 
 export function Result() {
   const s = useAssessment();
@@ -104,15 +100,28 @@ export function Result() {
   const prev = s.previousSnapshot;
   const complete = r.dataStatus === 'data_complete';
 
-  const download = () => {
-    const blob = new Blob(['﻿' + csv(r.tasks, s.taskStatus, t)], { type: 'text/csv;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${t.csvFile}-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-    track('export', s.remoteId, { stage: 'RESULT' });
+  const [exporting, setExporting] = useState(false);
+  const download = async () => {
+    setExporting(true);
+    try {
+      const { exportActionPlanXlsx } = await import('../../lib/exportXlsx');
+      await exportActionPlanXlsx({ result: r, lang, context: chips, taxStatusLabel: t.taxStatus, dimStatusLabel: t.dimStatus, taskStatus: s.taskStatus });
+      track('export', s.remoteId, { stage: 'RESULT' });
+    } finally {
+      setExporting(false);
+    }
   };
+
+  // Printing (and "Save as PDF") always shows the full task list.
+  useEffect(() => {
+    const before = () => {
+      setFilter('all');
+      setShowAll(true);
+      document.querySelectorAll<HTMLDetailsElement>('details.how-to-read').forEach((d) => { d.open = true; });
+    };
+    window.addEventListener('beforeprint', before);
+    return () => window.removeEventListener('beforeprint', before);
+  }, []);
 
   const critical = r.risks.filter((k) => k.severity === 'critical').length;
   const glance = [
@@ -130,6 +139,13 @@ export function Result() {
 
   return (
     <main style={{ flex: 1 }}>
+      <div className="print-only print-masthead" aria-hidden="true">
+        <img src="/media/atares-logo-navy.png" alt="" />
+        <div>
+          <b>{t.printTitle}</b>
+          <span>{new Date().toLocaleDateString(locale(lang), { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+        </div>
+      </div>
       <section className="result-hero">
         <div className="wrap" style={{ padding: '44px 24px 36px', display: 'flex', flexDirection: 'column', gap: 18 }}>
           <span className="kicker">{t.planKicker(new Date().toLocaleDateString(locale(lang), { day: 'numeric', month: 'long', year: 'numeric' }))}</span>
@@ -247,6 +263,7 @@ export function Result() {
                           </div>
                           <span className="task-meta">{meta}</span>
                         </div>
+                        <span className="print-only task-print-status">{t.taskStatus[s.taskStatus[task.key] ?? 'open']}</span>
                         <div className="task-side no-print">
                           <select className="input input-light" aria-label={t.statusOf(task.title)}
                             value={s.taskStatus[task.key] ?? 'open'} onChange={(e) => setTaskStatus(task.key, e.target.value as TaskStatus)}>
@@ -307,11 +324,11 @@ export function Result() {
             <div className="next-actions">
               <button type="button" className="btn btn-lime" onClick={() => go('deep')}>{t.continueAnswering}</button>
               <button type="button" className="btn btn-ghost" onClick={() => window.print()}>{t.print}</button>
-              <button type="button" className="btn btn-ghost" onClick={download}>{t.exportCsv}</button>
+              <button type="button" className="btn btn-ghost" onClick={download} disabled={exporting} aria-busy={exporting}>{t.exportCsv}</button>
             </div>
             <div className="next-adviser">
               <p>{t.adviserQ}</p>
-              <a className="btn btn-ghost btn-sm" href="https://atares.team" target="_blank" rel="noreferrer" onClick={() => track('contact_request', s.remoteId, { stage: 'RESULT' })}>{t.discuss}</a>
+              <a className="btn btn-ghost btn-sm" href={contactMailto(lang)} title={CONTACT_EMAIL} onClick={() => track('contact_request', s.remoteId, { stage: 'RESULT' })}>{t.discuss}</a>
             </div>
           </section>
 
