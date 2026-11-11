@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { navigate } from '../../App';
 import { Bar, pct } from '../../components/ui';
 import { dimensionName, domainName, localOptions, profileText, routeLabel } from '../../i18n/localize';
@@ -68,6 +68,19 @@ export function Result() {
   const [filter, setFilter] = useState<'all' | 'critical' | 'open' | 'gap'>('all');
   const [showAll, setShowAll] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [headerH, setHeaderH] = useState(0);
+
+  // The section menu sticks below the assessment header, whose height depends on the screen width.
+  useEffect(() => {
+    const el = document.querySelector<HTMLElement>('.app-header');
+    if (!el) return;
+    // On small screens the header scrolls away (not sticky), so the menu sticks to the top.
+    const set = () => setHeaderH(getComputedStyle(el).position === 'sticky' ? el.offsetHeight : 0);
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     recordResult();
@@ -101,34 +114,59 @@ export function Result() {
     track('export', s.remoteId, { stage: 'RESULT' });
   };
 
+  const critical = r.risks.filter((k) => k.severity === 'critical').length;
+  const glance = [
+    { n: critical, label: t.glanceCritical, tone: critical ? 'alert' : 'calm' },
+    { n: r.risks.length - critical, label: t.glanceReview, tone: 'calm' },
+    { n: r.dimensions.reduce((a, d) => a + d.openCount, 0), label: t.glanceOpen, tone: 'calm' },
+    { n: r.tasks.length, label: t.glanceActions, tone: 'calm' },
+  ] as const;
+  const sections = [
+    ['readiness', t.navReadiness], ['risks', t.navRisks], ['actions', t.navActions], ['tax', t.navTax], ['summary', t.navSummary],
+  ] as const;
+  const groups = ([[1, t.groupCritical], [2, t.groupOpen], [3, t.groupGap]] as const)
+    .map(([cls, title]) => ({ cls, title, items: shown.filter((x) => x.priorityClass === cls) }))
+    .filter((g) => g.items.length);
+
   return (
     <main style={{ flex: 1 }}>
       <section className="result-hero">
-        <div className="wrap" style={{ padding: '44px 24px 40px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div className="wrap" style={{ padding: '44px 24px 36px', display: 'flex', flexDirection: 'column', gap: 18 }}>
           <span className="kicker">{t.planKicker(new Date().toLocaleDateString(locale(lang), { day: 'numeric', month: 'long', year: 'numeric' }))}</span>
           <h1 className="h1" style={{ color: 'var(--lime)', maxWidth: 900 }}>
             {r.specialist.length ? t.heroSpecialist : complete ? t.heroComplete : t.heroOpen}
           </h1>
           <div className="chips">
-            {chips.map((c) => <span key={c} className="pill" style={{ border: '1px solid rgba(255,255,255,0.3)', padding: '7px 12px', fontSize: 13, fontWeight: 500 }}>{c}</span>)}
+            {chips.map((c) => <span key={c} className="pill" style={{ border: '1px solid rgba(255,255,255,0.3)', padding: '7px 12px', fontSize: 13, fontWeight: 500, whiteSpace: 'normal' }}>{c}</span>)}
           </div>
           {complete && r.riskStatus !== 'none' && (
             <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.8)', maxWidth: 760 }}>{t.completeNote}</p>
           )}
+          <div className="glance">
+            {glance.map((g) => (
+              <div key={g.label} className={`glance-tile${g.tone === 'alert' ? ' alert' : ''}`}>
+                <span className="glance-n">{g.n}</span>
+                <span className="glance-l">{g.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
+      <nav className="result-nav no-print" aria-label={t.navAria} style={{ top: headerH }}>
+        <div className="wrap result-nav-inner">
+          {sections.map(([id, label], i) => (
+            <a key={id} href={`#sec-${id}`}><span aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>{label}</a>
+          ))}
+        </div>
+      </nav>
+
       <div className="result-body">
-        <div className="wrap" style={{ padding: '40px 24px 64px', display: 'flex', flexDirection: 'column', gap: 48 }}>
-          <section aria-labelledby="dims-title" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'baseline' }}>
-              <h2 className="h3" id="dims-title" style={{ fontSize: 26 }}>{t.dimsTitle}</h2>
-              <span style={{ fontSize: 13, color: 'var(--grey-4)' }}>
-                {r.profile ? t.weightedFor(profileName) : t.noPerspective} · {t.modelNote}
-              </span>
-            </div>
+        <div className="wrap" style={{ padding: '44px 24px 64px', display: 'flex', flexDirection: 'column', gap: 64 }}>
+          <section id="sec-readiness" className="rsec" aria-labelledby="dims-title" style={{ scrollMarginTop: headerH + 64 }}>
+            <SectionHead n={1} id="dims-title" title={t.dimsTitle} sub={t.dimsSub} />
             {prev && prev.profile !== r.profile && (
-              <p style={{ margin: 0, fontSize: 14, color: 'var(--grey-4)' }}>
+              <p className="rsec-note">
                 {t.recalculated(
                   prev.profile ? (PROFILES.some((p) => p.key === prev.profile) ? profileText(lang, prev.profile as Profile).name : prev.profile) : t.notConfirmed,
                   DIMENSIONS.map((d, i) => `${dimensionName(lang, d.key)} ${prev.indices[i] ?? t.notShownLower}`).join(' · '),
@@ -138,144 +176,179 @@ export function Result() {
             <div className="dim-grid">
               {r.dimensions.map((d) => <DimensionCard key={d.key} d={d} lang={lang} t={t} />)}
             </div>
-            <p style={{ margin: 0, fontSize: 13, color: 'var(--grey-4)', lineHeight: 1.6, maxWidth: 820 }}>
-              {t.indexNote}
-            </p>
+            <details className="how-to-read">
+              <summary>{t.howToRead}</summary>
+              <p>{t.indexNote}</p>
+            </details>
           </section>
 
-          <div className="two-col">
-            <section aria-labelledby="risk-title" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <h2 className="h3" id="risk-title">{t.riskTitle}</h2>
-              <p style={{ margin: 0, fontSize: 14, color: 'var(--grey-4)' }}>{t.riskSub}</p>
-              {r.risks.length === 0 && (
-                <div style={{ border: '1px solid var(--grey-2)', borderRadius: 14, padding: '12px 14px', fontSize: 14 }}>{t.noRisks}</div>
-              )}
-              {r.risks.map((k) => (
-                <div key={k.rule + k.title} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', border: `1px solid ${k.severity === 'critical' ? 'var(--red)' : 'var(--grey-2)'}`, borderRadius: 14, padding: '12px 14px', fontSize: 14, lineHeight: 1.5 }}>
-                  <span className="pill" style={k.severity === 'critical' ? { background: 'var(--red)', color: 'var(--white)' } : { background: 'var(--grey-1)', border: '1px solid var(--grey-2)' }}>{k.severity === 'critical' ? t.critical : t.needsReview}</span>
-                  <span>
-                    <b>{k.title}.</b> {k.text}
-                    {k.questionIds.length > 0 && <span style={{ color: 'var(--grey-4)' }}> ({k.questionIds.join(', ')})</span>}
-                  </span>
+          <section id="sec-risks" className="rsec" aria-labelledby="rs-title" style={{ scrollMarginTop: headerH + 64 }}>
+            <SectionHead n={2} id="rs-title" title={t.risksStrengthsTitle} />
+            <div className="two-col">
+              <div className="panel" aria-labelledby="risk-title">
+                <div className="panel-head">
+                  <h3 id="risk-title">{t.riskTitle}</h3>
+                  <p>{t.riskSub}</p>
                 </div>
-              ))}
-            </section>
-            <section aria-labelledby="str-title" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <h2 className="h3" id="str-title">{t.strTitle}</h2>
-              <p style={{ margin: 0, fontSize: 14, color: 'var(--grey-4)' }}>{t.strSub}</p>
-              {r.strengths.length === 0 && <div style={{ background: 'var(--grey-1)', borderRadius: 14, padding: '12px 14px', fontSize: 14 }}>{t.strEmpty}</div>}
-              {r.strengths.map((x) => (
-                <div key={x.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: 'var(--grey-1)', borderRadius: 14, padding: '12px 14px', fontSize: 14, lineHeight: 1.5 }}>
-                  <span className="pill" style={{ background: 'var(--navy-2)', color: 'var(--white)' }}>{x.id}</span>
-                  <span><b>{x.name}.</b> {t.youReported} {x.text}</span>
+                {r.risks.length === 0 && <div className="item">{t.noRisks}</div>}
+                {r.risks.map((k) => (
+                  <div key={k.rule + k.title} className={`item${k.severity === 'critical' ? ' item-critical' : ''}`}>
+                    <span className="pill" style={k.severity === 'critical' ? { background: 'var(--red)', color: 'var(--white)' } : { background: 'var(--grey-1)', border: '1px solid var(--grey-2)' }}>{k.severity === 'critical' ? t.critical : t.needsReview}</span>
+                    <span>
+                      <b>{k.title}.</b> {k.text}
+                      {k.questionIds.length > 0 && <span className="ids"> {k.questionIds.join(', ')}</span>}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="panel" aria-labelledby="str-title">
+                <div className="panel-head">
+                  <h3 id="str-title">{t.strTitle}</h3>
+                  <p>{t.strSub}</p>
                 </div>
-              ))}
-            </section>
-          </div>
-
-          <section aria-labelledby="tasks-title" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-              <h2 className="h3" id="tasks-title" style={{ fontSize: 26 }}>{t.tasksTitle}</h2>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} role="group" aria-label={t.filterAria}>
-                {([['all', `${t.filterAll} · ${r.tasks.length}`], ['critical', `${t.filterCritical} · ${count('critical')}`], ['open', `${t.filterOpen} · ${count('open')}`], ['gap', `${t.filterGap} · ${count('gap')}`]] as const).map(([k, l]) => (
-                  <button key={k} type="button" className="filter-btn" aria-pressed={filter === k} onClick={() => { setFilter(k); setShowAll(false); }}>{l}</button>
+                {r.strengths.length === 0 && <div className="item">{t.strEmpty}</div>}
+                {r.strengths.map((x) => (
+                  <div key={x.id} className="item">
+                    <span className="pill" style={{ background: 'var(--navy-2)', color: 'var(--white)' }}>{x.id}</span>
+                    <span><b>{x.name}.</b> {t.youReported} {x.text}</span>
+                  </div>
                 ))}
               </div>
             </div>
+          </section>
+
+          <section id="sec-actions" className="rsec" aria-labelledby="tasks-title" style={{ scrollMarginTop: headerH + 64 }}>
+            <SectionHead n={3} id="tasks-title" title={t.tasksTitle} sub={t.tasksSub}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} role="group" aria-label={t.filterAria} className="no-print">
+                {([['all', t.filterAll, r.tasks.length], ['critical', t.filterCritical, count('critical')], ['open', t.filterOpen, count('open')], ['gap', t.filterGap, count('gap')]] as const).map(([k, l, n]) => (
+                  <button key={k} type="button" className="filter-btn" aria-pressed={filter === k} onClick={() => { setFilter(k); setShowAll(false); }}>{l} · {n}</button>
+                ))}
+              </div>
+            </SectionHead>
             <div className="task-list">
               {shown.length === 0 && <div style={{ padding: 18, fontSize: 14 }}>{t.nothingHere}</div>}
-              {shown.map((task) => {
-                const qid = task.sourceQuestionIds[0];
-                const pill = taskPill(task, !!(qid && s.answers[qid]));
-                return (
-                  <div key={task.key} className="task">
-                    <span className="pill" style={{ background: pill.bg, color: pill.fg, alignSelf: 'start' }}>{task.label}</span>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <b style={{ fontSize: 15 }}>{task.title}</b>
-                      <span style={{ fontSize: 14, lineHeight: 1.5 }}>{task.reason}</span>
-                      <span style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--grey-4)' }}>{t.nextStep(task.action)}</span>
-                      <span style={{ fontSize: 12, color: 'var(--grey-4)' }}>
-                        {[task.dimension, task.domain, t.suggestedOwner(task.accountableRole), task.suggestedTiming, task.dependencies.length ? t.after(task.dependencies.join(', ')) : null, task.sourceQuestionIds.join(', ') || null].filter(Boolean).join(' · ')}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }} className="no-print">
-                      <select className="input input-light" style={{ width: 'auto', padding: '6px 10px', fontSize: 13 }} aria-label={t.statusOf(task.title)}
-                        value={s.taskStatus[task.key] ?? 'open'} onChange={(e) => setTaskStatus(task.key, e.target.value as TaskStatus)}>
-                        <option value="open">{t.taskStatus.open}</option>
-                        <option value="in_progress">{t.taskStatus.in_progress}</option>
-                        <option value="done">{t.taskStatus.done}</option>
-                      </select>
-                      {qid && task.kind !== 'critical' && task.ruleId !== 'APP' && (
-                        <button type="button" onClick={() => openQuestion(qid)} style={{ background: 'none', border: 0, color: 'var(--teal-dark)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>{t.openQuestion}</button>
-                      )}
-                      {task.ruleId === 'APP' && <button type="button" onClick={() => go('c3')} style={{ background: 'none', border: 0, color: 'var(--teal-dark)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>{t.clarifySetup}</button>}
-                    </div>
-                  </div>
-                );
-              })}
+              {groups.map((g) => (
+                <div key={g.cls} role="group" aria-label={g.title}>
+                  <div className="task-group">{g.title}</div>
+                  {g.items.map((task) => {
+                    const qid = task.sourceQuestionIds[0];
+                    const pill = taskPill(task, !!(qid && s.answers[qid]));
+                    const meta = [task.dimension, task.domain, task.dependencies.length ? t.after(task.dependencies.join(', ')) : null, task.sourceQuestionIds.join(', ') || null].filter(Boolean).join(' · ');
+                    return (
+                      <div key={task.key} className="task">
+                        <span className="pill task-pill" style={{ background: pill.bg, color: pill.fg }}>{task.label}</span>
+                        <div className="task-main">
+                          <b className="task-title">{task.title}</b>
+                          <span>{task.reason}</span>
+                          <span className="task-next">{t.nextStep(task.action)}</span>
+                          <div className="task-facts">
+                            <span>{t.suggestedOwner(task.accountableRole)}</span>
+                            <span>{task.suggestedTiming}</span>
+                          </div>
+                          <span className="task-meta">{meta}</span>
+                        </div>
+                        <div className="task-side no-print">
+                          <select className="input input-light" aria-label={t.statusOf(task.title)}
+                            value={s.taskStatus[task.key] ?? 'open'} onChange={(e) => setTaskStatus(task.key, e.target.value as TaskStatus)}>
+                            <option value="open">{t.taskStatus.open}</option>
+                            <option value="in_progress">{t.taskStatus.in_progress}</option>
+                            <option value="done">{t.taskStatus.done}</option>
+                          </select>
+                          {qid && task.kind !== 'critical' && task.ruleId !== 'APP' && (
+                            <button type="button" className="link-btn" onClick={() => openQuestion(qid)}>{t.openQuestion}</button>
+                          )}
+                          {task.ruleId === 'APP' && <button type="button" className="link-btn" onClick={() => go('c3')}>{t.clarifySetup}</button>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
               {tasks.length > 8 && (
-                <button type="button" className="no-print" onClick={() => setShowAll((x) => !x)} style={{ width: '100%', padding: 14, border: 0, borderTop: '1px solid var(--grey-1)', background: 'var(--grey-1)', fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}>
+                <button type="button" className="no-print task-more" onClick={() => setShowAll((x) => !x)}>
                   {showAll ? t.showFewer : t.showAll(tasks.length)}
                 </button>
               )}
             </div>
-            <p style={{ margin: 0, fontSize: 13, color: 'var(--grey-4)' }}>{t.timingNote}</p>
+            <p className="rsec-note">{t.timingNote}</p>
           </section>
 
-          <div className="two-col">
-            <section aria-labelledby="tax-title" style={{ background: 'var(--navy-2)', color: 'var(--white)', borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <h2 className="h3" id="tax-title">{t.taxTitle}</h2>
-              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: 'rgba(255,255,255,0.84)' }}>{t.taxSub}</p>
+          <section id="sec-tax" className="rsec" aria-labelledby="tax-title" style={{ scrollMarginTop: headerH + 64 }}>
+            <SectionHead n={4} id="tax-title" title={t.taxSection} sub={t.taxSub} />
+            <div className="tax-cols">
               {(['company', 'seller', 'cross_border'] as const).map((scope) => {
                 const rows = r.tax.filter((x) => x.scope === scope);
                 if (!rows.length) return null;
                 return (
-                  <div key={scope} style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', margin: '8px 0 4px' }}>{t.taxScope[scope]}</span>
+                  <div key={scope} className="tax-col">
+                    <span className="tax-col-title">{t.taxScope[scope]}</span>
                     {rows.map((x) => (
-                      <div key={x.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.12)', fontSize: 14 }}>
+                      <div key={x.id} className="tax-row">
                         <span>{x.name}</span>
-                        <b style={{ color: x.status === 'Prepared' ? 'var(--lime)' : x.status === 'In progress' || x.status === 'Not started' ? 'var(--white)' : 'var(--lime-2)', whiteSpace: 'nowrap' }}>{t.taxStatus[x.status]}</b>
+                        <b style={{ color: x.status === 'Prepared' ? 'var(--lime)' : x.status === 'In progress' || x.status === 'Not started' ? 'var(--white)' : 'var(--lime-2)' }}>{t.taxStatus[x.status]}</b>
                       </div>
                     ))}
                   </div>
                 );
               })}
-            </section>
-            <section style={{ background: 'var(--grey-1)', borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', gap: 14, alignSelf: 'start' }}>
-              <h2 className="h3">{t.notShowTitle}</h2>
-              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{t.notShowBody}</p>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }} className="no-print">
-                <button type="button" className="btn btn-navy" onClick={() => go('deep')}>{t.continueAnswering}</button>
-                <button type="button" className="btn btn-outline" onClick={() => window.print()}>{t.print}</button>
-                <button type="button" className="btn btn-outline" onClick={download}>{t.exportCsv}</button>
-              </div>
-              <div style={{ borderTop: '1px solid var(--grey-2)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }} className="no-print">
-                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{t.adviserQ}</p>
-                <a className="btn btn-outline" style={{ alignSelf: 'flex-start' }} href="https://atares.team" target="_blank" rel="noreferrer" onClick={() => track('contact_request', s.remoteId, { stage: 'RESULT' })}>{t.discuss}</a>
-              </div>
-            </section>
-          </div>
-
-          <Narrative />
-
-          <section className="no-print" style={{ borderTop: '1px solid var(--grey-2)', paddingTop: 20, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', fontSize: 13, color: 'var(--grey-4)' }}>
-            <span>{t.modelLine(r.versions.catalogue, r.versions.scoring, r.versions.report)}</span>
-            <span style={{ marginLeft: 'auto' }} />
-            {!confirmDelete ? (
-              <button type="button" onClick={() => setConfirmDelete(true)} style={{ background: 'none', border: 0, color: 'var(--red)', cursor: 'pointer', fontSize: 13 }}>{t.deleteThis}</button>
-            ) : (
-              <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                {t.deleteWarn}
-                <button type="button" className="btn btn-sm" style={{ background: 'var(--red)', color: 'var(--white)' }} onClick={async () => { await deleteEverything(); navigate('/'); }}>{t.delete}</button>
-                <button type="button" className="btn btn-sm btn-outline" onClick={() => setConfirmDelete(false)}>{t.cancel}</button>
-              </span>
-            )}
+            </div>
           </section>
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--grey-4)', textAlign: 'center' }}>{t.disclaimer}</p>
+
+          <section id="sec-summary" className="rsec" style={{ scrollMarginTop: headerH + 64 }}>
+            <SectionHead n={5} id="summary-title" title={t.summarySection} />
+            <Narrative />
+          </section>
+
+          <section className="next-card no-print" aria-labelledby="next-title">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 520 }}>
+              <h2 className="h3" id="next-title">{t.nextTitle}</h2>
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: 'rgba(255,255,255,0.84)' }}>{t.nextSub}</p>
+            </div>
+            <div className="next-actions">
+              <button type="button" className="btn btn-lime" onClick={() => go('deep')}>{t.continueAnswering}</button>
+              <button type="button" className="btn btn-ghost" onClick={() => window.print()}>{t.print}</button>
+              <button type="button" className="btn btn-ghost" onClick={download}>{t.exportCsv}</button>
+            </div>
+            <div className="next-adviser">
+              <p>{t.adviserQ}</p>
+              <a className="btn btn-ghost btn-sm" href="https://atares.team" target="_blank" rel="noreferrer" onClick={() => track('contact_request', s.remoteId, { stage: 'RESULT' })}>{t.discuss}</a>
+            </div>
+          </section>
+
+          <footer className="result-foot">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 760 }}>
+              <b style={{ fontSize: 13 }}>{t.notShowTitle}</b>
+              <span>{t.notShowBody}</span>
+              <span>{t.disclaimer}</span>
+            </div>
+            <div className="no-print" style={{ marginLeft: 'auto' }}>
+              {!confirmDelete ? (
+                <button type="button" className="link-btn" onClick={() => setConfirmDelete(true)} style={{ color: 'var(--red)', fontWeight: 500 }}>{t.deleteThis}</button>
+              ) : (
+                <span style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {t.deleteWarn}
+                  <button type="button" className="btn btn-sm" style={{ background: 'var(--red)', color: 'var(--white)' }} onClick={async () => { await deleteEverything(); navigate('/'); }}>{t.delete}</button>
+                  <button type="button" className="btn btn-sm btn-outline" onClick={() => setConfirmDelete(false)}>{t.cancel}</button>
+                </span>
+              )}
+            </div>
+          </footer>
         </div>
       </div>
     </main>
+  );
+}
+
+function SectionHead({ n, id, title, sub, children }: { n: number; id: string; title: string; sub?: string; children?: ReactNode }) {
+  return (
+    <div className="rsec-head">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 760 }}>
+        <span className="rsec-num">{String(n).padStart(2, '0')}</span>
+        <h2 className="h3" id={id}>{title}</h2>
+        {sub && <p>{sub}</p>}
+      </div>
+      {children}
+    </div>
   );
 }
 
@@ -290,7 +363,7 @@ function DimensionCard({ d, lang, t }: { d: DimensionResult; lang: Lang; t: UITe
         <span className="pill" style={{ background: pill.bg, color: pill.fg }}>{t.dimStatus[d.status]}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-        <span className="big-index" style={{ color: shown ? 'var(--navy)' : 'var(--grey-3)' }}>{shown ? d.displayIndex : t.notShown}</span>
+        <span className={shown ? 'big-index' : 'big-index big-index-off'}>{shown ? d.displayIndex : t.notShown}</span>
         <span style={{ fontSize: 13, color: 'var(--grey-4)' }}>{dimensionNote(d, t)}</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 12, color: 'var(--grey-4)' }}>

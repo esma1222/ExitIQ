@@ -9,7 +9,6 @@ import { useAssessment } from '../../lib/store';
 
 const TEXT = {
   en: {
-    title: 'Written summary',
     intro: 'An optional summary written by AI from your stored result. It uses only your answers and the computed figures above, and it cannot change them.',
     generate: 'Write a summary',
     working: 'Writing your summary. This can take up to a minute.',
@@ -27,7 +26,6 @@ const TEXT = {
     },
   },
   de: {
-    title: 'Schriftliche Zusammenfassung',
     intro: 'Eine optionale, von KI verfasste Zusammenfassung Ihres gespeicherten Ergebnisses. Sie stützt sich nur auf Ihre Antworten und die oben berechneten Werte und kann diese nicht verändern.',
     generate: 'Zusammenfassung erstellen',
     working: 'Ihre Zusammenfassung wird erstellt. Das kann bis zu einer Minute dauern.',
@@ -76,8 +74,7 @@ export default function Narrative() {
   };
 
   return (
-    <section aria-labelledby="narrative-title" aria-busy={phase.k === 'working'} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <h2 className="h3" id="narrative-title">{t.title}</h2>
+    <div aria-labelledby="summary-title" aria-busy={phase.k === 'working'} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: 'var(--grey-4)', maxWidth: 820 }}>{t.intro}</p>
 
       {phase.k === 'idle' && (
@@ -115,6 +112,6 @@ export default function Narrative() {
           )}
         </article>
       )}
-    </section>
+    </div>
   );
 }
