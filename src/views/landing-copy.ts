@@ -8,7 +8,7 @@ export type { Lang } from '../lib/i18n';
 export const COPY = {
   en: {
     navHow: 'How it works', navReport: 'Your report', navOwner: 'Ownership', navAbout: 'About atares', resume: 'Resume assessment',
-    kicker: 'ExitIQ · Free exit readiness self-assessment',
+    kicker: 'Free exit readiness self-assessment',
     heroTitle: 'See your business through a buyer’s eyes.',
     heroSub: 'Find out what makes your business attractive, what may be hard to transfer to a new owner and what needs preparation. Start with a few questions, then decide whether to go into the details.',
     cta: 'Start my first assessment', heroMeta: 'Try three of the discovery questions on the right. Nothing is stored here.',
@@ -81,7 +81,7 @@ export const COPY = {
   },
   de: {
     navHow: 'So funktioniert es', navReport: 'Ihr Bericht', navOwner: 'Eigentümerstruktur', navAbout: 'Über atares', resume: 'Bewertung fortsetzen',
-    kicker: 'ExitIQ · Kostenlose Exit-Readiness-Selbsteinschätzung',
+    kicker: 'Kostenlose Exit-Readiness-Selbsteinschätzung',
     heroTitle: 'Sehen Sie Ihr Unternehmen mit den Augen eines Käufers.',
     heroSub: 'Erfahren Sie, was Ihr Unternehmen attraktiv macht, was sich schwer auf einen neuen Eigentümer übertragen lässt und wo Vorbereitung nötig ist. Beginnen Sie mit wenigen Fragen und entscheiden Sie dann, ob Sie ins Detail gehen.',
     cta: 'Erste Einschätzung starten', heroMeta: 'Probieren Sie rechts drei der Einstiegsfragen aus. Hier wird nichts gespeichert.',
