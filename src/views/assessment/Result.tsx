@@ -296,7 +296,7 @@ export function Result() {
 
           <section id="sec-summary" className="rsec" style={{ scrollMarginTop: headerH + 64 }}>
             <SectionHead n={5} id="summary-title" title={t.summarySection} />
-            <Narrative />
+            <Narrative result={r} />
           </section>
 
           <section className="next-card no-print" aria-labelledby="next-title">
