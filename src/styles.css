@@ -116,6 +116,8 @@ button { font: inherit; color: inherit; }
 .app-bg > :not(.app-header) { position: relative; }
 /* Teal kickers lose contrast on the bright artwork; use the pale variant there. */
 .app-bg .kicker, .result-hero .kicker, .hero .kicker, .section-dark .kicker { color: var(--teal-pale); }
+/* A white card inside a dark section keeps the dark-on-light kicker. */
+.app-bg .kicker.dark, .result-hero .kicker.dark, .hero .kicker.dark, .section-dark .kicker.dark { color: var(--teal-dark); }
 .glass {
   border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.2);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.07));
