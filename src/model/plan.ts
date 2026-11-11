@@ -200,7 +200,7 @@ export function initialObservations(ctx: AssessmentContext, answers: AnswerMap, 
   const out: Observation[] = [];
   const pts = (id: string) => v(answers, id);
   const strengths = (Array.isArray(diag.E01) ? diag.E01 : []) as string[];
-  const rel = strengths.includes('Personal customer relationships');
+  const rel = strengths.includes('Customer loyalty');
   const employed = ctx.managementModel === 'employed';
 
   if (rel && pts('Q12') != null && pts('Q12')! < 100) {

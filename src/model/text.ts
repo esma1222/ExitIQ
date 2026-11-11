@@ -94,7 +94,7 @@ const en: ModelText = {
   },
   obs: {
     continuity: 'Continuity',
-    continuityText: 'You identified personal customer relationships as a strength. Your continuity answers suggest checking how these relationships can be maintained after a change of ownership.',
+    continuityText: 'You identified customer loyalty as a strength. Your continuity answers suggest checking how these customer relationships can be maintained after a change of ownership.',
     strengths: 'Strengths',
     strengthsText: (s) => `You would lead with ${s.map((x) => x.toLowerCase()).join(' and ')}. The detailed assessment asks what evidence supports this.`,
     leadership: 'Leadership',
@@ -162,7 +162,7 @@ const de: ModelText = {
   },
   obs: {
     continuity: 'Kontinuität',
-    continuityText: 'Sie nennen persönliche Kundenbeziehungen als Stärke. Ihre Antworten zur Kontinuität sprechen dafür zu prüfen, wie diese Beziehungen nach einem Eigentümerwechsel erhalten bleiben.',
+    continuityText: 'Sie nennen Kundentreue als Stärke. Ihre Antworten zur Kontinuität sprechen dafür zu prüfen, wie diese Kundenbeziehungen nach einem Eigentümerwechsel erhalten bleiben.',
     strengths: 'Stärken',
     strengthsText: (s) => `Sie würden mit ${s.map((x) => `„${x}“`).join(' und ')} beginnen. Die Detailbewertung fragt, welche Nachweise das stützen.`,
     leadership: 'Führung',

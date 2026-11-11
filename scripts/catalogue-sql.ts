@@ -32,4 +32,5 @@ on conflict (catalogue_version, profile, domain) do update set weight = excluded
 `;
 }
 
-export const SEED_FILE = 'supabase/migrations/20261110120100_seed_catalogue.sql';
+// Each catalogue version gets its own seed migration; earlier ones stay as applied.
+export const SEED_FILE = 'supabase/migrations/20261111120000_seed_catalogue_v1_1.sql';

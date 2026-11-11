@@ -47,7 +47,7 @@ const CASES: { name: string; c: AssessmentContext; answers: (c: AssessmentContex
 const DIAGS: Diagnostics[] = [
   {},
   { E01: ['Recurring revenue', 'Specialist know-how'], E04: 'Over 30%' },
-  { E01: ['Personal customer relationships'] },
+  { E01: ['Customer loyalty'] },
 ];
 
 describe('German output is language-only', () => {
