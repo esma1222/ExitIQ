@@ -7,7 +7,8 @@ import { isKnown } from '../../model/scoring';
 import type { DomainKey } from '../../model/types';
 import { go, useAssessment } from '../../lib/store';
 
-const TONE = { positive: 'var(--teal)', attention: 'var(--lime)', neutral: 'var(--grey-3)' };
+// Solid pills with dark text stay readable on the bright, varied backdrop.
+const TONE = { positive: 'var(--teal-pale)', attention: 'var(--lime)', neutral: 'var(--white)' };
 
 /** Section 9: at most three supported observations and the areas that need detail. No readiness score. */
 export function Picture() {
@@ -34,9 +35,9 @@ export function Picture() {
       <div className="grid-auto" style={{ ['--min' as string]: '220px' }}>
         {obs.map((o) => (
           <div key={o.tag} className="glass" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: TONE[o.tone] }}>{o.tag}</span>
+            <span className="pill" style={{ alignSelf: 'flex-start', background: TONE[o.tone], color: 'var(--navy)' }}>{o.tag}</span>
             <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55 }}>{o.text}</p>
-            {o.answerIds.length > 0 && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{t.basedOn(o.answerIds.join(', '))}</span>}
+            {o.answerIds.length > 0 && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.82)' }}>{t.basedOn(o.answerIds.join(', '))}</span>}
           </div>
         ))}
       </div>
