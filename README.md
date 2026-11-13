@@ -96,6 +96,7 @@ The MVP test (12 November 2026) showed "Saved in this browser … online copy fa
 have not been applied to the hosted project. Fix:
 
 1. Run `bash scripts/setup-supabase.sh` (or `npx supabase db push`) against project `elpjwoujqzskgydytvob`.
+   Without the CLI: open the SQL Editor of that project, paste `supabase/setup-all-in-one.sql` and run it (one transaction; it stops without changes if the tables already exist). Rebuild it after adding a migration with `python3 scripts/build-setup-sql.py`.
 2. Dashboard → Authentication → Sign In / Providers: *Allow anonymous sign-ins* on.
 3. Dashboard → Authentication → Attack Protection: CAPTCHA off, or Turnstile site key set in Vercel and the Vercel
    domain allowed in the Turnstile widget.
