@@ -8,6 +8,7 @@ import { useLang } from '../../lib/i18n';
 import { initialObservations } from '../../model/plan';
 import { questionText } from '../../model/routing';
 import { track } from '../../lib/remote';
+import { TrackQuestion } from './TrackQuestion';
 import { go, setDiagnostic, setPosition, useAssessment } from '../../lib/store';
 import { ControlAnswer } from './AnswerControls';
 
@@ -63,6 +64,7 @@ export function Discovery() {
 
   return (
     <>
+      <TrackQuestion id={d.id} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <span className="kicker">{jt.discoveryKicker} · {dl.theme}</span>
         <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.74)' }} aria-live="polite">{t.questionOf(i + 1, DISCOVERY.length)}</span>

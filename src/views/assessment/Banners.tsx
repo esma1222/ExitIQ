@@ -7,7 +7,7 @@ import { useAssessment } from '../../lib/store';
 
 type Tone = 'red' | 'lime' | 'white';
 const TONES: Record<Tone, { border: string; bg: string; tagBg: string; tagFg: string }> = {
-  red: { border: 'var(--red)', bg: 'rgba(243,72,50,0.12)', tagBg: 'var(--red)', tagFg: 'var(--white)' },
+  red: { border: 'var(--red)', bg: 'rgba(243,72,50,0.12)', tagBg: 'var(--red-strong)', tagFg: 'var(--white)' },
   lime: { border: 'rgba(223,254,0,0.5)', bg: 'rgba(223,254,0,0.08)', tagBg: 'var(--lime-2)', tagFg: 'var(--navy)' },
   white: { border: 'rgba(255,255,255,0.3)', bg: 'rgba(255,255,255,0.06)', tagBg: 'var(--white)', tagFg: 'var(--navy)' },
 };
@@ -32,7 +32,7 @@ export function Banners() {
     // Shown prominently from the moment it is confirmed: context, discovery, picture, setup and the detailed questions.
     out.push(
       <section key="acute" className="specialist-card" role="note" aria-labelledby="acute-title">
-        <span className="pill" style={{ background: 'var(--red)', color: 'var(--white)', alignSelf: 'flex-start' }}>{t.specialistRoute}</span>
+        <span className="pill" style={{ background: 'var(--red-strong)', color: 'var(--white)', alignSelf: 'flex-start' }}>{t.specialistRoute}</span>
         <h2 id="acute-title">{jt.acuteTitle}</h2>
         <p>{t.bannerAcute}</p>
         <p className="muted">{jt.acuteNext}</p>

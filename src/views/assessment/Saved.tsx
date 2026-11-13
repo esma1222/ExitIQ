@@ -39,12 +39,12 @@ export function Saved() {
         </p>
       </div>
 
-      <dl className="save-status glass">
-        <div><dt>{jt.onBrowser}</dt><dd><span className="status-dot on" aria-hidden="true" />{jt.savedYes}</dd></div>
-        <div>
+      <div className="save-status glass">
+        <dl style={{ margin: 0 }}><dt>{jt.onBrowser}</dt><dd><span className="status-dot on" aria-hidden="true" />{jt.savedYes}</dd></dl>
+        <dl style={{ margin: 0 }}>
           <dt>{jt.onlineBackup}</dt>
           <dd><span className={`status-dot ${backup}`} aria-hidden="true" />{backup === 'on' ? jt.backupOn : backup === 'off' ? jt.backupOff : jt.backupChecking}</dd>
-        </div>
+        </dl>
         {backup === 'off' && (
           <div className="save-status-wide">
             <p>{jt.backupOffBody}</p>
@@ -52,7 +52,7 @@ export function Saved() {
           </div>
         )}
         {backup === 'on' && <p className="save-status-wide">{jt.backupOnBody}</p>}
-      </dl>
+      </div>
 
       {backup === 'on' && (
       <section className="glass" style={{ display: 'flex', flexDirection: 'column', gap: 12 }} aria-labelledby="link-title">
@@ -95,7 +95,7 @@ export function Saved() {
         {confirm === 'delete' && (
           <span style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             {t.deleteWarn}
-            <button type="button" className="btn btn-sm" style={{ background: 'var(--red)', color: 'var(--white)' }} onClick={async () => { await deleteEverything(); navigate('/'); }}>{t.delete}</button>
+            <button type="button" className="btn btn-sm" style={{ background: 'var(--red-strong)', color: 'var(--white)' }} onClick={async () => { await deleteEverything(); navigate('/'); }}>{t.delete}</button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirm(null)}>{t.cancel}</button>
           </span>
         )}

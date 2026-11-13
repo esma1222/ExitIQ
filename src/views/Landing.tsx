@@ -40,6 +40,7 @@ export default function Landing() {
         </div>
       </header>
 
+      <main id="main">
       <Hero lang={lang} onStart={start} />
 
       <section aria-label="Promises" style={{ background: 'var(--navy)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
@@ -110,6 +111,7 @@ export default function Landing() {
           </footer>
         </div>
       </section>
+      </main>
     </div>
   );
 }
@@ -304,8 +306,8 @@ function ReportPreview({ lang }: { lang: Lang }) {
                     <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.78)' }}>{m.range}</span>
                   </span>
                   <span style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 12, color: 'rgba(255,255,255,0.78)' }}>
-                    <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{t.cov} {m.cov}%<Bar dark value={m.cov} color="var(--teal)" /></span>
-                    <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{t.ev} {m.ev}%<Bar dark value={m.ev} color="var(--lime)" /></span>
+                    <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{t.cov} {m.cov}%<Bar dark value={m.cov} color="var(--teal)" label={`${t.cov} ${m.cov}%`} /></span>
+                    <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{t.ev} {m.ev}%<Bar dark value={m.ev} color="var(--lime)" label={`${t.ev} ${m.ev}%`} /></span>
                   </span>
                 </button>
               );
@@ -323,14 +325,14 @@ function ReportPreview({ lang }: { lang: Lang }) {
               return (
                 <div key={n} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 14 }}><b>{n}</b><span style={{ whiteSpace: 'nowrap' }}>{label}</span></div>
-                  <Bar value={v == null ? 0 : v * lc} open={(1 - lc) * 100} />
+                  <Bar value={v == null ? 0 : v * lc} open={(1 - lc) * 100} label={`${n}: ${label}`} />
                 </div>
               );
             })}
             <div style={{ borderTop: '1px solid var(--grey-2)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <b style={{ fontSize: 14 }}>{t.separate}</b>
               <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', border: `1px solid ${ex.risk?.severity === 'critical' ? 'var(--red)' : 'var(--grey-2)'}`, borderRadius: 12, padding: '10px 12px', fontSize: 14, lineHeight: 1.5 }}>
-                <span className="pill" style={{ background: ex.risk?.severity === 'critical' ? 'var(--red)' : 'var(--grey-1)', color: ex.risk?.severity === 'critical' ? 'var(--white)' : 'var(--navy)' }}>{ex.risk?.severity === 'critical' ? t.crit : t.review}</span>
+                <span className="pill" style={{ background: ex.risk?.severity === 'critical' ? 'var(--red-strong)' : 'var(--grey-1)', color: ex.risk?.severity === 'critical' ? 'var(--white)' : 'var(--navy)' }}>{ex.risk?.severity === 'critical' ? t.crit : t.review}</span>
                 <span>{dim.risk}</span>
               </div>
             </div>

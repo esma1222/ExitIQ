@@ -109,6 +109,21 @@ export function hasProgress(s: State = state): boolean {
 
 // ── remote mirroring ─────────────────────────────────────────────────────────
 
+/**
+ * Funnel stages for analytics (test report: landing CTA → context → discovery →
+ * first observation → setup → detailed assessment → report → export → return).
+ * Finer than the assessment row's stage, which the database constrains.
+ */
+const TRACK_STAGE: Record<Screen, string> = {
+  context: 'CONTEXT', discovery: 'DISCOVERY', picture: 'INITIAL_PICTURE', setup: 'SETUP', specialist: 'SPECIALIST',
+  summary: 'SETUP_SUMMARY', deep: 'DEEP_ASSESSMENT', result: 'RESULT', saved: 'SAVED',
+};
+
+/** Records which question is on screen, so exits can be located. Only the question id is sent, never an answer. */
+export function trackQuestionView(questionId: string) {
+  remote.track('stage_view', state.remoteId, { stage: `QUESTION:${questionId}`, profile: state.ctx.profile });
+}
+
 const STAGE: Record<Screen, remote.Stage> = {
   context: 'CONTEXT', discovery: 'DISCOVERY', picture: 'INITIAL_PICTURE', setup: 'DEEP_ASSESSMENT', specialist: 'DEEP_ASSESSMENT',
   summary: 'DEEP_ASSESSMENT', deep: 'DEEP_ASSESSMENT', result: 'RESULT', saved: 'SAVED',
@@ -334,7 +349,7 @@ export function go(target: AnyScreen, extra: Partial<State> = {}) {
   }
   write(touch({ screen, resumeTo, ...extra }));
   scheduleAssessmentSave();
-  remote.track(screen === 'saved' ? 'save' : 'stage_view', state.remoteId, { stage: STAGE[screen], profile: state.ctx.profile });
+  remote.track(screen === 'saved' ? 'save' : 'stage_view', state.remoteId, { stage: TRACK_STAGE[screen], profile: state.ctx.profile });
   try {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch {

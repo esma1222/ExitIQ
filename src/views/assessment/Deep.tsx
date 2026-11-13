@@ -1,3 +1,4 @@
+import { TrackQuestion } from './TrackQuestion';
 import { useState } from 'react';
 import { Bar } from '../../components/ui';
 import { CHAPTERS } from '../../model/catalogue';
@@ -60,6 +61,7 @@ export function Deep() {
 
   return (
     <div className="deep-grid">
+      <TrackQuestion id={q.id} />
       <aside aria-label={t.chapters} className="deep-aside">
         <div className="deep-progress">
           <span className="deep-progress-main" aria-live="polite">{jt.progressMain(progress.answered, progress.total, progress.open)}</span>
@@ -123,7 +125,7 @@ export function Deep() {
           )}
           {a && hasConflict(a) && (
             <div className="banner" style={{ borderColor: 'var(--red)', background: 'rgba(243,72,50,0.12)' }}>
-              <span className="pill" style={{ background: 'var(--red)', color: 'var(--white)' }}>{t.conflict}</span>
+              <span className="pill" style={{ background: 'var(--red-strong)', color: 'var(--white)' }}>{t.conflict}</span>
               <span>{t.conflictText}</span>
             </div>
           )}
@@ -170,9 +172,9 @@ function EvidenceEditor({ q, answer }: { q: QuestionDef; answer: Answer }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.74)' }}>{t.evidenceSupport}</span>
       <div className="chips" role="radiogroup" aria-label={t.evidenceSupport}>
-        <button type="button" role="radio" aria-checked={mode === 'self'} className="chip" aria-pressed={mode === 'self'}
+        <button type="button" role="radio" aria-checked={mode === 'self'} className="chip"
           onClick={() => { setMode('self'); if (ev) setEvidence(q.id, null); }}>{t.selfOnly}</button>
-        <button type="button" role="radio" aria-checked={mode === 'ref'} className="chip" aria-pressed={mode === 'ref'} onClick={() => setMode('ref')}>{t.datedDoc}</button>
+        <button type="button" role="radio" aria-checked={mode === 'ref'} className="chip" onClick={() => setMode('ref')}>{t.datedDoc}</button>
       </div>
       {mode === 'ref' && (
         <div style={{ display: 'grid', gap: 8 }}>

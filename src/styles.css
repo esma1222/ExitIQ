@@ -9,6 +9,8 @@
   --lime: #befc00;
   --lime-2: #dffe00;
   --red: #f34832;
+  /* For white text on red: 5.5:1 contrast (WCAG AA). */
+  --red-strong: #c4301c;
   --grey-1: #f2f3f4;
   --grey-2: #cbd2d6;
   --grey-3: #98a6ae;
@@ -420,7 +422,7 @@ select.input option { color: var(--navy); }
 .q-title { margin: 0; font-size: 23px; line-height: 1.35; overflow-wrap: anywhere; }
 .q-sub { margin: 0; font-size: 16px; line-height: 1.5; color: var(--white); font-weight: 600; }
 .q-help { margin: 0; font-size: 14px; line-height: 1.55; color: rgba(255, 255, 255, 0.74); }
-.q-meta { margin: 0; font-size: 11px; color: rgba(255, 255, 255, 0.45); letter-spacing: 0.02em; }
+.q-meta { margin: 0; font-size: 11px; color: rgba(255, 255, 255, 0.72); letter-spacing: 0.02em; }
 .told-earlier {
   margin: 4px 0 0; font-size: 13px; line-height: 1.5; color: rgba(255, 255, 255, 0.86);
   border-left: 3px solid var(--teal); padding: 6px 10px; background: rgba(0, 195, 191, 0.08); border-radius: 0 8px 8px 0;
@@ -484,7 +486,7 @@ select.input option { color: var(--navy); }
 .status-dot.off { background: var(--lime-2); }
 
 .summary-row { display: grid; grid-template-columns: minmax(120px, 180px) minmax(0, 1fr) auto; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--grey-1); align-items: start; }
-@media (max-width: 560px) { .summary-row { grid-template-columns: minmax(0, 1fr) auto; } .summary-row dd { grid-column: 1 / -1; grid-row: 2; } }
+@media (max-width: 560px) { .summary-row { grid-template-columns: minmax(0, 1fr) auto; } .summary-row dd:not(.summary-edit) { grid-column: 1 / -1; grid-row: 2; } }
 
 /* ── Report structure: next steps, work packages, questions to clarify, buyer view ── */
 .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
@@ -610,3 +612,6 @@ select.input option { color: var(--navy); }
 }
 /* Long question-id lists (e.g. many open questions) wrap instead of widening the page. */
 .narrative-p .ids, .item .ids { white-space: normal; overflow-wrap: anywhere; }
+
+/* Radio-style chips (evidence mode) use aria-checked, not aria-pressed. */
+.chip[aria-checked='true'] { border-color: var(--teal); background: rgba(0, 195, 191, 0.18); border-style: solid; }

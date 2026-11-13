@@ -257,7 +257,7 @@ export function Result() {
                       const meta = [task.dimension, task.domain, task.sourceQuestionIds.join(', ') || null].filter(Boolean).join(' · ');
                       return (
                         <div key={task.key} className="task">
-                          <span className="pill task-pill" style={{ background: 'var(--red)', color: 'var(--white)' }}>{task.label}</span>
+                          <span className="pill task-pill" style={{ background: 'var(--red-strong)', color: 'var(--white)' }}>{task.label}</span>
                           <div className="task-main">
                             <b className="task-title">{task.title}</b>
                             <span>{task.reason}</span>
@@ -420,7 +420,7 @@ export function Result() {
                 {r.risks.length === 0 && <div className="item">{t.noRisks}</div>}
                 {r.risks.map((k) => (
                   <div key={k.rule + k.title} className={`item${k.severity === 'critical' ? ' item-critical' : ''}`}>
-                    <span className="pill" style={k.severity === 'critical' ? { background: 'var(--red)', color: 'var(--white)' } : { background: 'var(--grey-1)', border: '1px solid var(--grey-2)' }}>{k.severity === 'critical' ? t.critical : t.needsReview}</span>
+                    <span className="pill" style={k.severity === 'critical' ? { background: 'var(--red-strong)', color: 'var(--white)' } : { background: 'var(--grey-1)', border: '1px solid var(--grey-2)' }}>{k.severity === 'critical' ? t.critical : t.needsReview}</span>
                     <span>
                       <b>{k.title}.</b> {k.text}
                       {k.questionIds.length > 0 && <span className="ids"> {k.questionIds.join(', ')}</span>}
@@ -514,7 +514,7 @@ export function Result() {
               ) : (
                 <span style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                   {t.deleteWarn}
-                  <button type="button" className="btn btn-sm" style={{ background: 'var(--red)', color: 'var(--white)' }} onClick={async () => { await deleteEverything(); navigate('/'); }}>{t.delete}</button>
+                  <button type="button" className="btn btn-sm" style={{ background: 'var(--red-strong)', color: 'var(--white)' }} onClick={async () => { await deleteEverything(); navigate('/'); }}>{t.delete}</button>
                   <button type="button" className="btn btn-sm btn-outline" onClick={() => setConfirmDelete(false)}>{t.cancel}</button>
                 </span>
               )}

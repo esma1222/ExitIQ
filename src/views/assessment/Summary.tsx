@@ -75,7 +75,7 @@ export function Summary() {
                   </span>
                 )}
               </dd>
-              <button type="button" className="btn-link" style={{ color: 'var(--teal-dark)', fontWeight: 700, fontSize: 13, background: 'none', border: 0, cursor: 'pointer' }} onClick={() => go(r.edit)} aria-label={t.editAria(r.label)}>{t.edit}</button>
+              <dd className="summary-edit" style={{ margin: 0 }}><button type="button" className="btn-link" style={{ color: 'var(--teal-dark)', fontWeight: 700, fontSize: 13, background: 'none', border: 0, cursor: 'pointer' }} onClick={() => go(r.edit)} aria-label={t.editAria(r.label)}>{t.edit}</button></dd>
             </div>
           ))}
         </dl>
