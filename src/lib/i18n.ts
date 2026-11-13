@@ -57,6 +57,27 @@ export function pick<T>(lang: Lang, v: { en: T; de: T }): T {
 }
 
 /** Locale for Intl formatting (dates, numbers). */
+/** Locale for Intl formatting. English uses American date order, as the atares Golden Rules set. */
 export function locale(lang: Lang): string {
-  return lang === 'de' ? 'de-DE' : 'en-GB';
+  return lang === 'de' ? 'de-DE' : 'en-US';
+}
+
+/** Golden Rules dates: German 13.11.2026, English November 13, 2026. */
+export function formatDate(lang: Lang, d: Date = new Date()): string {
+  return lang === 'de'
+    ? d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+/** Golden Rules times: German 14:30 Uhr, English 2:30 p.m. */
+export function formatTime(lang: Lang, d: Date = new Date()): string {
+  if (lang === 'de') return `${d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`;
+  const h = d.getHours();
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h % 12 || 12}:${m} ${h < 12 ? 'a.m.' : 'p.m.'}`;
+}
+
+/** Golden Rules file names start with the date as YYMMDD. */
+export function fileDate(d: Date = new Date()): string {
+  return `${String(d.getFullYear()).slice(2)}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
 }

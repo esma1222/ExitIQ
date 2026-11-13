@@ -4,7 +4,7 @@ import { Bar, pct } from '../../components/ui';
 import { dimensionName, domainName, localOptions, profileText, routeLabel } from '../../i18n/localize';
 import { useT, type UIText } from '../../i18n/ui';
 import { useReportT } from '../../i18n/ui-report';
-import { locale, useLang, type Lang } from '../../lib/i18n';
+import { fileDate, formatDate, useLang, type Lang } from '../../lib/i18n';
 import { DIMENSIONS, PROFILES } from '../../model/catalogue';
 import { HORIZON_OPTIONS, OBJECTIVE_OPTIONS, PERIMETER_OPTIONS, type Opt } from '../../model/options';
 import { buildPlanView, controlStateLabel, type Category } from '../../model/packages';
@@ -111,9 +111,22 @@ export function Result() {
       setShowAllPkgs(true);
       document.querySelectorAll<HTMLDetailsElement>('details.how-to-read').forEach((d) => { d.open = true; });
     };
+    // Golden Rules: the PDF carries a proper title (YYMMDD_Project_Document), which browsers also use as the file name.
+    let previousTitle = document.title;
+    const titleBefore = () => {
+      previousTitle = document.title;
+      document.title = `${fileDate()}_ExitIQ_${lang === 'de' ? 'Maßnahmenplan' : 'Action plan'}`;
+    };
+    const titleAfter = () => { document.title = previousTitle; };
     window.addEventListener('beforeprint', before);
-    return () => window.removeEventListener('beforeprint', before);
-  }, []);
+    window.addEventListener('beforeprint', titleBefore);
+    window.addEventListener('afterprint', titleAfter);
+    return () => {
+      window.removeEventListener('beforeprint', before);
+      window.removeEventListener('beforeprint', titleBefore);
+      window.removeEventListener('afterprint', titleAfter);
+    };
+  }, [lang]);
 
   const reviewRisks = r.risks.filter((k) => k.severity === 'review').length;
   const glance = [
@@ -150,15 +163,16 @@ export function Result() {
   return (
     <main style={{ flex: 1 }}>
       <div className="print-only print-masthead" aria-hidden="true">
-        <img src="/media/atares-logo-navy.png" alt="" />
+        {/* Original atares logo (MarCom library), never redrawn. */}
+        <img src="/media/atares-logo-full-navy.png" alt="" />
         <div>
           <b>{t.printTitle}</b>
-          <span>{new Date().toLocaleDateString(locale(lang), { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+          <span>{formatDate(lang)}</span>
         </div>
       </div>
       <section className="result-hero">
         <div className="wrap" style={{ padding: '44px 24px 36px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <span className="kicker">{t.planKicker(new Date().toLocaleDateString(locale(lang), { day: 'numeric', month: 'long', year: 'numeric' }))}</span>
+          <span className="kicker">{t.planKicker(formatDate(lang))}</span>
           <h1 className="h1" style={{ color: 'var(--lime)', maxWidth: 900 }}>
             {r.specialist.length ? t.heroSpecialist : complete ? t.heroComplete : t.heroOpen}
           </h1>
@@ -507,6 +521,11 @@ export function Result() {
               <b style={{ fontSize: 13 }}>{t.notShowTitle}</b>
               <span>{t.notShowBody}</span>
               <span>{t.disclaimer}</span>
+            </div>
+            {/* Golden Rules footer for the printed report: sources first, notes second. */}
+            <div className="print-only print-sources">
+              <span>{lang === 'de' ? 'Quellen: ExitIQ-Selbsteinschätzung, Angaben des Nutzers.' : 'Sources: ExitIQ self-assessment, answers as reported by the user.'}</span>
+              <span>{lang === 'de' ? `Notizen: 1) Modell ${r.versions.catalogue}, ${r.versions.scoring}. 2) Zeitangaben sind Planungsvorschläge, keine rechtlichen Fristen.` : `Notes: 1) Model ${r.versions.catalogue}, ${r.versions.scoring}. 2) Timings are planning suggestions, not legal deadlines.`}</span>
             </div>
             <div className="no-print" style={{ marginLeft: 'auto' }}>
               {!confirmDelete ? (

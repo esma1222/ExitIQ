@@ -634,3 +634,14 @@ select.input option { color: var(--navy); }
 
 /* Radio-style chips (evidence mode) use aria-checked, not aria-pressed. */
 .chip[aria-checked='true'] { border-color: var(--teal); background: rgba(0, 195, 191, 0.18); border-style: solid; }
+
+/* ── Print / Save as PDF: atares Golden Rules (Aptos, dark blue 1 pt lines, one heading colour) ── */
+@media print {
+  body, .result-body, .result-hero, .print-masthead { font-family: Aptos, 'Noto Sans', Arial, sans-serif !important; }
+  .print-masthead { border-bottom: 1pt solid var(--navy) !important; padding-bottom: 8px; }
+  .print-masthead img { height: 40px !important; width: auto; }
+  .rsec-head { border-bottom: 1pt solid var(--navy) !important; }
+  .result-hero h1, .rsec-head h2, .panel-head h3, .narrative-sec h3, .result-body h2, .result-body h3 { color: var(--navy) !important; }
+  .dim-card, .panel, .task-list, .tax-cols, .narrative { border-width: 1pt !important; }
+  .print-sources { display: flex !important; flex-direction: column; gap: 2px; width: 100%; padding-top: 8px; border-top: 1pt solid var(--navy); font-size: 9px; color: var(--grey-4); break-inside: avoid; }
+}

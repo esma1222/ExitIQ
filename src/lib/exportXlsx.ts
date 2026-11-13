@@ -3,6 +3,7 @@
 // exports, so it does not weigh on the page itself.
 
 import type { Lang } from './i18n';
+import { fileDate, formatDate, formatTime } from './i18n';
 import type { BuyerItem, ResultSnapshot, TaxRow } from '../model/plan';
 import type { PlanView } from '../model/packages';
 import { WORKSTREAM_OF_PACKAGE, controlStateLabel, workstreamOf, type PackageKey } from '../model/packages';
@@ -20,7 +21,6 @@ export type TaskStatusKey = 'open' | 'in_progress' | 'done';
 
 const NAVY = 'FF002336';
 const NAVY_2 = 'FF003E5F';
-const TEAL_DARK = 'FF007775';
 const GREY_1 = 'FFF2F3F4';
 const GREY_2 = 'FFCBD2D6';
 const GREY_4 = 'FF324E5E';
@@ -78,8 +78,10 @@ const TEXT = {
     reconfirm: 'Reconfirm',
     evidence: { self_reported: 'Self-reported', dated_reference: 'Dated reference', reviewed: 'Reviewed' } as Record<string, string>,
     noEvidence: 'Self-reported',
+    sources: 'Sources: ExitIQ self-assessment, answers as reported by the user.',
+    notes: (n: string) => `Notes: 1) ${n}`,
     note: 'ExitIQ is a structured self-assessment by atares. It does not replace legal, tax or financial advice, and its results are not a valuation. Timings are planning suggestions, not legal deadlines.',
-    file: 'exitiq-action-plan',
+    file: 'Action plan',
   },
   de: {
     title: 'ExitIQ Maßnahmenplan',
@@ -130,14 +132,43 @@ const TEXT = {
     reconfirm: 'Erneut bestätigen',
     evidence: { self_reported: 'Selbstauskunft', dated_reference: 'Datierter Nachweis', reviewed: 'Geprüft' } as Record<string, string>,
     noEvidence: 'Selbstauskunft',
+    sources: 'Quellen: ExitIQ-Selbsteinschätzung, Angaben des Nutzers.',
+    notes: (n: string) => `Notizen: 1) ${n}`,
     note: 'ExitIQ ist eine strukturierte Selbsteinschätzung von atares. Sie ersetzt keine rechtliche, steuerliche oder finanzielle Beratung, und die Ergebnisse sind keine Unternehmensbewertung. Zeitangaben sind Planungsvorschläge, keine rechtlichen Fristen.',
-    file: 'exitiq-massnahmenplan',
+    file: 'Maßnahmenplan',
   },
 };
 
+/**
+ * exceljs always writes Calibri as the workbook default font (the style Normal)
+ * and into the theme. Aptos is the only atares typeface, so both are switched
+ * here, after writing; cell formats already name Aptos explicitly.
+ */
+async function asAptosWorkbook(buf: ArrayBuffer): Promise<ArrayBuffer> {
+  try {
+    const JSZip = (await import('jszip')).default;
+    const zip = await JSZip.loadAsync(buf);
+    const styles = zip.file('xl/styles.xml');
+    if (styles) {
+      const xml = await styles.async('string');
+      // Only the first <font> (font 0 = default).
+      zip.file('xl/styles.xml', xml.replace(/(<fonts[^>]*>\s*<font>[\s\S]*?<name val=")[^"]+(")/, '$1Aptos$2'));
+    }
+    const theme = zip.file('xl/theme/theme1.xml');
+    if (theme) {
+      const xml = await theme.async('string');
+      zip.file('xl/theme/theme1.xml', xml.replace(/(<a:(?:major|minor)Font>\s*<a:latin typeface=")[^"]+(")/g, '$1Aptos$2'));
+    }
+    return await zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE' });
+  } catch {
+    return buf; // fall back to the unpatched workbook rather than failing the download
+  }
+}
+
 async function logoDataUrl(): Promise<string | null> {
   try {
-    const blob = await (await fetch('/media/atares-logo-navy.png')).blob();
+    // Original atares logo from the MarCom library (via the atares-house-style brand assets), never redrawn.
+    const blob = await (await fetch('/media/atares-logo-full-navy.png')).blob();
     return await new Promise((resolve) => {
       const fr = new FileReader();
       fr.onload = () => resolve(String(fr.result));
@@ -171,27 +202,28 @@ export async function exportActionPlanXlsx({ result: r, lang, context, taxStatus
   wb.created = new Date();
   const logo = await logoDataUrl();
   const logoId = logo ? wb.addImage({ base64: logo, extension: 'png' }) : null;
-  const date = new Date().toLocaleDateString(lang === 'de' ? 'de-DE' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const date = formatDate(lang);
 
   type Ws = ReturnType<typeof wb.addWorksheet>;
   const thin = { style: 'thin' as const, color: { argb: GREY_2 } };
-  const border = { top: thin, bottom: thin, left: thin, right: thin };
+  // Golden Rules: no unnecessary borders; one thin line under each row.
+  const border = { bottom: thin };
 
   /** Logo, title and date in rows 1-4. Returns the next free row. */
   const masthead = (ws: Ws, cols: number): number => {
     ws.getRow(1).height = 30;
     ws.getRow(2).height = 30;
-    if (logoId != null) ws.addImage(logoId, { tl: { col: 0.15, row: 0.3 }, ext: { width: 179, height: 50 } });
+    if (logoId != null) ws.addImage(logoId, { tl: { col: 0.1, row: 0.15 }, ext: { width: 152, height: 56 } });
     const title = ws.getCell(1, 3);
     title.value = t.title;
-    title.font = { name: 'Calibri', size: 18, bold: true, color: { argb: NAVY } };
+    title.font = { name: 'Aptos', size: 18, bold: true, color: { argb: NAVY } };
     title.alignment = { vertical: 'bottom' };
     const sub = ws.getCell(2, 3);
     sub.value = t.created(date);
-    sub.font = { name: 'Calibri', size: 11, color: { argb: GREY_4 } };
+    sub.font = { name: 'Aptos', size: 11, color: { argb: GREY_4 } };
     sub.alignment = { vertical: 'top' };
-    // Accent line under the masthead.
-    for (let c = 1; c <= cols; c++) ws.getCell(3, c).border = { bottom: { style: 'medium', color: { argb: TEAL_DARK } } };
+    // Separator line under the masthead: dark blue, thin (Golden Rules).
+    for (let c = 1; c <= cols; c++) ws.getCell(3, c).border = { bottom: { style: 'thin', color: { argb: NAVY } } };
     ws.getRow(3).height = 6;
     return 5;
   };
@@ -199,7 +231,7 @@ export async function exportActionPlanXlsx({ result: r, lang, context, taxStatus
   const sectionTitle = (ws: Ws, row: number, text: string) => {
     const c = ws.getCell(row, 1);
     c.value = text;
-    c.font = { name: 'Calibri', size: 13, bold: true, color: { argb: NAVY } };
+    c.font = { name: 'Aptos', size: 13, bold: true, color: { argb: NAVY } };
     ws.getRow(row).height = 22;
   };
 
@@ -207,10 +239,9 @@ export async function exportActionPlanXlsx({ result: r, lang, context, taxStatus
     labels.forEach((l, i) => {
       const c = ws.getCell(row, i + 1);
       c.value = l;
-      c.font = { name: 'Calibri', size: 11, bold: true, color: { argb: WHITE } };
+      c.font = { name: 'Aptos', size: 11, bold: true, color: { argb: WHITE } };
       c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY_2 } };
       c.alignment = { vertical: 'middle', wrapText: true };
-      c.border = border;
     });
     ws.getRow(row).height = 22;
   };
@@ -218,7 +249,7 @@ export async function exportActionPlanXlsx({ result: r, lang, context, taxStatus
   const bodyCell = (ws: Ws, row: number, col: number, value: string | number | null, opts: { fill?: string; bold?: boolean; pct?: boolean } = {}) => {
     const c = ws.getCell(row, col);
     c.value = value;
-    c.font = { name: 'Calibri', size: 11, bold: !!opts.bold, color: { argb: NAVY } };
+    c.font = { name: 'Aptos', size: 11, bold: !!opts.bold, color: { argb: NAVY } };
     c.alignment = { vertical: 'top', wrapText: true };
     c.border = border;
     if (opts.pct) c.numFmt = '0%';
@@ -226,7 +257,7 @@ export async function exportActionPlanXlsx({ result: r, lang, context, taxStatus
   };
 
   // ── Sheet 1: overview ──────────────────────────────────────────────────────
-  const ov = wb.addWorksheet(t.overview, { views: [{ showGridLines: false }], pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } } });
+  const ov = wb.addWorksheet(t.overview, { views: [{ showGridLines: false, activeCell: 'A1' }], pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } } });
   ov.columns = [{ width: 30 }, { width: 22 }, { width: 46 }, { width: 18 }, { width: 18 }, { width: 14 }];
   let row = masthead(ov, 6);
 
@@ -268,13 +299,13 @@ export async function exportActionPlanXlsx({ result: r, lang, context, taxStatus
   kvRows(t.recordRows, [
     r.dataStatus === 'data_complete' ? t.dataComplete : t.dataIncomplete,
     r.versions.catalogue, r.versions.scoring, r.versions.report,
-    `${Number.isNaN(gen.getTime()) ? r.generatedAt : gen.toLocaleString(lang === 'de' ? 'de-DE' : 'en-GB', { dateStyle: 'long', timeStyle: 'short' })} (${r.generatedAt})`,
+    Number.isNaN(gen.getTime()) ? r.generatedAt : `${formatDate(lang, gen)}, ${formatTime(lang, gen)}`,
   ]);
   row++;
 
   sectionTitle(ov, row++, t.dims);
   headerRow(ov, row, t.dimHead);
-  for (let c = 3; c <= 6; c++) ov.getCell(row, c).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+  for (let c = 3; c <= 6; c++) ov.getCell(row, c).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
   row++;
   r.dimensions.forEach((d, i) => {
     const fill = i % 2 ? GREY_1 : undefined;
@@ -284,7 +315,7 @@ export async function exportActionPlanXlsx({ result: r, lang, context, taxStatus
     bodyCell(ov, row, 4, d.coverage, { pct: true, fill });
     bodyCell(ov, row, 5, d.evidenceSupport, { pct: true, fill });
     bodyCell(ov, row, 6, d.openCount, { fill });
-    for (let c = 3; c <= 6; c++) ov.getCell(row, c).alignment = { vertical: 'top', horizontal: 'center' };
+    for (let c = 3; c <= 6; c++) ov.getCell(row, c).alignment = { vertical: 'top', horizontal: 'right' };
     row++;
   });
   row++;
@@ -428,15 +459,19 @@ export async function exportActionPlanXlsx({ result: r, lang, context, taxStatus
     }
   }
   row++;
-  ov.mergeCells(row, 1, row, 6);
-  const n1 = ov.getCell(row, 1);
-  n1.value = t.note;
-  n1.font = { name: 'Calibri', size: 9, italic: true, color: { argb: GREY_4 } };
-  n1.alignment = { wrapText: true, vertical: 'top' };
-  ov.getRow(row).height = 42;
+  // Footer in the Golden Rules order: sources in the first line, notes in the second.
+  for (const [text, h] of [[t.sources, 18], [t.notes(t.note), 46]] as const) {
+    ov.mergeCells(row, 1, row, 6);
+    const c = ov.getCell(row, 1);
+    c.value = text;
+    c.font = { name: 'Aptos', size: 9, color: { argb: GREY_4 } };
+    c.alignment = { wrapText: true, vertical: 'top' };
+    ov.getRow(row).height = h;
+    row++;
+  }
 
   // ── Sheet 2: action plan, one row per task in report order ──────────────
-  const ws = wb.addWorksheet(t.tasks, { views: [{ state: 'frozen', ySplit: 5, showGridLines: false }], pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: '5:5', margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 } } });
+  const ws = wb.addWorksheet(t.tasks, { views: [{ state: 'frozen', ySplit: 5, showGridLines: false, activeCell: 'A1', topLeftCell: 'A6' }], pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: '5:5', margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 } } });
   const head = t.planHead;
   ws.columns = [6, 18, 26, 18, 30, 40, 40, 22, 16, 12, 14, 34, 18, 22, 12, 12].map((width) => ({ width }));
   masthead(ws, head.length);
@@ -465,12 +500,12 @@ export async function exportActionPlanXlsx({ result: r, lang, context, taxStatus
   ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5 + plan.ordered.length, column: head.length } };
 
   // ── Sheet 3: answer audit ──────────────────────────────────────────────────
-  const as = wb.addWorksheet(t.answers, { views: [{ state: 'frozen', ySplit: 6, showGridLines: false }], pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: '6:6', margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 } } });
+  const as = wb.addWorksheet(t.answers, { views: [{ state: 'frozen', ySplit: 6, showGridLines: false, activeCell: 'A1', topLeftCell: 'A7' }], pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: '6:6', margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 } } });
   as.columns = [6, 18, 20, 18, 22, 46, 18, 20, 42, 8, 16, 26, 18, 12, 10].map((width) => ({ width }));
   masthead(as, t.answerHead.length);
   const at = as.getCell(5, 1);
   at.value = t.answersTitle;
-  at.font = { name: 'Calibri', size: 11, italic: true, color: { argb: GREY_4 } };
+  at.font = { name: 'Aptos', size: 11, italic: true, color: { argb: GREY_4 } };
   headerRow(as, 6, t.answerHead);
   const applicableIds = new Set(r.score.applicable.map((q) => q.id));
   let ar = 7;
@@ -499,17 +534,21 @@ export async function exportActionPlanXlsx({ result: r, lang, context, taxStatus
     ];
     const fill = !isApplicable ? GREY_1 : undefined;
     vals.forEach((v, k) => bodyCell(as, ar, k + 1, v, { fill, bold: k === 0 }));
-    if (!isApplicable) for (let k = 1; k <= vals.length; k++) as.getCell(ar, k).font = { name: 'Calibri', size: 11, italic: true, color: { argb: GREY_4 } };
+    if (!isApplicable) for (let k = 1; k <= vals.length; k++) as.getCell(ar, k).font = { name: 'Aptos', size: 11, italic: true, color: { argb: GREY_4 } };
     as.getRow(ar).height = Math.max(30, Math.ceil(Math.max(String(vals[5]).length / 44, chosen.length / 40, String(vals[11]).length / 24)) * 15);
     ar++;
   }
   as.autoFilter = { from: { row: 6, column: 1 }, to: { row: ar - 1, column: t.answerHead.length } };
 
-  const buf = await wb.xlsx.writeBuffer();
+  // Open on the first sheet.
+  wb.views = [{ x: 0, y: 0, width: 20000, height: 12000, firstSheet: 0, activeTab: 0, visibility: 'visible' }];
+
+  const buf = await asAptosWorkbook((await wb.xlsx.writeBuffer()) as ArrayBuffer);
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `${t.file}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  // Golden Rules file name: YYMMDD_Project_Document.
+  a.download = `${fileDate()}_ExitIQ_${t.file}.xlsx`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
