@@ -3,7 +3,7 @@ import { navigate } from '../../App';
 import { useT } from '../../i18n/ui';
 import { useJT } from '../../i18n/ui-journey';
 import { deepList, progressCounts } from '../../lib/journey';
-import { locale, useLang } from '../../lib/i18n';
+import { formatDate, formatTime, useLang } from '../../lib/i18n';
 import { linkEmail } from '../../lib/remote';
 import { deleteEverything, resume, startNew, syncAll, useAssessment } from '../../lib/store';
 import { useBackupHealth } from './Banners';
@@ -27,7 +27,7 @@ export function Saved() {
     void syncAll().finally(() => setChecking(false));
   }, []);
   const backup = health.online === true ? 'on' : checking || health.online === null ? 'checking' : 'off';
-  const when = s.savedAt ? new Date(s.savedAt).toLocaleString(locale(lang), { dateStyle: 'medium', timeStyle: 'short' }) : null;
+  const when = s.savedAt ? `${formatDate(lang, new Date(s.savedAt))}, ${formatTime(lang, new Date(s.savedAt))}` : null;
 
   return (
     <>

@@ -104,6 +104,9 @@ export function discoveryScreens(lang: Lang): DiscoveryScreen[] {
  * the English option (it is what observations and analytics key on).
  */
 export function discoveryOptionLabel(lang: Lang, id: DiscoveryScreen['id'], englishValue: string): string {
+  // "Other (specify)": stored as "Other: <text>"; the typed text is shown as entered.
+  const custom = splitOther(englishValue);
+  if (custom) return `${discoveryOptionLabel(lang, id, 'Other')}: ${custom}`;
   if (lang === 'en') return englishValue;
   const screen = DISCOVERY.find((s) => s.id === id);
   const opts = screen && 'options' in screen ? screen.options : undefined;
@@ -125,4 +128,17 @@ export function localOptions<T extends string>(lang: Lang, group: string, opts: 
 /** Localise a free-list band label (stored value stays English). */
 export function bandLabel(lang: Lang, englishLabel: string): string {
   return lang === 'de' ? (DE.bands[englishLabel] ?? englishLabel) : englishLabel;
+}
+
+/** Prefix used to store the text typed for an "Other" discovery option. */
+export const OTHER_PREFIX = 'Other: ';
+
+/** The typed text of an "Other: <text>" value, or null for any other value. */
+export function splitOther(value: string): string | null {
+  return value.startsWith(OTHER_PREFIX) ? value.slice(OTHER_PREFIX.length) : null;
+}
+
+/** True for the "Other" option, with or without typed text. */
+export function isOther(value: string | null | undefined): boolean {
+  return value === 'Other' || (!!value && value.startsWith(OTHER_PREFIX));
 }

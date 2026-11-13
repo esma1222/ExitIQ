@@ -56,7 +56,6 @@ export function pick<T>(lang: Lang, v: { en: T; de: T }): T {
   return v[lang];
 }
 
-/** Locale for Intl formatting (dates, numbers). */
 /** Locale for Intl formatting. English uses American date order, as the atares Golden Rules set. */
 export function locale(lang: Lang): string {
   return lang === 'de' ? 'de-DE' : 'en-US';

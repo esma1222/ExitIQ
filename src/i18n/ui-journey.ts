@@ -33,6 +33,8 @@ const en = {
   acuteContact: 'Discuss the specialist route with atares',
 
   // Discovery
+  otherSpecify: 'Please specify (optional)',
+  otherPlaceholder: 'In a few words',
   discoveryKicker: 'Discovery',
   scoredMeta: 'Scored question · reused in the detailed assessment, so you will not be asked again.',
 
@@ -129,6 +131,8 @@ const de: JourneyText = {
   acuteNext: 'Sie können hier zur Vorbereitung weitermachen. Der Maßnahmenplan zeigt dann Vorbereitungsschritte ohne eine standardmäßige Aussage zur Transaktionsreife.',
   acuteContact: 'Spezialisierte Prüfung mit atares besprechen',
 
+  otherSpecify: 'Bitte kurz beschreiben (optional)',
+  otherPlaceholder: 'In wenigen Worten',
   discoveryKicker: 'Einstieg',
   scoredMeta: 'Bewertete Frage · wird in der Detailbewertung wiederverwendet, Sie werden also nicht erneut gefragt.',
 

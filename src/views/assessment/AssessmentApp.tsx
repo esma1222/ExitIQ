@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Brand, LangSwitch } from '../../components/ui';
 import { useT } from '../../i18n/ui';
 import { useJT } from '../../i18n/ui-journey';
-import { locale, useLang } from '../../lib/i18n';
+import { formatTime, useLang } from '../../lib/i18n';
 import { assessmentComplete, stepStates } from '../../lib/journey';
 import { onSyncStatus, type BackupHealth, type SyncStatus } from '../../lib/remote';
 import { go, hasProgress, hydrateFromRemote, syncAll, useAssessment, type Screen } from '../../lib/store';
@@ -49,7 +49,7 @@ export default function AssessmentApp() {
   }, [ready]);
 
   const steps = stepStates(state.screen, assessmentComplete(state.ctx, state.answers), state.resumeTo);
-  const time = state.savedAt ? new Date(state.savedAt).toLocaleTimeString(locale(lang), { hour: '2-digit', minute: '2-digit' }) : null;
+  const time = state.savedAt ? formatTime(lang, new Date(state.savedAt)) : null;
   // Calm wording: the browser copy is what is guaranteed; infrastructure detail never shows here.
   const saveLabel = !time ? t.saveIdle
     : sync === 'saving' && health.online !== false ? t.saving

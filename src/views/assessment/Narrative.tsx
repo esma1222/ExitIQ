@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { locale, useLang, type Lang } from '../../lib/i18n';
+import { formatDate, formatTime, useLang, type Lang } from '../../lib/i18n';
 import { requestNarrative, type Narrative as NarrativeData, type ParagraphKind } from '../../lib/narrative';
 import { onSyncStatus } from '../../lib/remote';
 import { useAssessment } from '../../lib/store';
@@ -91,7 +91,7 @@ export default function Narrative({ result, view }: { result: ResultSnapshot & {
 
   const dateLabel = (iso: string) => {
     const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? '' : d.toLocaleString(locale(lang), { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return Number.isNaN(d.getTime()) ? '' : `${formatDate(lang, d)}, ${formatTime(lang, d)}`;
   };
 
   return (

@@ -1,7 +1,8 @@
+import { useEffect, useState } from 'react';
 import { Chip, RadioGroup, CheckboxGroup } from '../../components/ui';
 import { QUESTION_BY_ID } from '../../model/catalogue';
 import { DISCOVERY } from '../../model/options';
-import { discoveryOptionLabel, discoveryScreens, statusLabel } from '../../i18n/localize';
+import { OTHER_PREFIX, discoveryOptionLabel, discoveryScreens, isOther, splitOther, statusLabel } from '../../i18n/localize';
 import { useT } from '../../i18n/ui';
 import { useJT } from '../../i18n/ui-journey';
 import { useLang } from '../../lib/i18n';
@@ -93,18 +94,30 @@ export function Discovery() {
         {d.kind === 'control' && <p className="q-meta" title={d.control}>{jt.scoredMeta}</p>}
         {d.kind === 'multi' && (
           <CheckboxGroup layout="list" label={title} choices={d.options.map((o) => ({ value: o, label: discoveryOptionLabel(lang, d.id, o) }))}
-            values={Array.isArray(s.diag.E01) ? s.diag.E01 : []}
+            values={(Array.isArray(s.diag.E01) ? s.diag.E01 : []).map((x) => (isOther(x) ? 'Other' : x))}
             onToggle={(v) => {
               const cur = Array.isArray(s.diag.E01) ? s.diag.E01 : [];
-              const nextV = cur.includes(v) ? cur.filter((x) => x !== v) : cur.length >= d.max ? cur : [...cur, v];
+              const has = v === 'Other' ? cur.some(isOther) : cur.includes(v);
+              const nextV = has ? cur.filter((x) => (v === 'Other' ? !isOther(x) : x !== v)) : cur.length >= d.max ? cur : [...cur, v];
               setDiagnostic('E01', nextV.length ? nextV : null);
+            }} />
+        )}
+        {d.kind === 'multi' && Array.isArray(s.diag.E01) && s.diag.E01.some(isOther) && (
+          <OtherText value={splitOther(s.diag.E01.find(isOther) ?? '') ?? ''} label={jt.otherSpecify} placeholder={jt.otherPlaceholder}
+            onChange={(text) => {
+              const cur = Array.isArray(s.diag.E01) ? s.diag.E01 : [];
+              setDiagnostic('E01', cur.map((x) => (isOther(x) ? (text ? `${OTHER_PREFIX}${text}` : 'Other') : x)));
             }} />
         )}
         {d.kind === 'band' && (
           <>
             <RadioGroup layout="list" label={title} choices={d.options.map((o) => ({ value: o, label: discoveryOptionLabel(lang, d.id, o) }))}
-              value={typeof s.diag[d.id] === 'string' && !BAND_VALUES.includes(s.diag[d.id] as string) ? (s.diag[d.id] as string) : null}
-              onChange={(v) => setDiagnostic(d.id, v)} />
+              value={typeof s.diag[d.id] === 'string' && !BAND_VALUES.includes(s.diag[d.id] as string) ? (isOther(s.diag[d.id] as string) ? 'Other' : (s.diag[d.id] as string)) : null}
+              onChange={(v) => setDiagnostic(d.id, v === 'Other' && isOther(s.diag[d.id] as string) ? (s.diag[d.id] as string) : v)} />
+            {d.options.includes('Other') && isOther(s.diag[d.id] as string) && (
+              <OtherText value={splitOther(s.diag[d.id] as string) ?? ''} label={jt.otherSpecify} placeholder={jt.otherPlaceholder}
+                onChange={(text) => setDiagnostic(d.id, text ? `${OTHER_PREFIX}${text}` : 'Other')} />
+            )}
             <div className="chips">
               {BAND_STATUSES.map(([l, st]) => <Chip key={l} pressed={s.diag[d.id] === l} onClick={() => setDiagnostic(d.id, s.diag[d.id] === l ? null : l)}>{statusLabel(lang, st)}</Chip>)}
             </div>
@@ -120,5 +133,18 @@ export function Discovery() {
         </div>
       </div>
     </>
+  );
+}
+
+/** Free text for an "Other" option. Saved on blur, at most 120 characters, kept short on purpose (no confidential detail needed). */
+function OtherText({ value, label, placeholder, onChange }: { value: string; label: string; placeholder: string; onChange: (text: string) => void }) {
+  const [text, setText] = useState(value);
+  useEffect(() => setText(value), [value]);
+  return (
+    <label className="other-text">
+      <span>{label}</span>
+      <input className="input" maxLength={120} value={text} placeholder={placeholder}
+        onChange={(e) => setText(e.target.value)} onBlur={() => text.trim() !== value && onChange(text.trim())} />
+    </label>
   );
 }

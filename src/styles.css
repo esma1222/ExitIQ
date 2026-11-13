@@ -645,3 +645,7 @@ select.input option { color: var(--navy); }
   .dim-card, .panel, .task-list, .tax-cols, .narrative { border-width: 1pt !important; }
   .print-sources { display: flex !important; flex-direction: column; gap: 2px; width: 100%; padding-top: 8px; border-top: 1pt solid var(--navy); font-size: 9px; color: var(--grey-4); break-inside: avoid; }
 }
+
+/* Discovery: free text for an "Other" option */
+.other-text { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; font-size: 13px; color: rgba(255, 255, 255, 0.82); }
+.other-text .input { max-width: 520px; }
