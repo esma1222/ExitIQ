@@ -107,7 +107,8 @@ export function discoveryOptionLabel(lang: Lang, id: DiscoveryScreen['id'], engl
   // "Other (specify)": stored as "Other: <text>"; the typed text is shown as entered.
   const custom = splitOther(englishValue);
   if (custom) return `${discoveryOptionLabel(lang, id, 'Other')}: ${custom}`;
-  if (lang === 'en') return englishValue;
+  // Golden Rules: ranges with a hyphen (10-20%). Stored values keep their original wording.
+  if (lang === 'en') return englishValue.replace(/^(\d+) to (\d+)%$/, '$1-$2%');
   const screen = DISCOVERY.find((s) => s.id === id);
   const opts = screen && 'options' in screen ? screen.options : undefined;
   const i = opts ? opts.indexOf(englishValue) : -1;

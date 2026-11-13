@@ -746,13 +746,13 @@ export const DE: CatalogueTranslation = {
       theme: 'Umsatz',
       title: 'Welcher Anteil Ihres Umsatzes der nächsten 12 Monate ist bereits durch vertragliche Zusagen gesichert?',
       help: 'Optional. Eine grobe Spanne genügt. Wird nicht bewertet. Ein niedriger Anteil ist nicht automatisch eine Schwäche.',
-      options: ['Unter 25%', '25 bis 50%', '50 bis 75%', 'Über 75%', 'Noch nicht berechnet'],
+      options: ['Unter 25%', '25-50%', '50-75%', 'Über 75%', 'Noch nicht berechnet'],
     },
     E04: {
       theme: 'Umsatz',
       title: 'Welcher Anteil Ihres Jahresumsatzes wäre vom Verlust Ihres größten Kunden betroffen?',
       help: 'Optional. Eine grobe Spanne genügt. Wird nicht bewertet.',
-      options: ['Unter 10%', '10 bis 20%', '20 bis 30%', 'Über 30%', 'Noch nicht berechnet'],
+      options: ['Unter 10%', '10-20%', '20-30%', 'Über 30%', 'Noch nicht berechnet'],
     },
     E05: {
       theme: 'Personen',
@@ -906,12 +906,12 @@ export const DE: CatalogueTranslation = {
     'Growth opportunities': 'Wachstumschancen',
     // Discovery E03 / E04 ('Not yet calculated' is shared)
     'Under 25%': 'Unter 25%',
-    '25 to 50%': '25 bis 50%',
-    '50 to 75%': '50 bis 75%',
+    '25 to 50%': '25-50%',
+    '50 to 75%': '50-75%',
     'Over 75%': 'Über 75%',
     'Under 10%': 'Unter 10%',
-    '10 to 20%': '10 bis 20%',
-    '20 to 30%': '20 bis 30%',
+    '10 to 20%': '10-20%',
+    '20 to 30%': '20-30%',
     'Over 30%': 'Über 30%',
     'Not yet calculated': 'Noch nicht berechnet',
     // Discovery E07 ('Other' is shared with BUSINESS_MODELS)

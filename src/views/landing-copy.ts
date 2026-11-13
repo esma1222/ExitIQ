@@ -43,7 +43,7 @@ export const COPY = {
     strengths: ['Personal customer relationships', 'Specialist know-how', 'Recurring revenue', 'Strong brand or reputation', 'Proprietary technology', 'Experienced team'],
     q1: { title: 'Which strength would you show a potential buyer first?', help: 'Choose up to three.' },
     q2: { title: 'You are unavailable for four weeks. Which decisions wait?', help: 'Buyers look at whether the business keeps running without its current decision makers.', opts: ['Many routine decisions would wait', 'Some material decisions would wait', 'Material decisions continue within documented delegated authority'], stats: ['Unknown', 'Needs internal confirmation'] },
-    q3: { title: 'If your largest customer left, what share of annual revenue would be affected?', help: 'An estimate is fine. This question is not scored.', opts: ['Under 10%', '10 to 20%', '20 to 30%', 'Over 30%'], stats: ['Unknown', 'Prefer not to answer'] },
+    q3: { title: 'If your largest customer left, what share of annual revenue would be affected?', help: 'An estimate is fine. This question is not scored.', opts: ['Under 10%', '10-20%', '20-30%', 'Over 30%'], stats: ['Unknown', 'Prefer not to answer'] },
     obs: {
       relWait: 'You named personal customer relationships as a strength, and some decisions wait for you. Worth checking how these relationships carry over to a new owner.',
       rel: 'You named personal customer relationships as a strength. The detailed assessment looks at whether account ownership is shared beyond one person.',
@@ -118,7 +118,7 @@ export const COPY = {
     strengths: ['Persönliche Kundenbeziehungen', 'Spezialwissen', 'Wiederkehrende Umsätze', 'Starke Marke oder Reputation', 'Eigene Technologie', 'Erfahrenes Team'],
     q1: { title: 'Welche Stärke würden Sie einem potenziellen Käufer zuerst zeigen?', help: 'Wählen Sie bis zu drei.' },
     q2: { title: 'Sie sind vier Wochen nicht erreichbar. Welche Entscheidungen warten?', help: 'Käufer prüfen, ob das Unternehmen ohne die heutigen Entscheider weiterläuft.', opts: ['Viele Routineentscheidungen würden warten', 'Einige wesentliche Entscheidungen würden warten', 'Wesentliche Entscheidungen laufen im Rahmen dokumentierter Vollmachten weiter'], stats: ['Unbekannt', 'Interne Klärung nötig'] },
-    q3: { title: 'Wenn Ihr größter Kunde wegfiele, welcher Anteil am Jahresumsatz wäre betroffen?', help: 'Eine Schätzung genügt. Diese Frage wird nicht bewertet.', opts: ['Unter 10%', '10 bis 20%', '20 bis 30%', 'Über 30%'], stats: ['Unbekannt', 'Keine Angabe'] },
+    q3: { title: 'Wenn Ihr größter Kunde wegfiele, welcher Anteil am Jahresumsatz wäre betroffen?', help: 'Eine Schätzung genügt. Diese Frage wird nicht bewertet.', opts: ['Unter 10%', '10-20%', '20-30%', 'Über 30%'], stats: ['Unbekannt', 'Keine Angabe'] },
     obs: {
       relWait: 'Sie nennen persönliche Kundenbeziehungen als Stärke, und einige Entscheidungen warten auf Sie. Es lohnt sich zu prüfen, wie diese Beziehungen auf einen neuen Eigentümer übergehen.',
       rel: 'Sie nennen persönliche Kundenbeziehungen als Stärke. Die Detailbewertung prüft, ob die Kundenverantwortung über eine Person hinaus verteilt ist.',

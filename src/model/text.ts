@@ -260,7 +260,7 @@ const enReport: ReportText = {
     notAssessed: (name, id) => `${name} (${id}) is not yet assessed.`,
     e04: {
       over30: 'You reported more than 30% revenue exposure to one customer.',
-      mid: 'You reported that 20 to 30% of revenue depends on your largest customer.',
+      mid: 'You reported that 20-30% of revenue depends on your largest customer.',
       low: (band) => `You reported that losing your largest customer would affect ${band.toLowerCase()} of revenue.`,
       notCalculated: 'You have not yet calculated how much revenue depends on your largest customer.',
       withheld: 'You preferred not to state how much revenue depends on your largest customer.',
@@ -347,7 +347,7 @@ const deReport: ReportText = {
     notAssessed: (name, id) => `„${name}“ (${id}) ist noch nicht bewertet.`,
     e04: {
       over30: 'Sie haben angegeben, dass mehr als 30% des Umsatzes auf einen Kunden entfallen.',
-      mid: 'Sie haben angegeben, dass 20 bis 30% des Umsatzes an Ihrem größten Kunden hängen.',
+      mid: 'Sie haben angegeben, dass 20-30% des Umsatzes an Ihrem größten Kunden hängen.',
       low: (band) => `Sie haben angegeben, dass der Verlust Ihres größten Kunden ${band} des Umsatzes beträfe.`,
       notCalculated: 'Sie haben noch nicht berechnet, wie viel Umsatz an Ihrem größten Kunden hängt.',
       withheld: 'Sie haben keine Angabe dazu gemacht, wie viel Umsatz an Ihrem größten Kunden hängt.',
