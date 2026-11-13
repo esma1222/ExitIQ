@@ -108,17 +108,30 @@ export function labelOf<T extends string>(opts: Opt<T>[], v: T | null | undefine
 export type DiscoveryScreen =
   | { id: 'E01'; theme: string; kind: 'multi'; title: string; help: string; options: string[]; max: number }
   | { id: 'E03' | 'E04' | 'E07'; theme: string; kind: 'band'; title: string; help: string; options: string[] }
-  | { id: 'E02' | 'E05' | 'E06' | 'E08'; theme: string; kind: 'control'; control: string; title: string | null; help: string };
+  | {
+    id: 'E02' | 'E05' | 'E06' | 'E08'; theme: string; kind: 'control'; control: string;
+    /** Conversational heading; null uses the control's own (context-dependent) question. */
+    title: string | null;
+    /** Sub-line leading into the scored control; null shows the control's own question when the heading differs. */
+    sub?: string | null;
+    /** Heading for owner-led management (E05 only). */
+    titleOwnerLed?: string;
+    help: string;
+  };
 
+/**
+ * Order: the most engaging questions first (strengths, largest customer,
+ * decisions), then the rest. Stored ids and values do not depend on the order.
+ */
 export const DISCOVERY: DiscoveryScreen[] = [
   { id: 'E01', theme: 'Strengths', kind: 'multi', max: 3, title: 'What is the strongest reason a potential buyer should be interested in your business?', help: 'Choose up to three. This is a preference and is not scored.', options: ['Customer loyalty', 'Distinctive products or technology', 'Experienced team', 'Recurring revenue', 'Market position', 'Operational capabilities', 'Growth opportunities', 'Other'] },
-  { id: 'E02', theme: 'Strengths', kind: 'control', control: 'Q19', title: 'What evidence supports the reasons customers choose your business over lower-priced alternatives?', help: 'Pick the statement that describes the evidence you have today.' },
-  { id: 'E03', theme: 'Revenue', kind: 'band', title: 'How much of your revenue over the next 12 months is already secured through contractual commitments?', help: 'Optional. A rough band is enough. Not scored. A low share is not automatically a weakness.', options: ['Under 25%', '25 to 50%', '50 to 75%', 'Over 75%', 'Not yet calculated'] },
   { id: 'E04', theme: 'Revenue', kind: 'band', title: 'What percentage of annual revenue would be affected by the loss of your largest customer?', help: 'Optional. A rough band is enough. Not scored.', options: ['Under 10%', '10 to 20%', '20 to 30%', 'Over 30%', 'Not yet calculated'] },
-  { id: 'E05', theme: 'People', kind: 'control', control: 'Q12', title: null, help: 'Buyers look at whether the business keeps running without its current decision makers.' },
+  { id: 'E05', theme: 'People', kind: 'control', control: 'Q12', title: null, titleOwnerLed: 'What would stall if you were away for four weeks?', help: 'Buyers look at whether the business keeps running without its current decision makers.' },
+  { id: 'E02', theme: 'Strengths', kind: 'control', control: 'Q19', title: 'Why do customers choose you when a cheaper option exists?', sub: 'Which statement best describes what you can demonstrate today?', help: 'Buyers test this early. Answer for what you could show today, not what you believe.' },
+  { id: 'E03', theme: 'Revenue', kind: 'band', title: 'How much of your revenue over the next 12 months is already secured through contractual commitments?', help: 'Optional. A rough band is enough. Not scored. A low share is not automatically a weakness.', options: ['Under 25%', '25 to 50%', '50 to 75%', 'Over 75%', 'Not yet calculated'] },
   { id: 'E06', theme: 'People', kind: 'control', control: 'Q13', title: 'How effectively could essential work continue during the extended absence of a key specialist?', help: 'Think of the one or two people whose absence would hurt most.' },
   { id: 'E07', theme: 'Growth', kind: 'band', title: 'Where would your business face the greatest pressure if demand increased by 30%?', help: 'The 30% is only an illustration. Not scored.', options: ['People and skills', 'Production or service capacity', 'Suppliers', 'Technology and systems', 'Working capital', 'Other', 'Not assessed'] },
-  { id: 'E08', theme: 'Preparation', kind: 'control', control: 'Q25', title: 'Have you engaged a transaction-experienced tax adviser and agreed on the scope of their review?', help: 'A general tax adviser is not the same as transaction-specific analysis.' },
+  { id: 'E08', theme: 'Preparation', kind: 'control', control: 'Q25', title: 'Who is checking the tax consequences of this transaction?', sub: 'Have you engaged a transaction-experienced tax adviser and agreed on the scope of their review?', help: 'A general tax adviser is not the same as transaction-specific analysis.' },
 ];
 
 export const STATUS_LABELS: Record<string, string> = {

@@ -7,28 +7,64 @@ import { CATALOGUE_VERSION, REPORT_VERSION, SCORING_VERSION } from '../model/cat
 import type { ResultSnapshot, Task } from '../model/plan';
 import type { Answer, AnswerMap, AssessmentContext, Diagnostics, EvidenceRef } from '../model/types';
 import { getCaptchaToken } from './captcha';
+import type { RemoteAnswerRow, RemoteEvidenceRow } from './reconcile';
 import { supabase } from './supabase';
 
 export type SyncStatus = 'idle' | 'saving' | 'saved' | 'local-only' | 'error';
 type Listener = (s: SyncStatus, detail?: string) => void;
 
+/**
+ * Online backup health, separate from the momentary status: null until the
+ * first write was tried, false after a failed sign-in or write, true only
+ * after a write actually succeeded. A "saving" in between does not change it,
+ * so the notice in the app does not flicker.
+ */
+export interface BackupHealth { online: boolean | null; detail?: string }
+type HealthListener = (h: BackupHealth) => void;
+
 let status: SyncStatus = 'idle';
 let detail: string | undefined;
+let health: BackupHealth = { online: null };
 const listeners = new Set<Listener>();
+const healthListeners = new Set<HealthListener>();
 let queue: Promise<unknown> = Promise.resolve();
 let userPromise: Promise<string | null> | null = null;
 let remoteDisabledReason: string | null = null;
+
+function errorText(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === 'object' && e && 'message' in e) return String((e as { message: unknown }).message);
+  return String(e);
+}
+
+function setHealth(online: boolean, d?: string) {
+  if (health.online === online && health.detail === d) return;
+  health = { online, detail: d };
+  healthListeners.forEach((l) => l(health));
+}
 
 function setStatus(s: SyncStatus, d?: string) {
   status = s;
   detail = d;
   listeners.forEach((l) => l(s, d));
+  if (s === 'saved') setHealth(true);
+  else if (s === 'error' || s === 'local-only') setHealth(false, d);
 }
 
 export function onSyncStatus(l: Listener): () => void {
   listeners.add(l);
   l(status, detail);
   return () => listeners.delete(l);
+}
+
+export function onBackupHealth(l: HealthListener): () => void {
+  healthListeners.add(l);
+  l(health);
+  return () => healthListeners.delete(l);
+}
+
+export function backupHealth(): BackupHealth {
+  return health;
 }
 
 export function remoteAvailable(): boolean {
@@ -41,14 +77,18 @@ export function ensureUser(): Promise<string | null> {
     userPromise = (async () => {
       try {
         const { data } = await supabase.auth.getSession();
-        if (data.session?.user) return data.session.user.id;
+        if (data.session?.user) {
+          remoteDisabledReason = null;
+          return data.session.user.id;
+        }
         // CAPTCHA protection is on for the project, so sign-in needs a Turnstile token.
         const captchaToken = await getCaptchaToken();
         const { data: anon, error } = await supabase.auth.signInAnonymously(captchaToken ? { options: { captchaToken } } : undefined);
         if (error || !anon.user) throw error ?? new Error('No user returned');
+        remoteDisabledReason = null;
         return anon.user.id;
       } catch (e) {
-        remoteDisabledReason = e instanceof Error ? e.message : String(e);
+        remoteDisabledReason = errorText(e);
         setStatus('local-only', remoteDisabledReason);
         userPromise = null; // allow a later retry
         return null;
@@ -56,6 +96,11 @@ export function ensureUser(): Promise<string | null> {
     })();
   }
   return userPromise;
+}
+
+/** Forget a failed sign-in so the next call tries again from scratch. A working session is kept. */
+export function resetSignIn() {
+  if (remoteDisabledReason !== null) userPromise = null;
 }
 
 /** Serialises writes so answer history lands in order. */
@@ -69,8 +114,7 @@ function enqueue<T>(job: () => Promise<T>): Promise<T | null> {
       setStatus('saved');
       return r;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : typeof e === 'object' && e && 'message' in e ? String((e as { message: unknown }).message) : String(e);
-      setStatus('error', msg);
+      setStatus('error', errorText(e));
       return null;
     }
   };
@@ -135,10 +179,12 @@ export function resetCreation() {
   creating = null;
 }
 
-export function saveAssessment(id: string, input: AssessmentRowInput) {
+/** Updates the row. Resolves true when the row exists and was written, false when it is gone, null on failure. */
+export function saveAssessment(id: string, input: AssessmentRowInput): Promise<boolean | null> {
   return enqueue(async () => {
-    const { error } = await supabase.from('assessments').update(row(input)).eq('id', id);
+    const { data, error } = await supabase.from('assessments').update(row(input)).eq('id', id).select('id');
     if (error) throw error;
+    return (data ?? []).length > 0;
   });
 }
 
@@ -171,7 +217,7 @@ export function appendDiagnostic(id: string, questionId: string, value: unknown,
   });
 }
 
-export function addEvidence(id: string, questionId: string, ev: EvidenceRef) {
+export function addEvidence(id: string, questionId: string, ev: EvidenceRef): Promise<true | null> {
   return enqueue(async () => {
     const dated = !!(ev.ownerRole.trim() && ev.asOfDate);
     const { error } = await supabase.from('evidence_refs').insert({
@@ -179,10 +225,11 @@ export function addEvidence(id: string, questionId: string, ev: EvidenceRef) {
       as_of_date: ev.asOfDate, review_status: dated ? 'dated_reference' : 'self_reported',
     });
     if (error) throw error;
+    return true as const;
   });
 }
 
-export function saveResult(id: string, snapshot: ResultSnapshot) {
+export function saveResult(id: string, snapshot: ResultSnapshot): Promise<true | null> {
   return enqueue(async () => {
     const { error } = await supabase.from('result_snapshots').insert({
       assessment_id: id, profile: snapshot.profile, catalogue_version: snapshot.versions.catalogue, scoring_version: snapshot.versions.scoring,
@@ -201,13 +248,15 @@ export function saveResult(id: string, snapshot: ResultSnapshot) {
       );
       if (tErr) throw tErr;
     }
+    return true as const;
   });
 }
 
-export function setTaskStatus(id: string, taskKey: string, taskStatus: string) {
+export function setTaskStatus(id: string, taskKey: string, taskStatus: string): Promise<true | null> {
   return enqueue(async () => {
     const { error } = await supabase.from('tasks').update({ status: taskStatus }).eq('assessment_id', id).eq('task_key', taskKey);
     if (error) throw error;
+    return true as const;
   });
 }
 
@@ -272,6 +321,31 @@ export async function loadLatest(): Promise<RemoteAssessment | null> {
     if (target) target.evidence = { reference: e.reference, ownerRole: e.owner_role ?? '', asOfDate: e.as_of_date, reviewStatus: e.review_status, reviewerId: e.reviewer_id, reviewedAt: e.reviewed_at };
   }
   return { id: a.id, ctx: a.context, diag, uiState: a.ui_state ?? {}, answers, answerIds, updatedAt: a.updated_at };
+}
+
+export interface RemoteSnapshot {
+  answers: Record<string, RemoteAnswerRow>;
+  evidence: Record<string, RemoteEvidenceRow>;
+  hasResult: boolean;
+}
+
+/** Current answers, latest evidence per question and whether a result snapshot exists. Null on failure. */
+export function fetchRemoteState(id: string): Promise<RemoteSnapshot | null> {
+  return enqueue(async () => {
+    const [ans, ev, res] = await Promise.all([
+      supabase.from('current_answers').select('id,question_id,status,points,value,requires_reconfirmation,inactive_since,na_reason').eq('assessment_id', id),
+      supabase.from('evidence_refs').select('question_id,reference,owner_role,as_of_date,created_at').eq('assessment_id', id).order('created_at', { ascending: true }),
+      supabase.from('result_snapshots').select('id').eq('assessment_id', id).limit(1),
+    ]);
+    if (ans.error) throw ans.error;
+    if (ev.error) throw ev.error;
+    if (res.error) throw res.error;
+    const answers: Record<string, RemoteAnswerRow> = {};
+    for (const r of (ans.data ?? []) as RemoteAnswerRow[]) answers[r.question_id] = r;
+    const evidence: Record<string, RemoteEvidenceRow> = {};
+    for (const e of (ev.data ?? []) as RemoteEvidenceRow[]) evidence[e.question_id] = e;
+    return { answers, evidence, hasResult: (res.data ?? []).length > 0 };
+  });
 }
 
 /**

@@ -710,12 +710,14 @@ export const DE: CatalogueTranslation = {
     T4: { action: 'Projektteam, Kontrollen für die Offenlegung und einen Plan für offene Punkte festlegen.', lead: 'Transaktionsleitung' },
   },
   chapters: [
-    'Was das Unternehmen wertvoll macht',
-    'Wie verlässlich das Unternehmen ist',
-    'Was auf einen neuen Eigentümer übergeht',
-    'Was die nächste Phase trägt',
-    'Was sich nachweisen lässt',
-    'Was die Transaktion erreichen soll',
+    'Transaktionsziele und Zukunftsplan',
+    'Wirtschaftlichkeit und Leistungsversprechen',
+    'Umsatz, Lieferkette und Betrieb',
+    'Personen und Kontinuität',
+    'Finanzen',
+    'Steuern',
+    'Recht',
+    'Abstimmung und Transaktionsdurchführung',
   ],
   questions,
   discovery: {
@@ -736,8 +738,9 @@ export const DE: CatalogueTranslation = {
     },
     E02: {
       theme: 'Stärken',
-      title: 'Welche Nachweise stützen die Gründe, aus denen sich Kunden für Ihr Unternehmen und nicht für günstigere Alternativen entscheiden?',
-      help: 'Wählen Sie die Aussage, die Ihre heute vorhandenen Nachweise beschreibt.',
+      title: 'Warum entscheiden sich Kunden für Sie, wenn es eine günstigere Alternative gibt?',
+      sub: 'Welche Aussage beschreibt am besten, was Sie heute belegen können?',
+      help: 'Käufer prüfen das früh. Antworten Sie danach, was Sie heute zeigen könnten, nicht danach, was Sie vermuten.',
     },
     E03: {
       theme: 'Umsatz',
@@ -754,6 +757,7 @@ export const DE: CatalogueTranslation = {
     E05: {
       theme: 'Personen',
       title: null,
+      titleOwnerLed: 'Was würde ins Stocken geraten, wenn Sie vier Wochen nicht da wären?',
       help: 'Käufer prüfen, ob das Unternehmen ohne die heutigen Entscheider weiterläuft.',
     },
     E06: {
@@ -777,7 +781,8 @@ export const DE: CatalogueTranslation = {
     },
     E08: {
       theme: 'Vorbereitung',
-      title: 'Haben Sie einen transaktionserfahrenen Steuerberater mandatiert und den Umfang seiner Prüfung vereinbart?',
+      title: 'Wer prüft die steuerlichen Folgen dieser Transaktion?',
+      sub: 'Haben Sie einen transaktionserfahrenen Steuerberater mandatiert und den Umfang seiner Prüfung vereinbart?',
       help: 'Ein allgemeiner Steuerberater ersetzt keine transaktionsspezifische Analyse.',
     },
   },

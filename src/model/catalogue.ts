@@ -82,14 +82,16 @@ export const DOMAIN_ACTIONS: Record<DomainKey, { action: string; lead: string }>
   T4: { action: 'Assign the project team, disclosure controls and issue plan.', lead: 'Transaction lead' },
 };
 
-/** Section 9: six visible chapters. Editorial order only; scoring domains stay separate. */
+/** Visible chapters, named after their content. Editorial order only; scoring domains stay separate. */
 export const CHAPTERS: { title: string; domains: DomainKey[] }[] = [
-  { title: 'What makes the business valuable', domains: ['O1', 'O5'] },
-  { title: 'How dependable the business is', domains: ['O2', 'O4'] },
-  { title: 'What transfers to a new owner', domains: ['O3'] },
-  { title: 'What supports the next stage', domains: ['S1', 'S3'] },
-  { title: 'What can be demonstrated', domains: ['T1', 'T2', 'T3'] },
-  { title: 'What the transaction should achieve', domains: ['S2', 'T4'] },
+  { title: 'Transaction goals and future plan', domains: ['S1', 'S3'] },
+  { title: 'Business economics and proposition', domains: ['O1', 'O5'] },
+  { title: 'Revenue, supply and operations', domains: ['O2', 'O4'] },
+  { title: 'People and continuity', domains: ['O3'] },
+  { title: 'Finance', domains: ['T1'] },
+  { title: 'Tax', domains: ['T2'] },
+  { title: 'Legal', domains: ['T3'] },
+  { title: 'Alignment and transaction execution', domains: ['S2', 'T4'] },
 ];
 
 function q(

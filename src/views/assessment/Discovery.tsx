@@ -3,6 +3,7 @@ import { QUESTION_BY_ID } from '../../model/catalogue';
 import { DISCOVERY } from '../../model/options';
 import { discoveryOptionLabel, discoveryScreens, statusLabel } from '../../i18n/localize';
 import { useT } from '../../i18n/ui';
+import { useJT } from '../../i18n/ui-journey';
 import { useLang } from '../../lib/i18n';
 import { initialObservations } from '../../model/plan';
 import { questionText } from '../../model/routing';
@@ -18,6 +19,7 @@ export function Discovery() {
   const s = useAssessment();
   const lang = useLang();
   const t = useT();
+  const jt = useJT();
   const screens = discoveryScreens(lang);
   const i = Math.min(s.dIdx, DISCOVERY.length - 1);
   const d = DISCOVERY[i];
@@ -29,28 +31,40 @@ export function Discovery() {
       : d.kind === 'multi' ? Array.isArray(s.diag.E01) && s.diag.E01.length > 0
         : !!s.diag[d.id];
 
+  // A theme is complete after its last screen in the (interleaved) order.
+  const lastOfTheme = (j: number) => !DISCOVERY.slice(j + 1).some((x) => x.theme === DISCOVERY[j].theme);
   const next = () => {
-    const nextTheme = DISCOVERY[i + 1]?.theme;
-    if (nextTheme !== d.theme) track('theme_complete', s.remoteId, { stage: 'DISCOVERY' });
+    if (lastOfTheme(i)) track('theme_complete', s.remoteId, { stage: 'DISCOVERY' });
     if (last) go('picture');
     else setPosition({ dIdx: i + 1 });
   };
-  const back = () => (i === 0 ? go('summary') : setPosition({ dIdx: i - 1 }));
+  const back = () => (i === 0 ? go('context') : setPosition({ dIdx: i - 1 }));
 
   // One short observation after a theme, based on recorded answers only (section 2).
-  const prev = DISCOVERY[i - 1];
-  const themeIds = prev && prev.theme !== d.theme ? DISCOVERY.filter((x) => x.theme === prev.theme).map((x) => (x.kind === 'control' ? x.control : x.id)) : [];
+  const prev = i > 0 && lastOfTheme(i - 1) ? DISCOVERY[i - 1] : undefined;
+  const themeIds = prev ? DISCOVERY.filter((x) => x.theme === prev.theme).map((x) => (x.kind === 'control' ? x.control : x.id)) : [];
   const themeNote = themeIds.length
     ? initialObservations(s.ctx, s.answers, s.diag, lang).find((o) => o.answerIds.length > 0 && o.answerIds.every((id) => themeIds.includes(id)))
     : undefined;
 
+  // Conversational heading; the sub-line leads into the scored control. Same anchors, same stored control.
   let title = dl.title ?? '';
-  if (d.kind === 'control' && !d.title) title = questionText(QUESTION_BY_ID[d.control], s.ctx, lang);
+  let sub: string | null = null;
+  if (d.kind === 'control' && dl.kind === 'control') {
+    const controlText = questionText(QUESTION_BY_ID[d.control], s.ctx, lang);
+    if (dl.titleOwnerLed && s.ctx.managementModel === 'owner_led') {
+      title = dl.titleOwnerLed;
+      sub = controlText;
+    } else if (dl.title) {
+      title = dl.title;
+      sub = dl.sub ?? null;
+    } else title = controlText;
+  }
 
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <span className="pill" style={{ background: 'rgba(0,35,54,0.7)', border: '1px solid rgba(255,255,255,0.14)', padding: '6px 12px', fontSize: 13 }}>{t.discoveryTheme(dl.theme)}</span>
+        <span className="kicker">{jt.discoveryKicker} · {dl.theme}</span>
         <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.74)' }} aria-live="polite">{t.questionOf(i + 1, DISCOVERY.length)}</span>
       </div>
       <div className="progress-dots" aria-hidden="true">
@@ -64,16 +78,17 @@ export function Discovery() {
         </div>
       )}
 
-      <section key={d.id} className="glass fade-up" aria-labelledby="disc-q" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <h1 id="disc-q" style={{ margin: 0, fontSize: 24, lineHeight: 1.35 }}>{title}</h1>
-          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: 'rgba(255,255,255,0.76)' }}>{dl.help}</p>
-          {d.kind === 'control' && <p style={{ margin: 0, fontSize: 12, color: 'var(--teal-pale)' }}>{t.scoredNote(d.control)}</p>}
+      <section key={d.id} className="q-card fade-up" aria-labelledby="disc-q" aria-describedby={sub ? 'disc-sub' : undefined}>
+        <div className="q-head">
+          <h1 id="disc-q" className="q-title">{title}</h1>
+          {sub && <p id="disc-sub" className="q-sub">{sub}</p>}
+          <p className="q-help">{dl.help}</p>
         </div>
 
         {d.kind === 'control' && (
-          <ControlAnswer q={QUESTION_BY_ID[d.control]} ctx={s.ctx} answer={s.answers[d.control]} showNa={false} title={title} />
+          <ControlAnswer q={QUESTION_BY_ID[d.control]} ctx={s.ctx} answer={s.answers[d.control]} showNa={false} title={sub ?? title} />
         )}
+        {d.kind === 'control' && <p className="q-meta" title={d.control}>{jt.scoredMeta}</p>}
         {d.kind === 'multi' && (
           <CheckboxGroup layout="list" label={title} choices={d.options.map((o) => ({ value: o, label: discoveryOptionLabel(lang, d.id, o) }))}
             values={Array.isArray(s.diag.E01) ? s.diag.E01 : []}

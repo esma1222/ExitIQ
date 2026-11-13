@@ -1,4 +1,8 @@
+import { useEffect, useState } from 'react';
 import { useT } from '../../i18n/ui';
+import { useJT } from '../../i18n/ui-journey';
+import { CONTACT_EMAIL } from '../../lib/links';
+import { onBackupHealth, type BackupHealth } from '../../lib/remote';
 import { useAssessment } from '../../lib/store';
 
 type Tone = 'red' | 'lime' | 'white';
@@ -22,9 +26,19 @@ export function Banner({ tone, tag, children }: { tone: Tone; tag: string; child
 export function Banners() {
   const { ctx } = useAssessment();
   const t = useT();
+  const jt = useJT();
   const out: React.ReactNode[] = [];
   if (ctx.liquidity === 'acute') {
-    out.push(<Banner key="acute" tone="red" tag={t.specialistRoute}>{t.bannerAcute}</Banner>);
+    // Shown prominently from the moment it is confirmed: context, discovery, picture, setup and the detailed questions.
+    out.push(
+      <section key="acute" className="specialist-card" role="note" aria-labelledby="acute-title">
+        <span className="pill" style={{ background: 'var(--red)', color: 'var(--white)', alignSelf: 'flex-start' }}>{t.specialistRoute}</span>
+        <h2 id="acute-title">{jt.acuteTitle}</h2>
+        <p>{t.bannerAcute}</p>
+        <p className="muted">{jt.acuteNext}</p>
+        <a className="btn btn-sm specialist-cta" href={`mailto:${CONTACT_EMAIL}`}>{jt.acuteContact}</a>
+      </section>,
+    );
   } else if (ctx.liquidity === 'potential' || ctx.liquidity === 'unknown') {
     out.push(<Banner key="liq" tone="lime" tag={t.reviewTask}>{t.bannerLiquidity}</Banner>);
   }
@@ -35,4 +49,11 @@ export function Banners() {
     out.push(<Banner key="prof" tone="white" tag={t.scoringPending}>{t.bannerProfile}</Banner>);
   }
   return out.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{out}</div> : null;
+}
+
+/** Online backup health for views (see remote.onBackupHealth). */
+export function useBackupHealth(): BackupHealth {
+  const [h, set] = useState<BackupHealth>({ online: null });
+  useEffect(() => onBackupHealth(set), []);
+  return h;
 }

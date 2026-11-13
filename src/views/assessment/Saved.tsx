@@ -1,34 +1,62 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { navigate } from '../../App';
 import { useT } from '../../i18n/ui';
+import { useJT } from '../../i18n/ui-journey';
+import { deepList, progressCounts } from '../../lib/journey';
 import { locale, useLang } from '../../lib/i18n';
-import { linkEmail, remoteAvailable } from '../../lib/remote';
-import { deleteEverything, resume, startNew, useAssessment } from '../../lib/store';
+import { linkEmail } from '../../lib/remote';
+import { deleteEverything, resume, startNew, syncAll, useAssessment } from '../../lib/store';
+import { useBackupHealth } from './Banners';
 
 export function Saved() {
   const s = useAssessment();
   const lang = useLang();
   const t = useT();
+  const jt = useJT();
+  const health = useBackupHealth();
+  const [checking, setChecking] = useState(false);
   const [email, setEmail] = useState('');
   const [msg, setMsg] = useState<{ ok: boolean; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState<'delete' | 'new' | null>(null);
-  const answered = Object.keys(s.answers).length;
+  const { answered, open } = progressCounts(deepList(s.ctx), s.answers);
+  // Saving and returning is the moment to make sure the online copy is complete.
+  useEffect(() => {
+    if (health.online === true) return;
+    setChecking(true);
+    void syncAll().finally(() => setChecking(false));
+  }, []);
+  const backup = health.online === true ? 'on' : checking || health.online === null ? 'checking' : 'off';
   const when = s.savedAt ? new Date(s.savedAt).toLocaleString(locale(lang), { dateStyle: 'medium', timeStyle: 'short' }) : null;
 
   return (
     <>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div className="kicker">{t.savedKicker}</div>
-        <h1 className="h1">{t.savedTitle}</h1>
+        <h1 className="h1">{jt.savedTitle}</h1>
         <p className="lead" style={{ color: 'rgba(255,255,255,0.86)', fontSize: 17 }}>
-          {t.savedLead(answered, when)}
+          {jt.savedLead(answered, open, when)}
         </p>
       </div>
 
+      <dl className="save-status glass">
+        <div><dt>{jt.onBrowser}</dt><dd><span className="status-dot on" aria-hidden="true" />{jt.savedYes}</dd></div>
+        <div>
+          <dt>{jt.onlineBackup}</dt>
+          <dd><span className={`status-dot ${backup}`} aria-hidden="true" />{backup === 'on' ? jt.backupOn : backup === 'off' ? jt.backupOff : jt.backupChecking}</dd>
+        </div>
+        {backup === 'off' && (
+          <div className="save-status-wide">
+            <p>{jt.backupOffBody}</p>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setChecking(true); void syncAll().finally(() => setChecking(false)); }}>{jt.tryAgain}</button>
+          </div>
+        )}
+        {backup === 'on' && <p className="save-status-wide">{jt.backupOnBody}</p>}
+      </dl>
+
+      {backup === 'on' && (
       <section className="glass" style={{ display: 'flex', flexDirection: 'column', gap: 12 }} aria-labelledby="link-title">
         <h2 id="link-title" style={{ margin: 0, fontSize: 18 }}>{t.linkTitle}</h2>
-        {remoteAvailable() ? (
           <>
             <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: 'rgba(255,255,255,0.8)' }}>
               {t.linkBody}
@@ -38,12 +66,10 @@ export function Saved() {
               <input id="save-email" className="input" style={{ flex: '1 1 260px' }} type="email" required autoComplete="email" placeholder={t.emailPlaceholder} value={email} onChange={(e) => setEmail(e.target.value)} />
               <button type="submit" className="btn btn-lime" disabled={busy}>{busy ? t.sending : t.sendLink}</button>
             </form>
-            {msg && <p role="status" style={{ margin: 0, fontSize: 14, color: msg.ok ? 'var(--lime)' : 'var(--lime-2)' }}>{msg.ok ? t.linkSent : msg.message.startsWith('Online saving') ? t.linkOffline : msg.message}</p>}
+            {msg && <p role="status" title={msg.ok ? undefined : msg.message} style={{ margin: 0, fontSize: 14, color: msg.ok ? 'var(--lime)' : 'var(--lime-2)' }}>{msg.ok ? t.linkSent : jt.linkFailed}</p>}
           </>
-        ) : (
-          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: 'rgba(255,255,255,0.8)' }}>{t.offline}</p>
-        )}
       </section>
+      )}
 
       <div className="nav-row">
         <button type="button" className="btn btn-ghost" onClick={() => navigate('/')}>{t.backToStart}</button>

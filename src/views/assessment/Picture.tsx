@@ -1,5 +1,7 @@
 import { domainName, routeLabel } from '../../i18n/localize';
 import { useT } from '../../i18n/ui';
+import { useJT } from '../../i18n/ui-journey';
+import { deepList, needsVisit, openSetupQuestions } from '../../lib/journey';
 import { useLang } from '../../lib/i18n';
 import { initialObservations } from '../../model/plan';
 import { activeModules, applicableQuestions, resolveRoutes } from '../../model/routing';
@@ -15,10 +17,13 @@ export function Picture() {
   const s = useAssessment();
   const lang = useLang();
   const t = useT();
+  const jt = useJT();
   const obs = initialObservations(s.ctx, s.answers, s.diag, lang);
   const routes = resolveRoutes(s.ctx);
   const app = applicableQuestions(routes);
-  const left = app.filter((q) => !isKnown(s.answers[q.id])).length;
+  // Honest workload: the setup questions still open plus every applicable question without a response yet.
+  const left = deepList(s.ctx).filter((x) => needsVisit(s.answers[x.q.id])).length;
+  const setupLeft = openSetupQuestions(s.ctx);
 
   // Areas with no supported answer yet, in the editorial order of the detailed assessment.
   const open: DomainKey[] = ['T1', 'T3', 'T2', 'T4', 'O1', 'S2'];
@@ -53,12 +58,12 @@ export function Picture() {
         <div style={{ maxWidth: 520, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <h2 style={{ margin: 0, fontSize: 19 }}>{t.continueTitle}</h2>
           <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: 'var(--grey-4)' }}>
-            {t.continueBody(left)}
+            {jt.workload(setupLeft, left)}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button type="button" className="btn btn-outline" onClick={() => go('saved')}>{t.saveReturn}</button>
-          <button type="button" className="btn btn-navy" onClick={() => go('deep')}>{t.continuePrep} <span aria-hidden="true">→</span></button>
+          <button type="button" className="btn btn-navy" onClick={() => go('setup')}>{jt.toSetup} <span aria-hidden="true">→</span></button>
         </div>
       </section>
     </>

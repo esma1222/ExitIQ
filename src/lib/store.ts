@@ -5,9 +5,11 @@ import { useSyncExternalStore } from 'react';
 import { buildResult } from '../model/plan';
 import { activeModules, pendingModules, reconcileApplicability, resolveRoutes, specialistReasons } from '../model/routing';
 import type { Answer, AnswerMap, AssessmentContext, Diagnostics, EvidenceRef, RouteCode } from '../model/types';
+import { deepList, firstUnresolved, migrateScreen, normalizeScreen, type AnyScreen, type Screen } from './journey';
+import { answerMatches, diagnosticMatches, evidenceMatches } from './reconcile';
 import * as remote from './remote';
 
-export type Screen = 'c1' | 'c2' | 'c3' | 'summary' | 'discovery' | 'picture' | 'deep' | 'result' | 'saved';
+export type { Screen } from './journey';
 export type TaskStatus = 'open' | 'in_progress' | 'done';
 
 export interface RouteChange { at: string; added: RouteCode[]; removed: RouteCode[]; deactivated: string[]; reactivated: string[] }
@@ -15,6 +17,8 @@ export interface SnapshotSummary { at: string; profile: string | null; indices: 
 
 export interface State {
   v: 1;
+  /** 2 = screen order context → discovery → picture → setup → specialist → summary → deep. Missing in older saves. */
+  journey?: 2;
   remoteId: string | null;
   answerIds: Record<string, string>;
   screen: Screen;
@@ -24,6 +28,8 @@ export interface State {
   diag: Diagnostics;
   dIdx: number;
   qIdx: number;
+  /** Detailed assessment: step through answered questions too, instead of only unresolved ones. */
+  reviewAll: boolean;
   routeChange: RouteChange | null;
   taskStatus: Record<string, TaskStatus>;
   lastSnapshot: SnapshotSummary | null;
@@ -44,8 +50,8 @@ export function blankContext(): AssessmentContext {
 
 function blank(): State {
   return {
-    v: 1, remoteId: null, answerIds: {}, screen: 'c1', resumeTo: null, ctx: blankContext(), answers: {}, diag: {},
-    dIdx: 0, qIdx: 0, routeChange: null, taskStatus: {}, lastSnapshot: null, previousSnapshot: null, startedAt: null, savedAt: null,
+    v: 1, journey: 2, remoteId: null, answerIds: {}, screen: 'context', resumeTo: null, ctx: blankContext(), answers: {}, diag: {},
+    dIdx: 0, qIdx: 0, reviewAll: false, routeChange: null, taskStatus: {}, lastSnapshot: null, previousSnapshot: null, startedAt: null, savedAt: null,
   };
 }
 
@@ -55,10 +61,18 @@ function load(): State {
     if (!raw) return blank();
     const s = JSON.parse(raw) as State;
     if (s.v !== 1) return blank();
-    return { ...blank(), ...s, ctx: { ...blankContext(), ...s.ctx, company: { ...blankContext().company, ...s.ctx?.company } } };
+    const merged: State = { ...blank(), ...s, ctx: { ...blankContext(), ...s.ctx, company: { ...blankContext().company, ...s.ctx?.company } } };
+    return upgradeScreens(merged, s.journey === 2);
   } catch {
     return blank();
   }
+}
+
+/** Old saves name screens of the previous order; map them onto the current journey. */
+function upgradeScreens(s: State, current: boolean): State {
+  const fix = (x: string | null | undefined): Screen => (current ? normalizeScreen(x) : migrateScreen(x, s.ctx, s.diag, s.answers));
+  const resumeTo = s.resumeTo ? fix(s.resumeTo) : null;
+  return { ...s, journey: 2, screen: s.screen === 'saved' ? 'saved' : fix(s.screen), resumeTo: resumeTo === 'saved' ? null : resumeTo };
 }
 
 let state: State = typeof localStorage !== 'undefined' ? load() : blank();
@@ -96,18 +110,18 @@ export function hasProgress(s: State = state): boolean {
 // ── remote mirroring ─────────────────────────────────────────────────────────
 
 const STAGE: Record<Screen, remote.Stage> = {
-  c1: 'CONTEXT', c2: 'CONTEXT', c3: 'CONTEXT', summary: 'CONTEXT', discovery: 'DISCOVERY', picture: 'INITIAL_PICTURE',
-  deep: 'DEEP_ASSESSMENT', result: 'RESULT', saved: 'SAVED',
+  context: 'CONTEXT', discovery: 'DISCOVERY', picture: 'INITIAL_PICTURE', setup: 'DEEP_ASSESSMENT', specialist: 'DEEP_ASSESSMENT',
+  summary: 'DEEP_ASSESSMENT', deep: 'DEEP_ASSESSMENT', result: 'RESULT', saved: 'SAVED',
 };
 
 function rowInput(s: State): remote.AssessmentRowInput {
   const routes = resolveRoutes(s.ctx);
-  const resume = s.screen === 'saved' ? s.resumeTo ?? 'c1' : s.screen;
+  const resume = s.screen === 'saved' ? s.resumeTo ?? 'context' : s.screen;
   const resumeStage = STAGE[resume] as remote.AssessmentRowInput['resumeStage'];
   let stage = STAGE[s.screen];
   if (s.screen === 'result' && specialistReasons(s.ctx).length) stage = 'SPECIALIST_PATH';
   return {
-    stage, resumeStage, ctx: s.ctx, diag: s.diag, uiState: { screen: s.screen, resumeTo: s.resumeTo, dIdx: s.dIdx, qIdx: s.qIdx, taskStatus: s.taskStatus },
+    stage, resumeStage, ctx: s.ctx, diag: s.diag, uiState: { journey: 2, screen: s.screen, resumeTo: s.resumeTo, dIdx: s.dIdx, qIdx: s.qIdx, taskStatus: s.taskStatus },
     activeModules: activeModules(routes), pendingModules: pendingModules(routes),
   };
 }
@@ -118,9 +132,107 @@ async function remoteId(): Promise<string | null> {
   if (id && !state.remoteId) {
     write({ ...state, remoteId: id });
     remote.track('assessment_start', id, { stage: 'CONTEXT' });
+    // Work done while online saving was off goes up in full, not only the next change.
+    if (Object.keys(state.answers).length || Object.keys(state.diag).length) void syncAll();
   }
   return id;
 }
+
+// ── full reconciliation ──────────────────────────────────────────────────────
+
+let syncing: Promise<boolean> | null = null;
+
+/**
+ * The single path that makes the online copy match this browser: sign in
+ * (again), find or create the assessment row, write context, diagnostics,
+ * stage and position, then append every answer, diagnostic and evidence
+ * reference that differs from what the database holds, and the latest result.
+ * Local data is never touched except for remote ids. Resolves true when the
+ * online copy is complete.
+ */
+export function syncAll(): Promise<boolean> {
+  if (!syncing) syncing = reconcileAll().catch(() => false).finally(() => { syncing = null; });
+  return syncing;
+}
+
+async function reconcileAll(): Promise<boolean> {
+  remote.resetSignIn();
+  if (!(await remote.ensureUser())) return false;
+
+  let id = state.remoteId;
+  if (id) {
+    const exists = await remote.saveAssessment(id, rowInput(state));
+    if (exists === null) return false;
+    if (!exists) {
+      // The row is gone (deleted elsewhere): start a fresh online copy from this browser.
+      id = null;
+      remote.resetCreation();
+      write({ ...state, remoteId: null, answerIds: {} });
+    }
+  }
+  if (!id) {
+    id = await remote.createAssessment(rowInput(state));
+    if (!id) return false;
+    if (state.remoteId !== id) {
+      write({ ...state, remoteId: id });
+      remote.track('assessment_start', id, { stage: STAGE[state.screen] });
+    }
+  }
+
+  const snap = await remote.fetchRemoteState(id);
+  if (!snap) return false;
+  const ids: Record<string, string> = { ...state.answerIds };
+
+  const qids = new Set([...Object.keys(state.answers), ...Object.keys(snap.answers).filter((k) => k.startsWith('Q'))]);
+  for (const q of qids) {
+    const local = state.answers[q] ?? null;
+    const row = snap.answers[q];
+    if (answerMatches(local, row)) {
+      if (row) ids[q] = row.id;
+      continue;
+    }
+    const newId = await remote.appendAnswer(id, q, local, row?.id ?? null, state.ctx.role);
+    if (!newId) return false;
+    ids[q] = newId;
+  }
+
+  const eids = new Set([...Object.keys(state.diag), ...Object.keys(snap.answers).filter((k) => k.startsWith('E'))]);
+  for (const e of eids) {
+    const local = state.diag[e as keyof Diagnostics] ?? null;
+    const row = snap.answers[e];
+    if (diagnosticMatches(local, row)) {
+      if (row) ids[e] = row.id;
+      continue;
+    }
+    const newId = await remote.appendDiagnostic(id, e, local, row?.id ?? null);
+    if (!newId) return false;
+    ids[e] = newId;
+  }
+
+  for (const [q, a] of Object.entries(state.answers)) {
+    if (a.evidence && !evidenceMatches(a.evidence, snap.evidence[q])) {
+      if (!(await remote.addEvidence(id, q, a.evidence))) return false;
+    }
+  }
+  write({ ...state, answerIds: ids });
+
+  if (state.lastSnapshot && !snap.hasResult) {
+    const { score, ...snapshot } = buildResult(state.ctx, state.answers);
+    if (!(await remote.saveResult(id, { ...snapshot, dimensions: score.dimensions }))) return false;
+  }
+  for (const [key, st] of Object.entries(state.taskStatus)) {
+    if (!(await remote.setTaskStatus(id, key, st))) return false;
+  }
+  return true;
+}
+
+// A write that succeeds after a failure period triggers a full reconciliation,
+// so answers given while offline are not left out of the online copy.
+let lastOnline: boolean | null = null;
+remote.onBackupHealth((h) => {
+  if (lastOnline === false && h.online === true && hasProgress()) void syncAll();
+  lastOnline = h.online;
+});
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 function scheduleAssessmentSave() {
@@ -210,8 +322,16 @@ export function setDiagnostic(id: keyof Diagnostics, value: string | string[] | 
   scheduleAssessmentSave();
 }
 
-export function go(screen: Screen, extra: Partial<State> = {}) {
+/** Opens a screen. Legacy names are accepted (c1 → context, c2 → setup, c3 → specialist topics). */
+export function go(target: AnyScreen, extra: Partial<State> = {}) {
+  const screen = normalizeScreen(target);
   const resumeTo = screen === 'saved' ? (state.screen === 'saved' ? state.resumeTo : state.screen) : state.resumeTo;
+  // The detailed assessment opens at the first question that still needs an answer.
+  if (screen === 'deep' && extra.qIdx === undefined) {
+    const list = deepList(state.ctx);
+    const first = firstUnresolved(list, state.answers);
+    extra = { ...extra, qIdx: first >= 0 ? first : Math.min(state.qIdx, Math.max(0, list.length - 1)) };
+  }
   write(touch({ screen, resumeTo, ...extra }));
   scheduleAssessmentSave();
   remote.track(screen === 'saved' ? 'save' : 'stage_view', state.remoteId, { stage: STAGE[screen], profile: state.ctx.profile });
@@ -222,7 +342,7 @@ export function go(screen: Screen, extra: Partial<State> = {}) {
   }
 }
 
-export function setPosition(extra: Partial<Pick<State, 'dIdx' | 'qIdx'>>) {
+export function setPosition(extra: Partial<Pick<State, 'dIdx' | 'qIdx' | 'reviewAll'>>) {
   write(touch(extra));
   scheduleAssessmentSave();
 }
@@ -256,7 +376,7 @@ export function recordResult() {
 }
 
 export function resume() {
-  const target = state.resumeTo && state.resumeTo !== 'saved' ? state.resumeTo : 'c1';
+  const target = state.resumeTo && state.resumeTo !== 'saved' ? state.resumeTo : 'context';
   remote.track('resume', state.remoteId, { stage: STAGE[target] });
   go(target);
 }
@@ -267,11 +387,12 @@ export async function hydrateFromRemote(): Promise<boolean> {
     const r = await remote.loadLatest();
     if (!r) return false;
     const ui = r.uiState as Partial<State>;
-    write({
+    const loaded: State = {
       ...blank(), remoteId: r.id, answerIds: r.answerIds, ctx: { ...blankContext(), ...r.ctx }, answers: r.answers, diag: r.diag,
-      screen: 'saved', resumeTo: (ui.resumeTo as Screen) ?? (ui.screen as Screen) ?? 'c1', dIdx: ui.dIdx ?? 0, qIdx: ui.qIdx ?? 0,
+      screen: 'saved', resumeTo: ((ui.resumeTo ?? ui.screen ?? 'context') as Screen), dIdx: ui.dIdx ?? 0, qIdx: ui.qIdx ?? 0,
       taskStatus: (ui.taskStatus as State['taskStatus']) ?? {}, startedAt: r.updatedAt, savedAt: r.updatedAt,
-    });
+    };
+    write(upgradeScreens(loaded, ui.journey === 2));
     return true;
   } catch {
     return false;

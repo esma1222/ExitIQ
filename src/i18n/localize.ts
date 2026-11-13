@@ -26,6 +26,10 @@ export interface QuestionText {
 export interface DiscoveryText {
   theme: string;
   title: string | null;
+  /** Sub-line under a conversational heading (control screens). */
+  sub?: string | null;
+  /** Heading for owner-led management (E05). */
+  titleOwnerLed?: string;
   help: string;
   /** Same length and order as the English options (the English value is what gets stored). */
   options?: string[];
@@ -90,7 +94,8 @@ export function discoveryScreens(lang: Lang): DiscoveryScreen[] {
   if (lang === 'en') return DISCOVERY;
   return DISCOVERY.map((s) => {
     const t = DE.discovery[s.id];
-    return { ...s, theme: t.theme, title: t.title ?? s.title, help: t.help } as DiscoveryScreen;
+    const extra = s.kind === 'control' ? { sub: t.sub ?? s.sub, titleOwnerLed: t.titleOwnerLed ?? s.titleOwnerLed } : {};
+    return { ...s, ...extra, theme: t.theme, title: t.title ?? s.title, help: t.help } as DiscoveryScreen;
   });
 }
 
