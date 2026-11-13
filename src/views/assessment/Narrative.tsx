@@ -3,6 +3,7 @@ import { locale, useLang, type Lang } from '../../lib/i18n';
 import { requestNarrative, type Narrative as NarrativeData, type ParagraphKind } from '../../lib/narrative';
 import { onSyncStatus } from '../../lib/remote';
 import { useAssessment } from '../../lib/store';
+import type { PlanView } from '../../model/packages';
 import type { ResultSnapshot } from '../../model/plan';
 import type { ScoreResult } from '../../model/scoring';
 import { templateNarrative } from '../../model/narrative-template';
@@ -16,7 +17,7 @@ import { templateNarrative } from '../../model/narrative-template';
 
 const TEXT = {
   en: {
-    intro: 'Your result in a few paragraphs. It restates the figures and actions above; it adds no judgement of its own.',
+    intro: 'Your result in a few paragraphs: what can proceed, what needs clarification first and who should act first. It draws only on the figures and actions above and adds no judgement of its own.',
     sourceRules: 'Written from your answers by fixed rules.',
     sourceAi: (d: string) => `Written by AI from your stored result of ${d}; not reviewed by atares.`,
     notAdvice: 'Not legal, tax or financial advice.',
@@ -24,7 +25,7 @@ const TEXT = {
     rulesButton: 'Show the rules-based version',
     working: 'Writing the AI version. This can take up to a minute.',
     kinds: { reported: 'You reported', implication: 'This may imply', next_step: 'Suggested next step' } as Record<ParagraphKind, string>,
-    sections: { summary: 'Where preparation stands', strengths: 'Strengths', priorities: 'Priorities', tax: 'Tax preparation' },
+    sections: { summary: 'Decision and connections', strengths: 'Strengths', priorities: 'Recommended next steps', tax: 'Tax workstream' },
     stale: 'Your answers have changed since the AI version was written, so the rules-based version is shown.',
     aiFailed: {
       local_only: 'The AI version needs your progress to be saved online.',
@@ -35,7 +36,7 @@ const TEXT = {
     },
   },
   de: {
-    intro: 'Ihr Ergebnis in wenigen Absätzen. Die Zusammenfassung gibt die Werte und Maßnahmen oben wieder und fügt keine eigene Wertung hinzu.',
+    intro: 'Ihr Ergebnis in wenigen Absätzen: was weitergehen kann, was zuerst zu klären ist und wer zuerst handeln sollte. Die Zusammenfassung stützt sich nur auf die Werte und Maßnahmen oben und fügt keine eigene Wertung hinzu.',
     sourceRules: 'Nach festen Regeln aus Ihren Antworten erstellt.',
     sourceAi: (d: string) => `Von KI aus Ihrem gespeicherten Ergebnis vom ${d} erstellt; nicht von atares geprüft.`,
     notAdvice: 'Keine Rechts-, Steuer- oder Finanzberatung.',
@@ -43,7 +44,7 @@ const TEXT = {
     rulesButton: 'Regelbasierte Fassung anzeigen',
     working: 'Die KI-Fassung wird erstellt. Das kann bis zu einer Minute dauern.',
     kinds: { reported: 'Sie haben angegeben', implication: 'Das kann bedeuten', next_step: 'Vorgeschlagener nächster Schritt' } as Record<ParagraphKind, string>,
-    sections: { summary: 'Stand der Vorbereitung', strengths: 'Stärken', priorities: 'Prioritäten', tax: 'Steuerliche Vorbereitung' },
+    sections: { summary: 'Entscheidung und Zusammenhänge', strengths: 'Stärken', priorities: 'Empfohlene nächste Schritte', tax: 'Steuerlicher Arbeitsstrang' },
     stale: 'Ihre Antworten haben sich seit der KI-Fassung geändert, daher wird die regelbasierte Fassung angezeigt.',
     aiFailed: {
       local_only: 'Für die KI-Fassung muss Ihr Fortschritt online gespeichert sein.',
@@ -61,15 +62,22 @@ type Ai =
   | { k: 'done'; data: NarrativeData; forAt: string; lang: Lang; createdAt: string }
   | { k: 'error'; reason: keyof (typeof TEXT)['en']['aiFailed'] };
 
-export default function Narrative({ result }: { result: ResultSnapshot & { score: ScoreResult } }) {
+export default function Narrative({ result, view }: { result: ResultSnapshot & { score: ScoreResult }; view?: PlanView }) {
   const lang = useLang();
   const t = TEXT[lang];
   const s = useAssessment();
   const at = s.lastSnapshot?.at ?? null;
-  const rules = useMemo(() => templateNarrative(result, lang), [result, lang]);
+  const rules = useMemo(() => templateNarrative(result, lang, s.diag, view), [result, lang, s.diag, view]);
   const [ai, setAi] = useState<Ai>({ k: 'none' });
+  // The AI version is offered only once online backup is confirmed: a 'saved'
+  // status with a remote id. It stays offered while later saves are in flight
+  // ('saving'), so the button does not flicker; it disappears only if online
+  // saving turns out not to work.
   const [online, setOnline] = useState(false);
-  useEffect(() => onSyncStatus((st) => setOnline(st === 'saved' || st === 'saving' || (st === 'idle' && !!s.remoteId))), [s.remoteId]);
+  useEffect(() => onSyncStatus((st) => {
+    if (st === 'saved' && s.remoteId) setOnline(true);
+    else if (st === 'local-only' || st === 'error' || !s.remoteId) setOnline(false);
+  }), [s.remoteId]);
 
   // An AI version only applies to the result and language it was written for.
   const aiCurrent = ai.k === 'done' && ai.lang === lang && ai.forAt === at;

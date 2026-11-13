@@ -211,7 +211,7 @@ const en = {
 
   // Result
   dimStatus: {
-    complete: 'Complete',
+    complete: 'Complete self-assessment',
     indicative: 'Indicative, incomplete',
     insufficient_coverage: 'Insufficient coverage',
     pending_profile: 'Scoring pending',
@@ -231,12 +231,12 @@ const en = {
   heroOpen: 'Here is where preparation stands, and what is still open.',
   perspectiveNotConfirmed: 'Perspective not confirmed',
   objectiveNotSet: 'Objective not set',
-  completeNote: '“Complete” describes the data, not approval to transact. Open risks are shown separately below.',
+  completeNote: '“Complete self-assessment” means every applicable question has an answer. It is not approval to transact; open risks are shown separately below.',
   dimsTitle: 'Three readiness dimensions',
   recalculated: (prev: string, list: string) => `Recalculated after a change of perspective. Previously (${prev}): ${list}.`,
   notConfirmed: 'not confirmed',
   notShownLower: 'not shown',
-  indexNote: 'An index is shown when at least 80% of a dimension’s weighted questions are answered and every area is at least half answered. The range shows the lowest and highest result your open answers could still produce; it is not a statistical confidence interval. Hatched bars mark open questions. Evidence support is shown separately from answer points.',
+  indexNote: 'An index is shown when at least 80% of a dimension’s weighted questions are answered and every area is at least half answered. The missing-answer range shows the lowest and highest index your unresolved answers could still produce. It is about unresolved answers only: it is not a statistical confidence interval, a valuation or a prediction of a sale. Hatched bars mark open questions. Evidence support is shown separately from answer points.',
   riskTitle: 'Risk status',
   riskSub: 'Shown separately so that a strong result elsewhere cannot hide a time-critical issue.',
   noRisks: 'No critical prerequisites or open review items based on your answers. This does not replace specialist review.',
@@ -262,7 +262,7 @@ const en = {
   timingNote: 'Timings are planning suggestions, not legal deadlines. Critical items come first, then open facts, then preparation gaps ranked by their weight within the dimension.',
   taxTitle: 'Tax preparation',
   taxSub: 'This measures preparation and specialist review. It is not tax advice and does not assess how tax-efficient a structure is. Seller-level matters are kept separate from company-level work.',
-  taxScope: { company: 'Company level', seller: 'Seller level', cross_border: 'Cross-border' } satisfies Record<TaxRow['scope'], string>,
+  taxScope: { company: 'Company level', company_seller: 'Company and seller level', seller: 'Seller level', cross_border: 'Cross-border' } satisfies Record<TaxRow['scope'], string>,
   taxStatus: {
     'Not yet assessed': 'Not yet assessed', 'Needs review': 'Needs review', 'Not started': 'Not started', 'In progress': 'In progress', Prepared: 'Prepared',
   } satisfies Record<TaxRow['status'], string>,
@@ -506,7 +506,7 @@ const de: UIText = {
 
   // Result
   dimStatus: {
-    complete: 'Vollständig',
+    complete: 'Vollständige Selbsteinschätzung',
     indicative: 'Vorläufig, unvollständig',
     insufficient_coverage: 'Abdeckung unzureichend',
     pending_profile: 'Bewertung ausstehend',
@@ -526,12 +526,12 @@ const de: UIText = {
   heroOpen: 'So steht es um die Vorbereitung, und das ist noch offen.',
   perspectiveNotConfirmed: 'Perspektive nicht bestätigt',
   objectiveNotSet: 'Ziel nicht festgelegt',
-  completeNote: '„Vollständig“ beschreibt die Datengrundlage, keine Freigabe für eine Transaktion. Offene Risiken werden unten gesondert ausgewiesen.',
+  completeNote: '„Vollständige Selbsteinschätzung“ bedeutet, dass jede zutreffende Frage beantwortet ist. Das ist keine Freigabe für eine Transaktion; offene Risiken werden unten gesondert ausgewiesen.',
   dimsTitle: 'Drei Readiness-Dimensionen',
   recalculated: (prev, list) => `Nach einem Wechsel der Perspektive neu berechnet. Zuvor (${prev}): ${list}.`,
   notConfirmed: 'nicht bestätigt',
   notShownLower: 'nicht angezeigt',
-  indexNote: 'Ein Index wird angezeigt, wenn mindestens 80% der gewichteten Fragen einer Dimension beantwortet sind und jeder Bereich mindestens zur Hälfte beantwortet ist. Die Spanne zeigt das niedrigste und das höchste Ergebnis, das Ihre offenen Antworten noch ergeben könnten; sie ist kein statistisches Konfidenzintervall. Schraffierte Balken markieren offene Fragen. Die Nachweisstützung wird getrennt von den Antwortpunkten ausgewiesen.',
+  indexNote: 'Ein Index wird angezeigt, wenn mindestens 80% der gewichteten Fragen einer Dimension beantwortet sind und jeder Bereich mindestens zur Hälfte beantwortet ist. Die Spanne offener Antworten zeigt den niedrigsten und den höchsten Index, den Ihre ungeklärten Antworten noch ergeben könnten. Sie betrifft nur ungeklärte Antworten: Sie ist kein statistisches Konfidenzintervall, keine Unternehmensbewertung und keine Prognose für einen Verkauf. Schraffierte Balken markieren offene Fragen. Die Nachweisstützung wird getrennt von den Antwortpunkten ausgewiesen.',
   riskTitle: 'Risikostatus',
   riskSub: 'Getrennt ausgewiesen, damit ein starkes Ergebnis an anderer Stelle kein zeitkritisches Thema verdeckt.',
   noRisks: 'Auf Basis Ihrer Antworten gibt es keine kritischen Voraussetzungen und keine offenen Prüfpunkte. Das ersetzt keine Prüfung durch Spezialisten.',
@@ -557,7 +557,7 @@ const de: UIText = {
   timingNote: 'Zeitangaben sind Planungsvorschläge, keine rechtlichen Fristen. Kritische Punkte stehen zuerst, dann offene Fakten, dann Vorbereitungslücken, geordnet nach ihrem Gewicht innerhalb der Dimension.',
   taxTitle: 'Steuerliche Vorbereitung',
   taxSub: 'Gemessen werden Vorbereitung und Prüfung durch Spezialisten. Das ist keine Steuerberatung und keine Beurteilung, wie steuerlich günstig eine Struktur ist. Themen auf Ebene der Verkäufer werden getrennt von der Ebene des Unternehmens geführt.',
-  taxScope: { company: 'Unternehmensebene', seller: 'Verkäuferebene', cross_border: 'Grenzüberschreitend' },
+  taxScope: { company: 'Unternehmensebene', company_seller: 'Unternehmens- und Verkäuferebene', seller: 'Verkäuferebene', cross_border: 'Grenzüberschreitend' },
   taxStatus: {
     'Not yet assessed': 'Noch nicht eingeschätzt', 'Needs review': 'Prüfung nötig', 'Not started': 'Nicht begonnen', 'In progress': 'In Arbeit', Prepared: 'Vorbereitet',
   },

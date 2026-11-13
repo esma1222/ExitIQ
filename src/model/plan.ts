@@ -9,7 +9,9 @@ import {
 import { CATALOGUE_VERSION, QUESTION_BY_ID, REPORT_VERSION, SCORING_VERSION, dimensionOf } from './catalogue';
 import { activeModules, pendingModules } from './routing';
 import { computeScores, hasConflict, isKnown, type ScoreResult } from './scoring';
-import { MODEL_TEXT } from './text';
+import { PACKAGE_OF, controlState, workstreamOf } from './packages';
+import type { ControlResult } from './scoring';
+import { MODEL_TEXT, REPORT_TEXT, type GrowthConstraint } from './text';
 import type { AnswerMap, AssessmentContext, Diagnostics, QuestionDef, RouteCode } from './types';
 
 export type RiskSeverity = 'critical' | 'review';
@@ -44,6 +46,11 @@ export interface Task {
   dimension: string | null;
   domain: string | null;
   impact: number;                // e_q * (100 - a_q) / 100, or e_q for open facts
+  /** Work package of the source control (see packages.ts). Not stored in the tasks table. */
+  packageKey: string | null;
+  workstream: string | null;
+  /** Dependencies whose controls are still open (not answered at the full anchor). */
+  waitingFor: string[];
 }
 
 const v = (answers: AnswerMap, id: string) => (isKnown(answers[id]) ? answers[id].points : null);
@@ -143,6 +150,7 @@ export function buildTasks(ctx: AssessmentContext, answers: AnswerMap, score: Sc
         title: risk.title, reason: risk.text, action: risk.rule === 'R07' ? L.reconfirmAction : L.clarifyAction,
         accountableRole: L.transactionLead, suggestedTiming: timing[1], timingRank: 1, dependencies: [], evidenceRequired: null,
         sourceQuestionIds: risk.questionIds, ruleId: risk.rule, dimension: null, domain: null, impact: 0,
+        packageKey: null, workstream: risk.rule === 'R07' && risk.questionIds[0] ? workstreamOf(risk.questionIds[0]) : null, waitingFor: [],
       });
       continue;
     }
@@ -156,9 +164,11 @@ export function buildTasks(ctx: AssessmentContext, answers: AnswerMap, score: Sc
       dependencies: [], evidenceRequired: q?.evidenceRequest ?? null, sourceQuestionIds: risk.questionIds, ruleId: risk.rule,
       dimension: q ? dimensionName(lang, dimensionOf(q.domain)) : null, domain: q ? domainName(lang, q.domain) : null,
       impact: q ? score.controls[q.id]?.effectiveWeight ?? 0 : 0,
+      packageKey: q ? PACKAGE_OF[q.id] ?? null : null, workstream: q ? workstreamOf(q.id) : null, waitingFor: [],
     });
   }
 
+  const applicableIds = new Set(score.applicable.map((q) => q.id));
   const coveredByRisk = new Set(tasks.flatMap((t) => (t.priorityClass === 1 ? t.sourceQuestionIds : [])));
 
   for (const q0 of score.applicable) {
@@ -167,8 +177,11 @@ export function buildTasks(ctx: AssessmentContext, answers: AnswerMap, score: Sc
     const a = answers[q.id];
     const c = score.controls[q.id];
     const e = c?.effectiveWeight ?? 0;
+    const deps = q.dependsOn ?? [];
     const base = {
-      dependencies: q.dependsOn ?? [], evidenceRequired: q.evidenceRequest ?? null, sourceQuestionIds: [q.id], ruleId: null,
+      packageKey: PACKAGE_OF[q.id] ?? null, workstream: workstreamOf(q.id),
+      waitingFor: deps.filter((d) => applicableIds.has(d) && !(isKnown(answers[d]) && answers[d].points === 100)),
+      dependencies: deps, evidenceRequired: q.evidenceRequest ?? null, sourceQuestionIds: [q.id], ruleId: null,
       dimension: dimensionName(lang, dimensionOf(q.domain)), domain: domainName(lang, q.domain), accountableRole: q.contributor, action: domainAction(lang, q.domain).action,
     };
     if (isKnown(a)) {
@@ -189,7 +202,32 @@ export function buildTasks(ctx: AssessmentContext, answers: AnswerMap, score: Sc
 
   // Confirmed critical first, unresolved critical facts second, ordinary gaps third;
   // within a class by planned timing, then impact.
-  return tasks.sort((x, y) => x.priorityClass - y.priorityClass || x.timingRank - y.timingRank || y.impact - x.impact);
+  tasks.sort((x, y) => x.priorityClass - y.priorityClass || x.timingRank - y.timingRank || y.impact - x.impact);
+  return dependencyOrder(tasks);
+}
+
+/**
+ * Within a priority class a task never comes before a task it depends on: the
+ * dependency is moved directly in front of the first task that needs it.
+ * Stable otherwise; deterministic.
+ */
+export function dependencyOrder(sorted: Task[]): Task[] {
+  const out: Task[] = [];
+  const placed = new Set<Task>();
+  const visiting = new Set<Task>();
+  const visit = (t: Task) => {
+    if (placed.has(t) || visiting.has(t)) return;
+    visiting.add(t);
+    for (const d of t.dependencies) {
+      const dep = sorted.find((x) => x !== t && x.priorityClass === t.priorityClass && x.sourceQuestionIds.includes(d));
+      if (dep) visit(dep);
+    }
+    visiting.delete(t);
+    placed.add(t);
+    out.push(t);
+  };
+  sorted.forEach(visit);
+  return out;
 }
 
 export interface Observation { tag: string; tone: 'positive' | 'attention' | 'neutral'; text: string; answerIds: string[] }
@@ -239,10 +277,11 @@ export function initialObservations(ctx: AssessmentContext, answers: AnswerMap, 
   return out.slice(0, 3);
 }
 
-export interface TaxRow { id: string; name: string; scope: 'company' | 'seller' | 'cross_border'; status: 'Not yet assessed' | 'Needs review' | 'Not started' | 'In progress' | 'Prepared' }
+export interface TaxRow { id: string; name: string; scope: 'company' | 'company_seller' | 'seller' | 'cross_border'; status: 'Not yet assessed' | 'Needs review' | 'Not started' | 'In progress' | 'Prepared' }
 
 const TAX_SCOPE: Record<string, TaxRow['scope']> = {
-  Q25: 'company', Q27: 'company', Q28: 'company', Q29: 'company', Q30: 'company', Q49: 'company',
+  // Q27 (structure alternatives) and Q28 (historical restrictions) affect the company and the sellers.
+  Q25: 'company', Q27: 'company_seller', Q28: 'company_seller', Q29: 'company', Q30: 'company', Q49: 'company',
   Q26: 'seller', Q31: 'seller', Q52: 'cross_border',
 };
 
@@ -310,4 +349,131 @@ export function buildResult(ctx: AssessmentContext, answers: AnswerMap, now = ne
     tax: taxSection(answers, score, lang),
     unresolved: score.applicable.filter((q) => !isKnown(answers[q.id])).map((q) => q.id),
   };
+}
+
+// ── What a buyer will investigate (self-reported discovery answers) ─────────
+
+export interface BuyerItem {
+  id: 'E04' | 'E03' | 'E07' | 'E01';
+  topic: string;
+  /** The reported value(s) in the display language, or null when not stated. */
+  value: string | null;
+  /** "You reported in discovery". Every item is self-reported. */
+  source: string;
+  text: string;
+  /** Related scored controls whose state is quoted in the text. */
+  relatedIds: string[];
+}
+
+const NOT_STATED = new Set(['Not yet calculated', 'Unknown', 'Not assessed', 'Prefer not to answer', '']);
+
+/** E07 values, including option labels used before catalogue v1.1. */
+const GROWTH: Record<string, GrowthConstraint> = {
+  'People and skills': 'people', 'Qualified people': 'people',
+  'Production or service capacity': 'capacity', 'Production or delivery capacity': 'capacity',
+  Suppliers: 'suppliers',
+  'Technology and systems': 'technology', 'Systems and IT': 'technology',
+  'Working capital': 'working_capital', Financing: 'working_capital',
+  'Management attention': 'management',
+  'Nothing material': 'none',
+};
+
+/** E01 values (current and earlier labels) mapped to the scored control that tests the claim. */
+const STRENGTH_CONTROL: Record<string, string> = {
+  'Customer loyalty': 'Q14', 'Personal customer relationships': 'Q14',
+  'Distinctive products or technology': 'Q19', 'Proprietary technology': 'Q19',
+  'Experienced team': 'Q13', 'Experienced management team': 'Q12', 'Specialist know-how': 'Q13',
+  'Recurring revenue': 'Q10',
+  'Market position': 'Q19', 'Strong brand or reputation': 'Q19',
+  'Operational capabilities': 'Q15', 'Efficient operations': 'Q15',
+  'Growth opportunities': 'Q20',
+};
+
+const joinList = (lang: Lang, xs: string[]) => {
+  if (xs.length <= 1) return xs.join('');
+  const and = lang === 'de' ? ' und ' : ' and ';
+  return `${xs.slice(0, -1).join(', ')}${and}${xs[xs.length - 1]}`;
+};
+
+function controlSentence(lang: Lang, score: ScoreResult, id: string): string | null {
+  const c: ControlResult | undefined = score.controls[id];
+  if (!c) return null; // not applicable in this assessment
+  const B = REPORT_TEXT[lang].buyer;
+  const q = localQuestion(lang, QUESTION_BY_ID[id]);
+  const s = controlState(c);
+  if (s === 'p0' || s === 'p50' || s === 'p100') return B.answerOn(q.name, id, q.anchors[c.points! / 50]);
+  if (s === 'unanswered') return B.notAssessed(q.name, id);
+  return B.marked(q.name, id, statusLabel(lang, s === 'reconfirm' ? 'reconfirm' : c.status));
+}
+
+/**
+ * Commercial facts a buyer will look at, from the discovery answers (E01, E03,
+ * E04, E07), each combined with the related scored control. Observations
+ * only: no valuation, no discount, no risk verdict. Shown whatever the scores.
+ */
+export function buyerInvestigation(diag: Diagnostics, score: ScoreResult, lang: Lang = 'en'): BuyerItem[] {
+  const B = REPORT_TEXT[lang].buyer;
+  const str = (x: unknown) => (typeof x === 'string' ? x : '');
+  const label = (id: 'E03' | 'E04' | 'E07' | 'E01', v: string) => discoveryOptionLabel(lang, id, v);
+  const compose = (...parts: (string | null)[]) => parts.filter(Boolean).join(' ');
+  const items: BuyerItem[] = [];
+
+  // E04 largest customer + Q09 customer exposure response
+  const e04 = str(diag.E04);
+  {
+    const lead = e04 === 'Over 30%' ? B.e04.over30 : e04 === '20 to 30%' ? B.e04.mid
+      : e04 === 'Under 10%' || e04 === '10 to 20%' ? B.e04.low(label('E04', e04))
+      : e04 === 'Prefer not to answer' ? B.e04.withheld : e04 === '' ? B.e04.missing : B.e04.notCalculated;
+    const next = e04 === 'Over 30%' ? B.e04.nextHigh : e04 === '20 to 30%' ? B.e04.nextMid
+      : e04 === 'Under 10%' || e04 === '10 to 20%' ? B.e04.nextLow : B.e04.nextOpen;
+    items.push({ id: 'E04', topic: B.topics.E04, value: NOT_STATED.has(e04) ? null : label('E04', e04), source: B.source,
+      text: compose(lead, controlSentence(lang, score, 'Q09'), next), relatedIds: score.controls.Q09 ? ['Q09'] : [] });
+  }
+
+  // E03 committed revenue + Q10 revenue durability
+  const e03 = str(diag.E03);
+  {
+    const known = ['Under 25%', '25 to 50%', '50 to 75%', 'Over 75%'].includes(e03);
+    const lead = known ? B.e03.band(label('E03', e03)) : e03 === 'Prefer not to answer' ? B.e03.withheld : e03 === '' ? B.e03.missing : B.e03.notCalculated;
+    const next = !known ? B.e03.nextOpen : e03 === 'Under 25%' || e03 === '25 to 50%' ? B.e03.nextLow : B.e03.nextHigh;
+    items.push({ id: 'E03', topic: B.topics.E03, value: known ? label('E03', e03) : null, source: B.source,
+      text: compose(lead, controlSentence(lang, score, 'Q10'), next), relatedIds: score.controls.Q10 ? ['Q10'] : [] });
+  }
+
+  // E07 growth constraint + Q16 capacity for growth
+  const e07 = str(diag.E07);
+  {
+    const kind = GROWTH[e07] ?? (NOT_STATED.has(e07) || e07 === 'Prefer not to answer' ? null : 'other');
+    const lead = kind === 'none' ? B.e07.none : kind ? B.e07.named(label('E07', e07))
+      : e07 === 'Prefer not to answer' ? B.e07.withheld : e07 === '' ? B.e07.missing : B.e07.notAssessed;
+    items.push({ id: 'E07', topic: B.topics.E07, value: kind ? label('E07', e07) : null, source: B.source,
+      text: compose(lead, controlSentence(lang, score, 'Q16'), kind ? B.e07.next[kind] : B.e07.nextOpen), relatedIds: score.controls.Q16 ? ['Q16'] : [] });
+  }
+
+  // E01 stated strengths + the controls that test each claim
+  const e01 = (Array.isArray(diag.E01) ? diag.E01 : []).filter((x) => x && !NOT_STATED.has(x));
+  {
+    const shown = e01.map((x) => label('E01', x));
+    const related = [...new Set(e01.map((x) => STRENGTH_CONTROL[x]).filter((id): id is string => !!id && !!score.controls[id]))];
+    const relatedText = related.length
+      ? B.e01.related(related.map((id) => `${localQuestion(lang, QUESTION_BY_ID[id]).name} (${id}): ${stateWord(lang, score.controls[id])}`).join('; '))
+      : null;
+    items.push({ id: 'E01', topic: B.topics.E01, value: shown.length ? shown.join(', ') : null, source: B.source,
+      text: shown.length ? compose(B.e01.named(joinList(lang, shown.map((x) => (lang === 'de' ? `„${x}“` : x.toLowerCase()))), shown.length), relatedText, B.e01.next) : compose(B.e01.missing, B.e01.nextMissing),
+      relatedIds: related });
+  }
+  return items;
+}
+
+function stateWord(lang: Lang, c: ControlResult | undefined): string {
+  const s = controlState(c);
+  if (s === 'unresolved') return statusLabel(lang, c!.status).toLowerCase();
+  const w = REPORT_TEXT[lang].state[s];
+  return lang === 'de' ? w : w.toLowerCase();
+}
+
+/** E01 strengths as stated, in the display language (current and earlier option labels). */
+export function statedStrengths(diag: Diagnostics, lang: Lang = 'en'): { value: string; label: string; relatedId: string | null }[] {
+  const e01 = (Array.isArray(diag.E01) ? diag.E01 : []).filter((x) => x && !NOT_STATED.has(x));
+  return e01.map((x) => ({ value: x, label: discoveryOptionLabel(lang, 'E01', x), relatedId: STRENGTH_CONTROL[x] ?? null }));
 }

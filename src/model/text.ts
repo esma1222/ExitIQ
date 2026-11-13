@@ -74,14 +74,14 @@ const en: ModelText = {
   },
   task: {
     reconfirm: 'Reconfirm', clarify: 'Clarify', critical: 'Critical', needsReview: 'Needs review',
-    gap: 'Gap', partial: 'Partial', unanswered: 'Unanswered', adviserReview: 'Adviser review', confirm: 'Confirm',
+    gap: 'Gap', partial: 'Partial', unanswered: 'Not assessed', adviserReview: 'Adviser review', confirm: 'Confirm',
     reconfirmAction: 'Reconfirm the facts with the contributors and record the resolution.',
     clarifyAction: 'Answer the related context question.',
     specialistAction: 'Obtain a qualified specialist assessment.',
     transactionLead: 'Transaction lead',
     specialistRole: 'CFO / qualified adviser',
     gapReason: (today, target) => `Today: ${today} Target: ${target}`,
-    unansweredReason: 'Not answered yet.',
+    unansweredReason: 'Not assessed yet. Answer the question to include it in coverage.',
     reconfirmReason: 'This question applies again after a context change. Reconfirm the earlier answer.',
     markedReason: (label) => `Marked as ${label.toLowerCase()}. Resolve it to include it in coverage.`,
   },
@@ -142,14 +142,14 @@ const de: ModelText = {
   },
   task: {
     reconfirm: 'Erneut bestätigen', clarify: 'Klären', critical: 'Kritisch', needsReview: 'Prüfung nötig',
-    gap: 'Lücke', partial: 'Teilweise', unanswered: 'Unbeantwortet', adviserReview: 'Beraterprüfung', confirm: 'Bestätigen',
+    gap: 'Lücke', partial: 'Teilweise', unanswered: 'Nicht bewertet', adviserReview: 'Beraterprüfung', confirm: 'Bestätigen',
     reconfirmAction: 'Bestätigen Sie die Fakten mit den Beteiligten erneut und halten Sie die Klärung fest.',
     clarifyAction: 'Beantworten Sie die zugehörige Kontextfrage.',
     specialistAction: 'Holen Sie eine qualifizierte Einschätzung von Spezialisten ein.',
     transactionLead: 'Transaktionsleitung',
     specialistRole: 'CFO / qualifizierter Berater',
     gapReason: (today, target) => `Heute: ${today} Ziel: ${target}`,
-    unansweredReason: 'Noch nicht beantwortet.',
+    unansweredReason: 'Noch nicht bewertet. Beantworten Sie die Frage, damit sie in die Abdeckung eingeht.',
     reconfirmReason: 'Diese Frage trifft nach einer Änderung des Kontexts wieder zu. Bestätigen Sie die frühere Antwort erneut.',
     markedReason: (label) => `Markiert als „${label}“. Klären Sie den Punkt, damit er in die Abdeckung eingeht.`,
   },
@@ -185,3 +185,213 @@ const de: ModelText = {
 };
 
 export const MODEL_TEXT: Record<Lang, ModelText> = { en, de };
+
+// ── Report structure: taxonomy, work packages, next steps, buyer view ───────
+
+type PackageText = { name: string; owner: string; output: string };
+type Ws = 'strategy' | 'people' | 'commercial' | 'finance' | 'operations' | 'tax' | 'legal' | 'separation' | 'process';
+type Pk = 'objectives' | 'approvals' | 'leadership' | 'customers' | 'growth' | 'financials' | 'liquidity'
+  | 'operations' | 'tax_structure' | 'tax_company' | 'cap_table' | 'legal' | 'separation' | 'process_team' | 'data_room';
+export type GrowthConstraint = 'people' | 'capacity' | 'suppliers' | 'technology' | 'working_capital' | 'management' | 'none' | 'other';
+
+export interface ReportText {
+  category: { critical: string; clarify: string; preparation: string };
+  workstreams: Record<Ws, string>;
+  packages: Record<Pk, PackageText>;
+  state: { unanswered: string; reconfirm: string; p0: string; p50: string; p100: string; inactive: string; na: string };
+  waitingFor: (ids: string) => string;
+  steps: {
+    critical: (title: string) => string;
+    packageDetail: (n: number, output: string) => string;
+    clarify: (workstream: string) => string;
+    clarifyDetail: (n: number, ids: string[]) => string;
+  };
+  buyer: {
+    source: string;
+    notStated: string;
+    topics: { E04: string; E03: string; E07: string; E01: string };
+    answerOn: (name: string, id: string, anchor: string) => string;
+    marked: (name: string, id: string, status: string) => string;
+    notAssessed: (name: string, id: string) => string;
+    e04: { over30: string; mid: string; low: (band: string) => string; notCalculated: string; withheld: string; missing: string; nextHigh: string; nextMid: string; nextLow: string; nextOpen: string };
+    e03: { band: (band: string) => string; notCalculated: string; withheld: string; missing: string; nextHigh: string; nextLow: string; nextOpen: string };
+    e07: { named: (value: string) => string; none: string; notAssessed: string; withheld: string; missing: string; next: Record<GrowthConstraint, string>; nextOpen: string };
+    e01: { named: (list: string, n: number) => string; missing: string; next: string; nextMissing: string; related: (list: string) => string };
+  };
+}
+
+const enReport: ReportText = {
+  category: { critical: 'Critical prerequisites', clarify: 'Questions to clarify', preparation: 'Preparation work' },
+  workstreams: {
+    strategy: 'Objectives and approvals', people: 'People and leadership', commercial: 'Customers and proposition', finance: 'Finance',
+    operations: 'Operations and systems', tax: 'Tax', legal: 'Legal and ownership', separation: 'Separation', process: 'Sale process',
+  },
+  packages: {
+    objectives: { name: 'Set the objectives, timetable and transaction options', owner: 'Shareholders / transaction lead', output: 'A dated note with the prioritised objectives, the preparation timetable and a comparison of feasible options.' },
+    approvals: { name: 'Align decision-makers and map approvals', owner: 'Board / legal', output: 'A decision and approval map: who must agree, by when, and the objectives they have agreed.' },
+    leadership: { name: 'Secure leadership and know-how continuity', owner: 'CEO / people lead', output: 'Agreed future roles, a documented delegation of authority and named cover for key specialists.' },
+    customers: { name: 'Prepare the customer and supply dependency file', owner: 'Commercial lead / CFO', output: 'Revenue by customer, a contract and renewal overview, the key supplier list and a response plan for losing a material customer or supplier.' },
+    growth: { name: 'Evidence the proposition and growth plan', owner: 'Commercial / product lead', output: 'Customer, product or market evidence for the proposition, a resourced roadmap and a capacity plan for growth.' },
+    financials: { name: 'Prepare the reconciled financial package', owner: 'CFO / financial adviser', output: 'Reconciled historical financials, a traceable forecast and the enterprise-to-equity bridge, plus standalone figures or the use of proceeds where relevant.' },
+    liquidity: { name: 'Plan liquidity and financing through the transaction', owner: 'CFO', output: 'A scenario cash forecast through completion and a list of financing releases and consents.' },
+    operations: { name: 'Document processes, systems and integration', owner: 'Operations / IT lead', output: 'Process documentation with owners, tested recovery arrangements and the integration status of past acquisitions.' },
+    tax_structure: { name: 'Build the seller and structure tax map', owner: 'Sellers’ and company tax advisers', output: 'A map of the sellers, holding structures and tax residences, and a dated comparison of transaction alternatives with open points.' },
+    tax_company: { name: 'Set up the tax workstream and exposure register', owner: 'Company tax adviser / CFO', output: 'An agreed scope with a transaction tax adviser, a review of historical restrictions, a tax exposure register and an index of tax records.' },
+    cap_table: { name: 'Build one cap-table and exit-waterfall package', owner: 'Legal / CFO', output: 'A reconciled cap table with transfer history, investor rights, employee equity and converting instruments, run through exit scenarios.' },
+    legal: { name: 'Reconcile rights, contracts and compliance', owner: 'Legal', output: 'An IP and licence register, a change-of-control review of material contracts, a disputes list, the data protection status and regulatory approvals.' },
+    separation: { name: 'Plan Day 1 separation', owner: 'Separation lead', output: 'A perimeter map, a continuity plan for shared services and systems, transitional service terms, tax separation steps and the asset transfer list.' },
+    process_team: { name: 'Set up the process team and issue log', owner: 'Transaction lead', output: 'A named deal team with decision rules and milestones, and an issue log with owners.' },
+    data_room: { name: 'Prepare the data room and disclosure plan', owner: 'Transaction lead', output: 'A permissioned data room index with owners, and a staged disclosure plan.' },
+  },
+  state: { unanswered: 'Not assessed', reconfirm: 'Reconfirm', p0: 'Not in place', p50: 'Partly in place', p100: 'In place', inactive: 'Not in scope (answer kept)', na: 'Not applicable (confirmed)' },
+  waitingFor: (ids) => `Waiting for ${ids}`,
+  steps: {
+    critical: (title) => `Resolve first: ${title}`,
+    packageDetail: (n, output) => `${n} ${n === 1 ? 'question' : 'questions'} to close. Output: ${output}`,
+    clarify: (ws) => `Answer the open questions on ${ws.toLowerCase()}`,
+    clarifyDetail: (n, ids) => `${n} ${n === 1 ? 'question is' : 'questions are'} not assessed or unresolved (${ids.slice(0, 6).join(', ')}${ids.length > 6 ? ', …' : ''}).`,
+  },
+  buyer: {
+    source: 'You reported in discovery',
+    notStated: 'Not stated',
+    topics: { E04: 'Largest customer', E03: 'Committed revenue', E07: 'Growth constraint', E01: 'Your stated strengths' },
+    answerOn: (name, id, anchor) => `Your answer on ${name.toLowerCase()} (${id}): “${anchor.replace(/\.$/, '')}”.`,
+    marked: (name, id, status) => `${name} (${id}) is marked as “${status}”.`,
+    notAssessed: (name, id) => `${name} (${id}) is not yet assessed.`,
+    e04: {
+      over30: 'You reported more than 30% revenue exposure to one customer.',
+      mid: 'You reported that 20 to 30% of revenue depends on your largest customer.',
+      low: (band) => `You reported that losing your largest customer would affect ${band.toLowerCase()} of revenue.`,
+      notCalculated: 'You have not yet calculated how much revenue depends on your largest customer.',
+      withheld: 'You preferred not to state how much revenue depends on your largest customer.',
+      missing: 'You did not answer the question on your largest customer.',
+      nextHigh: 'Keep the contract, the renewal outlook and a downside scenario for that customer ready for review.',
+      nextMid: 'Keep the contract terms and relationship history of your largest customers ready for review.',
+      nextLow: 'Keep a revenue-by-customer analysis ready so the spread can be confirmed.',
+      nextOpen: 'Calculate revenue by customer for the last full financial year; a buyer will ask for it early.',
+    },
+    e03: {
+      band: (band) => `You reported that ${band.toLowerCase()} of the next 12 months’ revenue is secured by contractual commitments.`,
+      notCalculated: 'You have not yet calculated how much of the next 12 months’ revenue is contracted.',
+      withheld: 'You preferred not to state how much revenue is contracted.',
+      missing: 'You did not answer the question on committed revenue.',
+      nextHigh: 'Keep the contract list with terms and renewal dates ready, reconciled to the forecast.',
+      nextLow: 'A lower share is not automatically a weakness. Be ready to show how repeat revenue arises without long contracts, for example with retention history.',
+      nextOpen: 'Prepare an order book or contract overview for the next 12 months; a buyer will compare it with the forecast.',
+    },
+    e07: {
+      named: (value) => `You named ${value.toLowerCase()} as the main pressure point if demand rose by 30%.`,
+      none: 'You reported no material pressure point if demand rose by 30%.',
+      notAssessed: 'You have not yet assessed where growth would be constrained.',
+      withheld: 'You preferred not to state where growth would be constrained.',
+      missing: 'You did not answer the question on growth constraints.',
+      next: {
+        people: 'Outline the hiring plan, lead times and cost needed to grow.',
+        capacity: 'Show current utilisation, the investment needed and its lead time.',
+        suppliers: 'Show alternative suppliers or contracted capacity for key inputs.',
+        technology: 'Show how the systems scale and what investment that needs.',
+        working_capital: 'Show how additional receivables and inventory would be financed as revenue grows.',
+        management: 'Show how management capacity would be extended.',
+        none: 'Be ready to support this with capacity and utilisation figures.',
+        other: 'Be ready to explain the constraint and how it would be resolved.',
+      },
+      nextOpen: 'Identify the main constraint and the response; a buyer will ask how growth is resourced.',
+    },
+    e01: {
+      named: (list, n) => `You named ${list} as the strongest ${n === 1 ? 'reason' : 'reasons'} for a buyer’s interest.`,
+      missing: 'You did not name strengths in discovery.',
+      next: 'A buyer will test each claim; link it to evidence such as customer data, contracts or product documentation.',
+      nextMissing: 'Decide which two or three points you would lead with and what evidence supports them.',
+      related: (list) => `Related answers: ${list}.`,
+    },
+  },
+};
+
+const deReport: ReportText = {
+  category: { critical: 'Kritische Voraussetzungen', clarify: 'Offene Fragen zur Klärung', preparation: 'Vorbereitungsarbeit' },
+  workstreams: {
+    strategy: 'Ziele und Zustimmungen', people: 'Personal und Führung', commercial: 'Kunden und Leistungsversprechen', finance: 'Finanzen',
+    operations: 'Betrieb und Systeme', tax: 'Steuern', legal: 'Recht und Eigentum', separation: 'Separierung', process: 'Verkaufsprozess',
+  },
+  packages: {
+    objectives: { name: 'Ziele, Zeitplan und Transaktionsoptionen festlegen', owner: 'Gesellschafter / Transaktionsleitung', output: 'Eine datierte Notiz mit den priorisierten Zielen, dem Zeitplan der Vorbereitung und einem Vergleich der möglichen Optionen.' },
+    approvals: { name: 'Entscheidungsträger abstimmen und Zustimmungen erfassen', owner: 'Gremien / Recht', output: 'Eine Übersicht der Entscheidungen und Zustimmungen: wer bis wann zustimmen muss und welche Ziele vereinbart sind.' },
+    leadership: { name: 'Kontinuität von Führung und Fachwissen sichern', owner: 'Geschäftsführung / Personal', output: 'Abgestimmte künftige Rollen, eine dokumentierte Delegation von Befugnissen und benannte Vertretungen für Schlüsselpersonen.' },
+    customers: { name: 'Unterlagen zu Kunden- und Lieferantenabhängigkeiten erstellen', owner: 'Vertriebsleitung / CFO', output: 'Umsatz nach Kunden, eine Übersicht der Verträge und Verlängerungen, die Liste der wichtigsten Lieferanten und ein Plan für den Verlust eines wesentlichen Kunden oder Lieferanten.' },
+    growth: { name: 'Leistungsversprechen und Wachstumsplan belegen', owner: 'Vertrieb / Produktverantwortung', output: 'Kunden-, Produkt- oder Marktnachweise für das Leistungsversprechen, eine Roadmap mit Ressourcen und ein Kapazitätsplan für Wachstum.' },
+    financials: { name: 'Das abgestimmte Finanzpaket vorbereiten', owner: 'CFO / Finanzberater', output: 'Abgestimmte historische Finanzzahlen, eine nachvollziehbare Planung und die Überleitung vom Unternehmens- zum Eigenkapitalwert, bei Bedarf mit Standalone-Zahlen oder der Mittelverwendung.' },
+    liquidity: { name: 'Liquidität und Finanzierung über die Transaktion planen', owner: 'CFO', output: 'Eine Liquiditätsplanung mit Szenarien bis zum Vollzug und eine Liste der Freigaben und Zustimmungen der Finanzierungsgeber.' },
+    operations: { name: 'Prozesse, Systeme und Integration dokumentieren', owner: 'Operations / IT-Leitung', output: 'Prozessdokumentation mit Verantwortlichen, getestete Notfallregelungen und der Integrationsstand früherer Zukäufe.' },
+    tax_structure: { name: 'Steuerliche Übersicht zu Verkäufern und Struktur erstellen', owner: 'Steuerberater der Verkäufer und der Gesellschaft', output: 'Eine Übersicht der Verkäufer, Holdingstrukturen und steuerlichen Ansässigkeiten sowie ein datierter Vergleich der Transaktionsalternativen mit offenen Punkten.' },
+    tax_company: { name: 'Steuerlichen Arbeitsstrang und Risikoregister aufsetzen', owner: 'Steuerberater der Gesellschaft / CFO', output: 'Ein vereinbarter Umfang mit einem transaktionserfahrenen Steuerberater, eine Prüfung früherer Beschränkungen, ein Register steuerlicher Risiken und ein Index der steuerlichen Unterlagen.' },
+    cap_table: { name: 'Ein Paket aus Cap Table und Erlösverteilung erstellen', owner: 'Recht / CFO', output: 'Eine abgestimmte Cap Table mit Übertragungshistorie, Investorenrechten, Mitarbeiterbeteiligungen und Wandelinstrumenten, durchgerechnet für Exit-Szenarien.' },
+    legal: { name: 'Rechte, Verträge und Compliance abstimmen', owner: 'Recht', output: 'Ein Register von IP und Lizenzen, eine Prüfung wesentlicher Verträge auf Kontrollwechsel, eine Liste von Streitigkeiten, der Stand des Datenschutzes und behördliche Genehmigungen.' },
+    separation: { name: 'Die Separierung für Tag 1 planen', owner: 'Separierungsleitung', output: 'Eine Übersicht des Transaktionsumfangs, ein Fortführungsplan für gemeinsame Leistungen und Systeme, Bedingungen für Übergangsleistungen, steuerliche Separierungsschritte und die Liste der zu übertragenden Vermögenswerte.' },
+    process_team: { name: 'Projektteam und Liste offener Punkte aufsetzen', owner: 'Transaktionsleitung', output: 'Ein benanntes Transaktionsteam mit Entscheidungsregeln und Meilensteinen sowie eine Liste offener Punkte mit Verantwortlichen.' },
+    data_room: { name: 'Datenraum und Offenlegungsplan vorbereiten', owner: 'Transaktionsleitung', output: 'Ein Datenraum-Index mit Zugriffsrechten und Verantwortlichen sowie ein gestufter Offenlegungsplan.' },
+  },
+  state: { unanswered: 'Nicht bewertet', reconfirm: 'Erneut bestätigen', p0: 'Nicht vorhanden', p50: 'Teilweise vorhanden', p100: 'Vorhanden', inactive: 'Nicht im Umfang (Antwort aufbewahrt)', na: 'Nicht zutreffend (bestätigt)' },
+  waitingFor: (ids) => `Wartet auf ${ids}`,
+  steps: {
+    critical: (title) => `Zuerst klären: ${title}`,
+    packageDetail: (n, output) => `${n} ${n === 1 ? 'Frage' : 'Fragen'} zu schließen. Ergebnis: ${output}`,
+    clarify: (ws) => `Offene Fragen beantworten: ${ws}`,
+    clarifyDetail: (n, ids) => `${n} ${n === 1 ? 'Frage ist' : 'Fragen sind'} nicht bewertet oder ungeklärt (${ids.slice(0, 6).join(', ')}${ids.length > 6 ? ', …' : ''}).`,
+  },
+  buyer: {
+    source: 'Ihre Angabe im Einstieg',
+    notStated: 'Keine Angabe',
+    topics: { E04: 'Größter Kunde', E03: 'Vertraglich gesicherter Umsatz', E07: 'Engpass bei Wachstum', E01: 'Ihre genannten Stärken' },
+    answerOn: (name, id, anchor) => `Ihre Antwort zu „${name}“ (${id}): „${anchor.replace(/\.$/, '')}“.`,
+    marked: (name, id, status) => `„${name}“ (${id}) ist als „${status}“ markiert.`,
+    notAssessed: (name, id) => `„${name}“ (${id}) ist noch nicht bewertet.`,
+    e04: {
+      over30: 'Sie haben angegeben, dass mehr als 30% des Umsatzes auf einen Kunden entfallen.',
+      mid: 'Sie haben angegeben, dass 20 bis 30% des Umsatzes an Ihrem größten Kunden hängen.',
+      low: (band) => `Sie haben angegeben, dass der Verlust Ihres größten Kunden ${band} des Umsatzes beträfe.`,
+      notCalculated: 'Sie haben noch nicht berechnet, wie viel Umsatz an Ihrem größten Kunden hängt.',
+      withheld: 'Sie haben keine Angabe dazu gemacht, wie viel Umsatz an Ihrem größten Kunden hängt.',
+      missing: 'Sie haben die Frage zu Ihrem größten Kunden nicht beantwortet.',
+      nextHigh: 'Halten Sie den Vertrag, den Ausblick auf die Verlängerung und ein Abwärtsszenario für diesen Kunden zur Prüfung bereit.',
+      nextMid: 'Halten Sie die Vertragsbedingungen und die Historie der Beziehung zu Ihren größten Kunden zur Prüfung bereit.',
+      nextLow: 'Halten Sie eine Auswertung des Umsatzes nach Kunden bereit, damit die Verteilung bestätigt werden kann.',
+      nextOpen: 'Ermitteln Sie den Umsatz nach Kunden für das letzte volle Geschäftsjahr; Käufer fragen früh danach.',
+    },
+    e03: {
+      band: (band) => `Sie haben angegeben, dass ${band} des Umsatzes der nächsten 12 Monate vertraglich gesichert sind.`,
+      notCalculated: 'Sie haben noch nicht berechnet, wie viel Umsatz der nächsten 12 Monate vertraglich gesichert ist.',
+      withheld: 'Sie haben keine Angabe zum vertraglich gesicherten Umsatz gemacht.',
+      missing: 'Sie haben die Frage zum vertraglich gesicherten Umsatz nicht beantwortet.',
+      nextHigh: 'Halten Sie die Vertragsliste mit Laufzeiten und Verlängerungsterminen bereit, abgestimmt auf die Planung.',
+      nextLow: 'Ein geringerer Anteil ist nicht automatisch eine Schwäche. Zeigen Sie, wie wiederkehrender Umsatz auch ohne lange Verträge entsteht, etwa mit der Kundenbindung der Vorjahre.',
+      nextOpen: 'Erstellen Sie eine Übersicht über Auftragsbestand oder Verträge für die nächsten 12 Monate; Käufer gleichen sie mit der Planung ab.',
+    },
+    e07: {
+      named: (value) => `Sie haben „${value}“ als größten Engpass genannt, wenn die Nachfrage um 30% stiege.`,
+      none: 'Sie haben angegeben, dass bei 30% mehr Nachfrage kein wesentlicher Engpass entstünde.',
+      notAssessed: 'Sie haben noch nicht geprüft, wo Wachstum an Grenzen stieße.',
+      withheld: 'Sie haben keine Angabe dazu gemacht, wo Wachstum an Grenzen stieße.',
+      missing: 'Sie haben die Frage zu Engpässen bei Wachstum nicht beantwortet.',
+      next: {
+        people: 'Skizzieren Sie den Einstellungsplan, die Vorlaufzeiten und die Kosten für das Wachstum.',
+        capacity: 'Zeigen Sie die heutige Auslastung, die nötige Investition und deren Vorlaufzeit.',
+        suppliers: 'Zeigen Sie alternative Lieferanten oder vertraglich gesicherte Kapazitäten für wichtige Vorleistungen.',
+        technology: 'Zeigen Sie, wie die Systeme mitwachsen und welche Investition dafür nötig ist.',
+        working_capital: 'Zeigen Sie, wie zusätzliche Forderungen und Vorräte bei wachsendem Umsatz finanziert würden.',
+        management: 'Zeigen Sie, wie die Kapazität des Managements erweitert würde.',
+        none: 'Halten Sie Zahlen zu Kapazität und Auslastung bereit, die das stützen.',
+        other: 'Erläutern Sie den Engpass und wie er gelöst würde.',
+      },
+      nextOpen: 'Benennen Sie den wichtigsten Engpass und die Antwort darauf; Käufer fragen, wie Wachstum ausgestattet wird.',
+    },
+    e01: {
+      named: (list, n) => `Sie haben ${list} als ${n === 1 ? 'stärksten Grund' : 'stärkste Gründe'} für das Interesse eines Käufers genannt.`,
+      missing: 'Sie haben im Einstieg keine Stärken genannt.',
+      next: 'Käufer prüfen jede dieser Aussagen; verknüpfen Sie sie mit Nachweisen wie Kundendaten, Verträgen oder Produktdokumentation.',
+      nextMissing: 'Legen Sie fest, mit welchen zwei oder drei Punkten Sie beginnen würden und welche Nachweise sie stützen.',
+      related: (list) => `Zugehörige Antworten: ${list}.`,
+    },
+  },
+};
+
+export const REPORT_TEXT: Record<Lang, ReportText> = { en: enReport, de: deReport };

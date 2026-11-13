@@ -3,11 +3,14 @@ import { navigate } from '../../App';
 import { Bar, pct } from '../../components/ui';
 import { dimensionName, domainName, localOptions, profileText, routeLabel } from '../../i18n/localize';
 import { useT, type UIText } from '../../i18n/ui';
+import { useReportT } from '../../i18n/ui-report';
 import { locale, useLang, type Lang } from '../../lib/i18n';
 import { DIMENSIONS, PROFILES } from '../../model/catalogue';
 import { HORIZON_OPTIONS, OBJECTIVE_OPTIONS, PERIMETER_OPTIONS, type Opt } from '../../model/options';
-import { buildResult, type Task } from '../../model/plan';
+import { buildPlanView, controlStateLabel, type Category } from '../../model/packages';
+import { buildResult, buyerInvestigation, statedStrengths } from '../../model/plan';
 import type { DimensionResult } from '../../model/scoring';
+import { REPORT_TEXT } from '../../model/text';
 import type { Profile } from '../../model/types';
 import { track } from '../../lib/remote';
 import { deleteEverything, go, recordResult, setTaskStatus, useAssessment, type TaskStatus } from '../../lib/store';
@@ -23,21 +26,6 @@ const STATUS_PILL: Record<DimensionResult['status'], { bg: string; fg: string }>
   specialist_route: { bg: 'rgba(243,72,50,0.12)', fg: 'var(--red)' },
   model_exception: { bg: 'var(--grey-1)', fg: 'var(--grey-4)' },
 };
-
-const PILL = {
-  red: { bg: 'var(--red)', fg: 'var(--white)' },
-  lime: { bg: 'var(--lime-2)', fg: 'var(--navy)' },
-  grey: { bg: 'var(--grey-1)', fg: 'var(--grey-4)' },
-  navy: { bg: 'var(--navy-2)', fg: 'var(--white)' },
-};
-
-/** Badge colour from language-neutral task fields (the label text itself is localised). */
-function taskPill(t: Task, answered: boolean) {
-  if (t.kind === 'critical') return PILL.red;
-  if (t.kind === 'gap') return PILL.navy;
-  if (t.ruleId == null && !answered) return PILL.grey; // "Unanswered"
-  return PILL.lime;
-}
 
 function dimensionNote(d: DimensionResult, t: UIText): string {
   switch (d.status) {
@@ -59,10 +47,15 @@ export function Result() {
   const s = useAssessment();
   const lang = useLang();
   const t = useT();
+  const rt = useReportT();
+  const RT = REPORT_TEXT[lang];
   // Rendered in the user's language. recordResult() stores the canonical English snapshot.
   const r = useMemo(() => buildResult(s.ctx, s.answers, undefined, lang), [s.ctx, s.answers, lang]);
-  const [filter, setFilter] = useState<'all' | 'critical' | 'open' | 'gap'>('all');
-  const [showAll, setShowAll] = useState(false);
+  const plan = useMemo(() => buildPlanView(r, lang), [r, lang]);
+  const buyer = useMemo(() => buyerInvestigation(s.diag, r.score, lang), [s.diag, r.score, lang]);
+  const stated = useMemo(() => statedStrengths(s.diag, lang), [s.diag, lang]);
+  const [filter, setFilter] = useState<'all' | Category>('all');
+  const [showAllPkgs, setShowAllPkgs] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [headerH, setHeaderH] = useState(0);
 
@@ -93,10 +86,6 @@ export function Result() {
   ];
   const list = deepList(s.ctx);
   const openQuestion = (qid: string) => go('deep', { qIdx: Math.max(0, list.findIndex((x) => x.q.id === qid)) });
-
-  const tasks = r.tasks.filter((t) => filter === 'all' || t.kind === filter);
-  const shown = showAll ? tasks : tasks.slice(0, 8);
-  const count = (k: Task['kind']) => r.tasks.filter((t) => t.kind === k).length;
   const prev = s.previousSnapshot;
   const complete = r.dataStatus === 'data_complete';
 
@@ -105,37 +94,58 @@ export function Result() {
     setExporting(true);
     try {
       const { exportActionPlanXlsx } = await import('../../lib/exportXlsx');
-      await exportActionPlanXlsx({ result: r, lang, context: chips, taxStatusLabel: t.taxStatus, dimStatusLabel: t.dimStatus, taskStatus: s.taskStatus });
+      await exportActionPlanXlsx({
+        result: r, lang, context: chips, taxStatusLabel: t.taxStatus, dimStatusLabel: t.dimStatus, taskStatus: s.taskStatus,
+        plan, buyer, ctx: s.ctx, answers: s.answers, taxScopeLabel: t.taxScope,
+      });
       track('export', s.remoteId, { stage: 'RESULT' });
     } finally {
       setExporting(false);
     }
   };
 
-  // Printing (and "Save as PDF") always shows the full task list.
+  // Printing (and "Save as PDF") always shows the full plan.
   useEffect(() => {
     const before = () => {
       setFilter('all');
-      setShowAll(true);
+      setShowAllPkgs(true);
       document.querySelectorAll<HTMLDetailsElement>('details.how-to-read').forEach((d) => { d.open = true; });
     };
     window.addEventListener('beforeprint', before);
     return () => window.removeEventListener('beforeprint', before);
   }, []);
 
-  const critical = r.risks.filter((k) => k.severity === 'critical').length;
+  const reviewRisks = r.risks.filter((k) => k.severity === 'review').length;
   const glance = [
-    { n: critical, label: t.glanceCritical, tone: critical ? 'alert' : 'calm' },
-    { n: r.risks.length - critical, label: t.glanceReview, tone: 'calm' },
-    { n: r.dimensions.reduce((a, d) => a + d.openCount, 0), label: t.glanceOpen, tone: 'calm' },
-    { n: r.tasks.length, label: t.glanceActions, tone: 'calm' },
+    { n: plan.critical.length, label: rt.glanceCritical, tone: plan.critical.length ? 'alert' : 'calm' },
+    { n: plan.packages.length, label: rt.glancePackages, tone: 'calm' },
+    { n: plan.clarifyCount, label: rt.glanceClarify, tone: 'calm' },
+    { n: reviewRisks, label: rt.glanceReview, tone: 'calm' },
   ] as const;
   const sections = [
-    ['readiness', t.navReadiness], ['risks', t.navRisks], ['actions', t.navActions], ['tax', t.navTax], ['summary', t.navSummary],
+    ['next', rt.navNext], ['readiness', rt.navReadiness], ['actions', rt.navActions], ['buyer', rt.navBuyer],
+    ['risks', rt.navRisks], ['tax', rt.navTax], ['summary', rt.navSummary],
   ] as const;
-  const groups = ([[1, t.groupCritical], [2, t.groupOpen], [3, t.groupGap]] as const)
-    .map(([cls, title]) => ({ cls, title, items: shown.filter((x) => x.priorityClass === cls) }))
-    .filter((g) => g.items.length);
+  const show = (c: Category) => filter === 'all' || filter === c;
+  const pkgs = showAllPkgs ? plan.packages : plan.packages.slice(0, 5);
+  const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const statusSelect = (keys: string[], name: string) => {
+    const vals = keys.map((k) => s.taskStatus[k] ?? 'open');
+    const value: TaskStatus = vals.every((v) => v === 'done') ? 'done' : vals.every((v) => v === 'open') ? 'open' : 'in_progress';
+    return (
+      <>
+        <span className="print-only task-print-status">{t.taskStatus[value]}</span>
+        <select className="input input-light no-print" aria-label={rt.statusOf(name)} value={value}
+          onChange={(e) => keys.forEach((k) => setTaskStatus(k, e.target.value as TaskStatus))}>
+          <option value="open">{t.taskStatus.open}</option>
+          <option value="in_progress">{t.taskStatus.in_progress}</option>
+          <option value="done">{t.taskStatus.done}</option>
+        </select>
+      </>
+    );
+  };
+  const anyEvidence = r.strengths.some((x) => (r.score.controls[x.id]?.evidenceFactor ?? 0) > 0);
+  const q25 = r.score.controls.Q25;
 
   return (
     <main style={{ flex: 1 }}>
@@ -154,6 +164,7 @@ export function Result() {
           </h1>
           <div className="chips">
             {chips.map((c) => <span key={c} className="pill" style={{ border: '1px solid rgba(255,255,255,0.3)', padding: '7px 12px', fontSize: 13, fontWeight: 500, whiteSpace: 'normal' }}>{c}</span>)}
+            <button type="button" className="btn btn-ghost btn-sm no-print" onClick={() => go('summary')}>{rt.reviewSetup}</button>
           </div>
           {complete && r.riskStatus !== 'none' && (
             <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.8)', maxWidth: 760 }}>{t.completeNote}</p>
@@ -179,8 +190,36 @@ export function Result() {
 
       <div className="result-body">
         <div className="wrap" style={{ padding: '44px 24px 64px', display: 'flex', flexDirection: 'column', gap: 64 }}>
+          <section id="sec-next" className="rsec" aria-labelledby="next-steps-title" style={{ scrollMarginTop: headerH + 64 }}>
+            <SectionHead n={1} id="next-steps-title" title={rt.nextTitle} sub={rt.nextSub} />
+            {plan.nextSteps.length === 0 ? (
+              <div className="steps-none">{rt.nextNone}</div>
+            ) : (
+              <ol className="steps">
+                {plan.nextSteps.map((st, i) => (
+                  <li key={st.kind + st.title} className={`step step-${st.kind}`}>
+                    <span className="step-n" aria-hidden="true">{i + 1}</span>
+                    <div className="step-main">
+                      <span className="step-kind">{rt.stepKind[st.kind]}</span>
+                      <b className="step-title">{st.title}</b>
+                      <span className="step-detail">{st.detail}</span>
+                      {st.owner && <span className="step-owner">{rt.owner(st.owner)}</span>}
+                    </div>
+                    <div className="step-side no-print">
+                      {st.packageKey && <button type="button" className="link-btn" onClick={() => { setFilter('all'); setShowAllPkgs(true); setTimeout(() => scrollTo(`pkg-${st.packageKey}`), 0); }}>{rt.seePackage}</button>}
+                      {st.ruleId === 'APP' && <button type="button" className="link-btn" onClick={() => go('specialist')}>{rt.clarifySetup}</button>}
+                      {!st.packageKey && st.firstQuestion && (
+                        <button type="button" className="link-btn" onClick={() => openQuestion(st.firstQuestion!)}>{st.kind === 'clarify' ? rt.answerNow : rt.openQuestion}</button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+
           <section id="sec-readiness" className="rsec" aria-labelledby="dims-title" style={{ scrollMarginTop: headerH + 64 }}>
-            <SectionHead n={1} id="dims-title" title={t.dimsTitle} sub={t.dimsSub} />
+            <SectionHead n={2} id="dims-title" title={t.dimsTitle} sub={t.dimsSub} />
             {prev && prev.profile !== r.profile && (
               <p className="rsec-note">
                 {t.recalculated(
@@ -198,8 +237,180 @@ export function Result() {
             </details>
           </section>
 
+          <section id="sec-actions" className="rsec" aria-labelledby="tasks-title" style={{ scrollMarginTop: headerH + 64 }}>
+            <SectionHead n={3} id="tasks-title" title={rt.planTitle} sub={rt.planSub}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} role="group" aria-label={rt.filterAria} className="no-print">
+                {([['all', rt.filterAll, plan.critical.length + plan.packages.length + plan.clarifyCount], ['critical', RT.category.critical, plan.critical.length], ['preparation', RT.category.preparation, plan.packages.length], ['clarify', RT.category.clarify, plan.clarifyCount]] as const).map(([k, l, n]) => (
+                  <button key={k} type="button" className="filter-btn" aria-pressed={filter === k} onClick={() => setFilter(k)}>{l} · {n}</button>
+                ))}
+              </div>
+            </SectionHead>
+
+            {show('critical') && (
+              <div className="plan-block" aria-labelledby="cat-critical">
+                <h3 className="plan-h" id="cat-critical"><span className="cat-dot cat-critical" aria-hidden="true" />{RT.category.critical} · {plan.critical.length}</h3>
+                <p className="plan-sub">{plan.critical.length ? rt.criticalSub : rt.criticalNone}</p>
+                {plan.critical.length > 0 && (
+                  <div className="task-list">
+                    {plan.critical.map((task) => {
+                      const qid = task.sourceQuestionIds[0];
+                      const meta = [task.dimension, task.domain, task.sourceQuestionIds.join(', ') || null].filter(Boolean).join(' · ');
+                      return (
+                        <div key={task.key} className="task">
+                          <span className="pill task-pill" style={{ background: 'var(--red)', color: 'var(--white)' }}>{task.label}</span>
+                          <div className="task-main">
+                            <b className="task-title">{task.title}</b>
+                            <span>{task.reason}</span>
+                            <span className="task-next">{t.nextStep(task.action)}</span>
+                            <div className="task-facts">
+                              <span>{t.suggestedOwner(task.accountableRole)}</span>
+                              <span>{task.suggestedTiming}</span>
+                            </div>
+                            {meta && <span className="task-meta">{meta}</span>}
+                          </div>
+                          <div className="task-side">
+                            {statusSelect([task.key], task.title)}
+                            {qid && <button type="button" className="link-btn no-print" onClick={() => openQuestion(qid)}>{rt.openQuestion}</button>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {show('preparation') && (
+              <div className="plan-block" aria-labelledby="cat-prep">
+                <h3 className="plan-h" id="cat-prep"><span className="cat-dot cat-preparation" aria-hidden="true" />{RT.category.preparation} · {plan.packages.length}</h3>
+                <p className="plan-sub">{plan.packages.length ? rt.prepSub : rt.prepNone}</p>
+                {pkgs.map((p) => (
+                  <article key={p.key} id={`pkg-${p.key}`} className="pkg" aria-labelledby={`pkg-h-${p.key}`} style={{ scrollMarginTop: headerH + 72 }}>
+                    <header className="pkg-head">
+                      <div className="pkg-titles">
+                        <span className="pkg-ws">{p.workstreamName} · {rt.impact(plan.packages.indexOf(p) + 1)}</span>
+                        <h4 id={`pkg-h-${p.key}`}>{p.name}</h4>
+                      </div>
+                      <div className="pkg-status">{statusSelect(p.tasks.map((x) => x.key), p.name)}</div>
+                    </header>
+                    <div className="pkg-grid">
+                      <div className="pkg-why">
+                        <span className="pkg-label">{rt.whyItMatters}</span>
+                        <ul>
+                          {p.tasks.map((task) => {
+                            const id = task.sourceQuestionIds[0];
+                            return (
+                              <li key={task.key}>
+                                <span className="pkg-q"><span className="ids">{id}</span> <b>{task.title}</b> <span className="pkg-badge">{task.label}</span>
+                                  {task.waitingFor.length > 0 && <span className="pkg-wait">{RT.waitingFor(task.waitingFor.join(', '))}</span>}
+                                </span>
+                                <span className="pkg-reason">{task.reason}</span>
+                                <button type="button" className="link-btn no-print" onClick={() => openQuestion(id)}>{rt.openQuestion}</button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                      <dl className="pkg-facts">
+                        <div><dt>{rt.ownerLabel}</dt><dd>{p.owner}</dd></div>
+                        <div><dt>{rt.outputRequired}</dt><dd>{p.output}</dd></div>
+                        {(p.dependsOn.length > 0 || p.waitingFor.length > 0) && (
+                          <div><dt>{rt.dependsOn}</dt><dd>{[...p.dependsOn.map((d) => d.name), ...(p.waitingFor.length ? [RT.waitingFor(p.waitingFor.join(', '))] : [])].join(' · ')}</dd></div>
+                        )}
+                        <div><dt>{rt.timingLabel}</dt><dd>{p.tasks[0].suggestedTiming}</dd></div>
+                      </dl>
+                    </div>
+                    <div className="pkg-controls">
+                      <span className="pkg-label">{rt.linkedControls}</span>
+                      <div className="ctl-list">
+                        {p.controls.map((c) => (
+                          <button key={c.id} type="button" className={`ctl ctl-${c.state}`} onClick={() => openQuestion(c.id)} title={c.name}>
+                            <b>{c.id}</b> {c.name} · {c.stateLabel}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </article>
+                ))}
+                {plan.packages.length > 5 && (
+                  <button type="button" className="no-print task-more pkg-more" onClick={() => setShowAllPkgs((x) => !x)}>
+                    {showAllPkgs ? rt.showFewer : rt.showAllPackages(plan.packages.length)}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {show('clarify') && (
+              <div className="plan-block" aria-labelledby="cat-clarify">
+                <h3 className="plan-h" id="cat-clarify"><span className="cat-dot cat-clarify" aria-hidden="true" />{RT.category.clarify} · {plan.clarifyCount}</h3>
+                <p className="plan-sub">{plan.clarifyCount ? rt.clarifySub : rt.clarifyNone}</p>
+                {plan.clarifyCount > 0 && (
+                  <div className="clarify">
+                    {plan.reviews.length > 0 && (
+                      <div className="clarify-group">
+                        <div className="clarify-head">{rt.reviewsTitle} · {plan.reviews.length}</div>
+                        {plan.reviews.map((task) => (
+                          <div key={task.key} className="clarify-row clarify-review">
+                            <span className="pill clarify-pill">{task.label}</span>
+                            <span className="clarify-text"><b>{task.title}.</b> {task.reason}{task.sourceQuestionIds.length > 0 && task.ruleId !== 'APP' && <span className="ids"> {task.sourceQuestionIds.join(', ')}</span>}</span>
+                            <span className="clarify-act no-print">
+                              {task.ruleId === 'APP'
+                                ? <button type="button" className="link-btn" onClick={() => go('specialist')}>{rt.clarifySetup}</button>
+                                : task.sourceQuestionIds[0] && <button type="button" className="link-btn" onClick={() => openQuestion(task.sourceQuestionIds[0])}>{rt.openQuestion}</button>}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {plan.clarifyGroups.map((g) => (
+                      <div key={g.workstream} className="clarify-group">
+                        <div className="clarify-head">{g.name} · {rt.questionsN(g.tasks.length)}</div>
+                        {g.tasks.map((task) => {
+                          const id = task.sourceQuestionIds[0];
+                          return (
+                            <div key={task.key} className="clarify-row">
+                              <span className="ids clarify-id">{id}</span>
+                              <span className="clarify-text">{task.title}
+                                {task.waitingFor.length > 0 && <span className="pkg-wait">{RT.waitingFor(task.waitingFor.join(', '))}</span>}
+                              </span>
+                              <span className="clarify-state">{controlStateLabel(lang, r.score.controls[id])}</span>
+                              <span className="clarify-act no-print"><button type="button" className="link-btn" onClick={() => openQuestion(id)}>{rt.openQuestion}</button></span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <p className="rsec-note">{rt.timingNote}</p>
+          </section>
+
+          <section id="sec-buyer" className="rsec" aria-labelledby="buyer-title" style={{ scrollMarginTop: headerH + 64 }}>
+            <SectionHead n={4} id="buyer-title" title={rt.buyerTitle} sub={rt.buyerSub} />
+            <div className="buyer-grid">
+              {buyer.map((b) => (
+                <article key={b.id} className="buyer-card" aria-labelledby={`buyer-${b.id}`}>
+                  <div className="buyer-top">
+                    <span className="buyer-self">{rt.buyerSelf}</span>
+                    <span className="ids">{[b.id, ...b.relatedIds].join(' · ')}</span>
+                  </div>
+                  <h3 id={`buyer-${b.id}`}>{b.topic}</h3>
+                  <span className="buyer-value"><span>{b.source}:</span> <b>{b.value ?? rt.buyerNotStated}</b></span>
+                  <p>{b.text}</p>
+                  {b.relatedIds.length > 0 && (
+                    <div className="no-print" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                      {b.relatedIds.map((id) => <button key={id} type="button" className="link-btn" onClick={() => openQuestion(id)}>{rt.openQuestion} {id}</button>)}
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+
           <section id="sec-risks" className="rsec" aria-labelledby="rs-title" style={{ scrollMarginTop: headerH + 64 }}>
-            <SectionHead n={2} id="rs-title" title={t.risksStrengthsTitle} />
+            <SectionHead n={5} id="rs-title" title={t.risksStrengthsTitle} />
             <div className="two-col">
               <div className="panel" aria-labelledby="risk-title">
                 <div className="panel-head">
@@ -219,81 +430,39 @@ export function Result() {
               </div>
               <div className="panel" aria-labelledby="str-title">
                 <div className="panel-head">
-                  <h3 id="str-title">{t.strTitle}</h3>
-                  <p>{t.strSub}</p>
+                  <h3 id="str-title">{rt.statedTitle}</h3>
+                  <p>{rt.statedSub}</p>
                 </div>
-                {r.strengths.length === 0 && <div className="item">{t.strEmpty}</div>}
-                {r.strengths.map((x) => (
-                  <div key={x.id} className="item">
-                    <span className="pill" style={{ background: 'var(--navy-2)', color: 'var(--white)' }}>{x.id}</span>
-                    <span><b>{x.name}.</b> {t.youReported} {x.text}</span>
+                {stated.length === 0 && <div className="item">{rt.statedNone}</div>}
+                {stated.map((x) => (
+                  <div key={x.value} className="item">
+                    <span className="pill" style={{ background: 'var(--white)', border: '1px solid var(--grey-2)' }}>E01</span>
+                    <span><b>{x.label}</b>{x.relatedId && r.score.controls[x.relatedId] && <span className="ids"> · {x.relatedId}: {controlStateLabel(lang, r.score.controls[x.relatedId])}</span>}</span>
                   </div>
                 ))}
-              </div>
-            </div>
-          </section>
-
-          <section id="sec-actions" className="rsec" aria-labelledby="tasks-title" style={{ scrollMarginTop: headerH + 64 }}>
-            <SectionHead n={3} id="tasks-title" title={t.tasksTitle} sub={t.tasksSub}>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} role="group" aria-label={t.filterAria} className="no-print">
-                {([['all', t.filterAll, r.tasks.length], ['critical', t.filterCritical, count('critical')], ['open', t.filterOpen, count('open')], ['gap', t.filterGap, count('gap')]] as const).map(([k, l, n]) => (
-                  <button key={k} type="button" className="filter-btn" aria-pressed={filter === k} onClick={() => { setFilter(k); setShowAll(false); }}>{l} · {n}</button>
-                ))}
-              </div>
-            </SectionHead>
-            <div className="task-list">
-              {shown.length === 0 && <div style={{ padding: 18, fontSize: 14 }}>{t.nothingHere}</div>}
-              {groups.map((g) => (
-                <div key={g.cls} role="group" aria-label={g.title}>
-                  <div className="task-group">{g.title}</div>
-                  {g.items.map((task) => {
-                    const qid = task.sourceQuestionIds[0];
-                    const pill = taskPill(task, !!(qid && s.answers[qid]));
-                    const meta = [task.dimension, task.domain, task.dependencies.length ? t.after(task.dependencies.join(', ')) : null, task.sourceQuestionIds.join(', ') || null].filter(Boolean).join(' · ');
-                    return (
-                      <div key={task.key} className="task">
-                        <span className="pill task-pill" style={{ background: pill.bg, color: pill.fg }}>{task.label}</span>
-                        <div className="task-main">
-                          <b className="task-title">{task.title}</b>
-                          <span>{task.reason}</span>
-                          <span className="task-next">{t.nextStep(task.action)}</span>
-                          <div className="task-facts">
-                            <span>{t.suggestedOwner(task.accountableRole)}</span>
-                            <span>{task.suggestedTiming}</span>
-                          </div>
-                          <span className="task-meta">{meta}</span>
-                        </div>
-                        <span className="print-only task-print-status">{t.taskStatus[s.taskStatus[task.key] ?? 'open']}</span>
-                        <div className="task-side no-print">
-                          <select className="input input-light" aria-label={t.statusOf(task.title)}
-                            value={s.taskStatus[task.key] ?? 'open'} onChange={(e) => setTaskStatus(task.key, e.target.value as TaskStatus)}>
-                            <option value="open">{t.taskStatus.open}</option>
-                            <option value="in_progress">{t.taskStatus.in_progress}</option>
-                            <option value="done">{t.taskStatus.done}</option>
-                          </select>
-                          {qid && task.kind !== 'critical' && task.ruleId !== 'APP' && (
-                            <button type="button" className="link-btn" onClick={() => openQuestion(qid)}>{t.openQuestion}</button>
-                          )}
-                          {task.ruleId === 'APP' && <button type="button" className="link-btn" onClick={() => go('c3')}>{t.clarifySetup}</button>}
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="panel-head" style={{ paddingTop: 12 }}>
+                  <h3 id="prep-str-title">{rt.prepStrTitle}</h3>
+                  <p>{anyEvidence ? rt.prepStrSubSupported : rt.prepStrSubReported}</p>
                 </div>
-              ))}
-              {tasks.length > 8 && (
-                <button type="button" className="no-print task-more" onClick={() => setShowAll((x) => !x)}>
-                  {showAll ? t.showFewer : t.showAll(tasks.length)}
-                </button>
-              )}
+                {r.strengths.length === 0 && <div className="item">{rt.prepStrNone}</div>}
+                {r.strengths.map((x) => {
+                  const ev = (r.score.controls[x.id]?.evidenceFactor ?? 0) > 0;
+                  return (
+                    <div key={x.id} className="item">
+                      <span className="pill" style={{ background: 'var(--navy-2)', color: 'var(--white)' }}>{x.id}</span>
+                      <span><b>{x.name}.</b> {rt.youReported} {x.text} <span className="ids">{ev ? rt.supportedTag : rt.reportedTag}</span></span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <p className="rsec-note">{t.timingNote}</p>
           </section>
 
           <section id="sec-tax" className="rsec" aria-labelledby="tax-title" style={{ scrollMarginTop: headerH + 64 }}>
-            <SectionHead n={4} id="tax-title" title={t.taxSection} sub={t.taxSub} />
+            <SectionHead n={6} id="tax-title" title={rt.taxTitle} sub={rt.taxSub} />
             <div className="tax-cols">
-              {(['company', 'seller', 'cross_border'] as const).map((scope) => {
+              <div className="tax-context">{rt.taxSpecialist(q25 ? controlStateLabel(lang, q25) : rt.taxNotApplicable)}</div>
+              {(['company', 'company_seller', 'seller', 'cross_border'] as const).map((scope) => {
                 const rows = r.tax.filter((x) => x.scope === scope);
                 if (!rows.length) return null;
                 return (
@@ -301,7 +470,7 @@ export function Result() {
                     <span className="tax-col-title">{t.taxScope[scope]}</span>
                     {rows.map((x) => (
                       <div key={x.id} className="tax-row">
-                        <span>{x.name}</span>
+                        <span><span className="tax-id">{x.id}</span> {x.name}</span>
                         <b style={{ color: x.status === 'Prepared' ? 'var(--lime)' : x.status === 'In progress' || x.status === 'Not started' ? 'var(--white)' : 'var(--lime-2)' }}>{t.taxStatus[x.status]}</b>
                       </div>
                     ))}
@@ -312,8 +481,8 @@ export function Result() {
           </section>
 
           <section id="sec-summary" className="rsec" style={{ scrollMarginTop: headerH + 64 }}>
-            <SectionHead n={5} id="summary-title" title={t.summarySection} />
-            <Narrative result={r} />
+            <SectionHead n={7} id="summary-title" title={t.summarySection} />
+            <Narrative result={r} view={plan} />
           </section>
 
           <section className="next-card no-print" aria-labelledby="next-title">
@@ -323,6 +492,7 @@ export function Result() {
             </div>
             <div className="next-actions">
               <button type="button" className="btn btn-lime" onClick={() => go('deep')}>{t.continueAnswering}</button>
+              <button type="button" className="btn btn-ghost" onClick={() => go('summary')}>{rt.reviewSetup}</button>
               <button type="button" className="btn btn-ghost" onClick={() => window.print()}>{t.print}</button>
               <button type="button" className="btn btn-ghost" onClick={download} disabled={exporting} aria-busy={exporting}>{t.exportCsv}</button>
             </div>
