@@ -391,3 +391,16 @@ select.input option { color: var(--navy); }
 
   .result-foot { font-size: 9px; break-inside: avoid; }
 }
+/* ── Imprint and privacy pages ─────────────────────────────────────────── */
+.legal-page { min-height: 100vh; background: var(--white); color: var(--navy); }
+.legal-page .site-header { position: sticky; }
+.legal-body { max-width: 820px; padding-top: 48px; padding-bottom: 80px; font-size: 15px; line-height: 1.7; }
+.legal-body h1 { margin: 0 0 18px; font-size: clamp(30px, 4vw, 40px); line-height: 1.15; font-weight: 800; letter-spacing: -0.02em; }
+.legal-body h2 { margin: 32px 0 10px; font-size: 19px; line-height: 1.35; }
+.legal-body p { margin: 0 0 14px; }
+.legal-body ul { margin: 0 0 14px; padding-left: 22px; }
+.legal-body li { margin-bottom: 6px; }
+.legal-body a { overflow-wrap: anywhere; }
+.legal-lead { font-size: 16px; color: var(--grey-4); }
+.legal-note { display: inline-block; padding: 8px 12px; border-radius: 10px; background: var(--grey-1); font-size: 14px; }
+.legal-updated { margin-top: 28px !important; font-size: 13px; color: var(--grey-4); }

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import Landing from './views/Landing';
 import AssessmentApp from './views/assessment/AssessmentApp';
+import { Imprint, Privacy } from './views/Legal';
 
-/** Two routes only: the landing page and the assessment. Vercel rewrites every path to index.html. */
+/** Routes: landing page, assessment, imprint and privacy notice. Vercel rewrites every path to index.html. */
 export function navigate(path: string) {
   history.pushState(null, '', path);
   window.dispatchEvent(new PopStateEvent('popstate'));
@@ -16,5 +17,8 @@ export default function App() {
     window.addEventListener('popstate', on);
     return () => window.removeEventListener('popstate', on);
   }, []);
-  return path.startsWith('/assessment') ? <AssessmentApp /> : <Landing />;
+  if (path.startsWith('/assessment')) return <AssessmentApp />;
+  if (path.startsWith('/imprint')) return <Imprint />;
+  if (path.startsWith('/privacy')) return <Privacy />;
+  return <Landing />;
 }

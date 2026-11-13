@@ -89,6 +89,20 @@ Environment variables (`.env.local`): `VITE_TURNSTILE_SITE_KEY` (required while 
 - `src/views/`: the landing page and the assessment screens.
 - `supabase/migrations/`: schema, RLS and the generated catalogue seed.
 
+## Troubleshooting online saving
+
+The MVP test (12 November 2026) showed "Saved in this browser … online copy failed" with the technical detail
+`Could not find the table 'public.assessments' in the schema cache`. That message means the database migrations
+have not been applied to the hosted project. Fix:
+
+1. Run `bash scripts/setup-supabase.sh` (or `npx supabase db push`) against project `elpjwoujqzskgydytvob`.
+2. Dashboard → Authentication → Sign In / Providers: *Allow anonymous sign-ins* on.
+3. Dashboard → Authentication → Attack Protection: CAPTCHA off, or Turnstile site key set in Vercel and the Vercel
+   domain allowed in the Turnstile widget.
+4. Acceptance: in a fresh private window, answer one question; the header must say "Saved" (not "on this browser
+   only"), and after a reload the answer must still be there. Then use "Try again" after deliberately going offline
+   to check that local work is kept and reconciled.
+
 ## Open items before launch
 
 - **Content sign-off** (brief section 22). The 55 anchors, domain matrices, critical predicates and task wording are *proposed v1 parameters*. The M&A, tax and legal owners need to approve them before production scoring.

@@ -5,6 +5,7 @@ import { hasProgress, useAssessment } from '../lib/store';
 import { useLang, type Lang } from '../lib/i18n';
 import { imprintUrl, privacyUrl } from '../lib/links';
 import { COPY } from './landing-copy';
+import { exampleReport } from './landing-example';
 
 type Preview = { strengths: number[]; e05: number | string | null; e04: number | string | null };
 const emptyPreview: Preview = { strengths: [], e05: null, e04: null };
@@ -257,17 +258,30 @@ function HowItWorks({ lang }: { lang: Lang }) {
   );
 }
 
-const DIM_META = [
-  { statusBg: 'rgba(0,195,191,0.2)', statusFg: 'var(--teal-pale)', cov: 86, ev: 40, vals: [80, 58, null], critical: true },
-  { statusBg: 'rgba(190,252,0,0.2)', statusFg: 'var(--lime)', cov: 100, ev: 55, vals: [88, 75, 70, 90, 83], critical: false },
-  { statusBg: 'rgba(255,255,255,0.14)', statusFg: 'var(--white)', cov: 61, ev: 18, vals: [66, null, 72, null], critical: false },
-];
+// Computed once from the synthetic example (see landing-example.ts); never hard-coded.
+const EXAMPLE = exampleReport();
+const STATUS_STYLE: Record<string, { bg: string; fg: string }> = {
+  complete: { bg: 'rgba(190,252,0,0.2)', fg: 'var(--lime)' },
+  indicative: { bg: 'rgba(0,195,191,0.2)', fg: 'var(--teal-pale)' },
+};
+const OTHER_STYLE = { bg: 'rgba(255,255,255,0.14)', fg: 'var(--white)' };
 
 function ReportPreview({ lang }: { lang: Lang }) {
   const t = COPY[lang];
   const [i, setI] = useState(0);
   const dim = t.dims[i];
-  const meta = DIM_META[i];
+  const ex = EXAMPLE[i];
+  const dimText = (j: number) => {
+    const d = EXAMPLE[j].result;
+    return {
+      status: t.exStatus[d.status] ?? d.status,
+      style: STATUS_STYLE[d.status] ?? OTHER_STYLE,
+      index: d.displayIndex == null ? t.exNotShown : String(d.displayIndex),
+      range: d.displayIndex == null ? t.exOpen(d.openCount) : d.status === 'complete' ? t.exAll : t.exRange(Math.round(d.lower), Math.round(d.upper)),
+      cov: Math.round(d.coverage * 100),
+      ev: Math.round(d.evidenceSupport * 100),
+    };
+  };
   return (
     <section id="report" className="section-dark" aria-labelledby="report-title">
       <div className="wrap section" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
@@ -277,17 +291,17 @@ function ReportPreview({ lang }: { lang: Lang }) {
         <div className="two-col" style={{ alignItems: 'start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} role="tablist" aria-label={t.navReport}>
             {t.dims.map((d, j) => {
-              const m = DIM_META[j];
+              const m = dimText(j);
               return (
                 <button key={d.name} type="button" role="tab" aria-selected={i === j} onClick={() => setI(j)}
                   style={{ textAlign: 'left', cursor: 'pointer', borderRadius: 18, padding: 18, color: 'var(--white)', border: `1px solid ${i === j ? 'var(--teal)' : 'rgba(255,255,255,0.16)'}`, background: i === j ? 'rgba(0,195,191,0.14)' : 'rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                  <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: 700, fontSize: 17 }}>{d.name}</span>
-                    <span className="pill" style={{ background: m.statusBg, color: m.statusFg }}>{d.status}</span>
+                    <span className="pill" style={{ background: m.style.bg, color: m.style.fg }}>{m.status}</span>
                   </span>
                   <span style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 32, fontWeight: 800 }}>{d.index}</span>
-                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.78)' }}>{d.range}</span>
+                    <span style={{ fontSize: 32, fontWeight: 800 }}>{m.index}</span>
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.78)' }}>{m.range}</span>
                   </span>
                   <span style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 12, color: 'rgba(255,255,255,0.78)' }}>
                     <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{t.cov} {m.cov}%<Bar dark value={m.cov} color="var(--teal)" /></span>
@@ -302,18 +316,21 @@ function ReportPreview({ lang }: { lang: Lang }) {
             <div className="kicker dark" style={{ fontSize: 13 }}>{t.covers(dim.name)}</div>
             <p style={{ margin: 0, lineHeight: 1.6, fontSize: 16 }}>{dim.body}</p>
             {dim.domains.map((n, j) => {
-              const v = meta.vals[j];
+              const m = ex.result.domains[j];
+              const v = m?.index == null ? null : Math.round(m.index);
+              const lc = m ? m.localCoverage : 0;
+              const label = v == null ? t.open : lc < 0.999 ? `${v} · ${t.exAnswered(Math.round(lc * 100))}` : String(v);
               return (
                 <div key={n} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}><b>{n}</b><span>{v == null ? t.open : v}</span></div>
-                  <Bar value={v ?? 100} color={v == null ? 'var(--grey-2)' : 'var(--navy-2)'} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 14 }}><b>{n}</b><span style={{ whiteSpace: 'nowrap' }}>{label}</span></div>
+                  <Bar value={v == null ? 0 : v * lc} open={(1 - lc) * 100} />
                 </div>
               );
             })}
             <div style={{ borderTop: '1px solid var(--grey-2)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <b style={{ fontSize: 14 }}>{t.separate}</b>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', border: `1px solid ${meta.critical ? 'var(--red)' : 'var(--grey-2)'}`, borderRadius: 12, padding: '10px 12px', fontSize: 14, lineHeight: 1.5 }}>
-                <span className="pill" style={{ background: meta.critical ? 'var(--red)' : 'var(--grey-1)', color: meta.critical ? 'var(--white)' : 'var(--navy)' }}>{meta.critical ? t.crit : t.review}</span>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', border: `1px solid ${ex.risk?.severity === 'critical' ? 'var(--red)' : 'var(--grey-2)'}`, borderRadius: 12, padding: '10px 12px', fontSize: 14, lineHeight: 1.5 }}>
+                <span className="pill" style={{ background: ex.risk?.severity === 'critical' ? 'var(--red)' : 'var(--grey-1)', color: ex.risk?.severity === 'critical' ? 'var(--white)' : 'var(--navy)' }}>{ex.risk?.severity === 'critical' ? t.crit : t.review}</span>
                 <span>{dim.risk}</span>
               </div>
             </div>
