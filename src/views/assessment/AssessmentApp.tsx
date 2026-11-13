@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import { SUPABASE_URL } from '../../lib/supabase';
+
+const SUPABASE_PROJECT = SUPABASE_URL.replace(/^https?:\/\//, '').replace(/\.supabase\.co\/?$/, '');
 import { Brand, LangSwitch } from '../../components/ui';
 import { useT } from '../../i18n/ui';
 import { useJT } from '../../i18n/ui-journey';
@@ -151,6 +154,8 @@ export function BackupNotice({ health }: { health: BackupHealth }) {
           <details className="backup-details">
             <summary>{jt.techDetails}</summary>
             <code>{health.detail}</code>
+            {/* Which Supabase project this build talks to: the most common cause of a missing table is a wrong VITE_SUPABASE_URL. */}
+            <code>Supabase project: {SUPABASE_PROJECT}</code>
           </details>
         )}
       </div>
