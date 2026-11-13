@@ -1,43 +1,11 @@
-import { useEffect, type ReactNode } from 'react';
-import { navigate } from '../App';
-import { Brand, LangSwitch } from '../components/ui';
-import { useLang } from '../lib/i18n';
-
-// Imprint and privacy notice for the ExitIQ tool.
+// Imprint and privacy notice for the ExitIQ tool, shown in the legal dialog
+// (LegalDialog.tsx), styled like exitiq.atares.team.
 // The legal text is reproduced exactly as supplied by atares (English). It is
-// not translated or reworded here: legal wording is owned by atares. The German
-// interface shows a short note that the notices are currently in English.
+// not translated or reworded here: legal wording is owned by atares.
 
-const NOTE_DE = 'Diese rechtlichen Hinweise liegen derzeit auf Englisch vor.';
-
-function Page({ title, children }: { title: string; children: ReactNode }) {
-  const lang = useLang();
-  useEffect(() => {
-    document.title = `${title} | ExitIQ by atares`;
-  }, [title]);
+export function ImprintContent() {
   return (
-    <div className="legal-page">
-      <header className="site-header">
-        <div className="wrap" style={{ padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-          <Brand />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <LangSwitch />
-            <a href="/" className="btn btn-ghost btn-sm" onClick={(e) => { e.preventDefault(); navigate('/'); }}>{lang === 'de' ? 'Zur Startseite' : 'Back to ExitIQ'}</a>
-          </div>
-        </div>
-      </header>
-      <main className="wrap legal-body">
-        {lang === 'de' && <p className="legal-note">{NOTE_DE}</p>}
-        <h1>{title}</h1>
-        {children}
-      </main>
-    </div>
-  );
-}
-
-export function Imprint() {
-  return (
-    <Page title="Imprint">
+    <>
       <p className="legal-lead">Information pursuant to Sec. 5 DDG and Sec. 2 DL-InfoV</p>
       <p>
         <b>atares GmbH</b><br />
@@ -68,13 +36,13 @@ export function Imprint() {
       <p>Any message or material that you send or transmit to atares over the internet is deemed to be non-confidential and not legally protected, and will be treated as such. By sending or transmitting messages or material to this website, you agree that atares or companies affiliated with atares may use these messages or this material for any purpose, including reproduction. Do not send or transmit any unlawful, threatening, obscene, defamatory, pornographic or immoral material, or material that constitutes or encourages unlawful or criminal conduct.</p>
       <p>atares reserves the right to amend these Terms of Use and recommends that you inform yourself regularly about the terms in force at any given time. By using the website, you accept the applicability of the Terms of Use in their respectively valid version.</p>
       <p>The legal notices on this page, as well as any disputes arising out of or in connection with the content of this website, are governed by the law of the Federal Republic of Germany.</p>
-    </Page>
+    </>
   );
 }
 
-export function Privacy() {
+export function PrivacyContent() {
   return (
-    <Page title="Privacy notice">
+    <>
       <p className="legal-lead">This notice explains, in accordance with Art. 13 GDPR, how personal data is processed when you use the ExitIQ tool operated by atares GmbH. Personal data is any information relating to you (e.g. name, email address, details about your company, your questionnaire answers).</p>
 
       <h2>I. Controller and data protection officer</h2>
@@ -157,6 +125,6 @@ export function Privacy() {
       <p>To exercise your rights, an informal message to <a href="mailto:exitiq@atares.team">exitiq@atares.team</a> or to our data protection officer is sufficient. The supervisory authority responsible for us is the Bavarian State Office for Data Protection Supervision (BayLDA), Promenade 18, 91522 Ansbach, Germany.</p>
       <p>This notice applies to the ExitIQ tool. A separate privacy policy applies to our main website atares.team, available in its footer.</p>
       <p className="legal-updated">Last updated: 21 July 2026</p>
-    </Page>
+    </>
   );
 }
