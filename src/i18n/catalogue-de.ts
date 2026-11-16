@@ -748,7 +748,7 @@ export const DE: CatalogueTranslation = {
     },
     E02: {
       theme: 'Stärken',
-      title: 'Warum entscheiden sich Kunden für Sie, wenn es eine günstigere Alternative gibt?',
+      title: 'Warum entscheiden sich Kunden für Sie und nicht für Alternativen, auch günstigere?',
       sub: 'Welche Aussage beschreibt am besten, was Sie heute belegen können?',
       help: 'Käufer prüfen das früh. Antworten Sie danach, was Sie heute zeigen könnten, nicht danach, was Sie vermuten.',
     },

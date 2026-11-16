@@ -118,6 +118,11 @@ export function labelOf<T extends string>(opts: Opt<T>[], v: T | null | undefine
 export type DiscoveryScreen =
   | { id: 'E01'; theme: string; kind: 'multi'; title: string; help: string; options: string[]; max: number }
   | { id: 'E03' | 'E04' | 'E07'; theme: string; kind: 'band'; title: string; help: string; options: string[] }
+  // E02, E05, E06 and E08 have no answer options of their own. They show and
+  // store the linked control (Q19, Q12, Q13, Q25) with its exact anchors, as the
+  // review's "Treatment" lines and implementation check require. The shorter
+  // answer lines in the review's E02/E05/E06 sections are not used: the same
+  // answer reappears in the detailed assessment and must read the same there.
   | {
     id: 'E02' | 'E05' | 'E06' | 'E08'; theme: string; kind: 'control'; control: string;
     /** Conversational heading; null uses the control's own (context-dependent) question. */
@@ -137,7 +142,7 @@ export const DISCOVERY: DiscoveryScreen[] = [
   { id: 'E01', theme: 'Strengths', kind: 'multi', max: 3, title: 'What is the strongest reason a potential buyer should be interested in your business?', help: 'Choose up to three. This is a preference and is not scored.', options: ['Customer loyalty', 'Distinctive products or technology', 'Experienced team', 'Recurring revenue', 'Market position', 'Operational capabilities', 'Growth opportunities', 'Other'] },
   { id: 'E04', theme: 'Revenue', kind: 'band', title: 'What percentage of annual revenue would be affected by the loss of your largest customer?', help: 'Optional. A rough band is enough. Not scored.', options: ['Under 10%', '10 to 20%', '20 to 30%', 'Over 30%', 'Not yet calculated'] },
   { id: 'E05', theme: 'People', kind: 'control', control: 'Q12', title: null, titleOwnerLed: 'What would stall if you were away for four weeks?', help: 'Buyers look at whether the business keeps running without its current decision makers.' },
-  { id: 'E02', theme: 'Strengths', kind: 'control', control: 'Q19', title: 'Why do customers choose you when a cheaper option exists?', sub: 'Which statement best describes what you can demonstrate today?', help: 'Buyers test this early. Answer for what you could show today, not what you believe.' },
+  { id: 'E02', theme: 'Strengths', kind: 'control', control: 'Q19', title: 'Why do customers choose you over the alternatives, including cheaper ones?', sub: 'Which statement best describes what you can demonstrate today?', help: 'Buyers test this early. Answer for what you could show today, not what you believe.' },
   { id: 'E03', theme: 'Revenue', kind: 'band', title: 'How much of your revenue over the next 12 months is already secured through contractual commitments?', help: 'Optional. A rough band is enough. Not scored. A low share is not automatically a weakness.', options: ['Under 25%', '25 to 50%', '50 to 75%', 'Over 75%', 'Not yet calculated'] },
   { id: 'E06', theme: 'People', kind: 'control', control: 'Q13', title: 'How effectively could essential work continue during the extended absence of a key specialist?', help: 'Think of the one or two people whose absence would hurt most.' },
   { id: 'E07', theme: 'Growth', kind: 'band', title: 'Where would your business face the greatest pressure if demand increased by 30%?', help: 'The 30% is only an illustration. Not scored.', options: ['People and skills', 'Production or service capacity', 'Suppliers', 'Technology and systems', 'Working capital', 'Other', 'Not assessed'] },
