@@ -17,9 +17,15 @@ export interface ModelText {
     r02Title: string; r02Text: string; r02OpenTitle: string; r02OpenText: string;
     r03Title: string; r03Text: string; r03OpenTitle: string; r03OpenText: string;
     r04Title: string; r04Text: string;
+    r04ConfirmedTitle: string; r04ConfirmedText: string;
+    r04HistoryText: string; r04HistoryUnknownTitle: string; r04HistoryUnknownText: string;
     r05Title: string; r05Text: string;
     r06Title: string; r06Text: string;
+    r06ConfirmedTitle: string; r06ConfirmedText: string;
+    r06UnknownTitle: string; r06UnknownText: string;
     r07Title: string; r07Text: string;
+    /** Cross-answer contradictions (scoring.contradictions), keyed by ContradictionKey. */
+    contradiction: Record<'objectives' | 'liquidity_forecast' | 'group_services', { title: string; text: string }>;
     appTitle: (route: string) => string;
     appText: (route: string) => string;
   };
@@ -31,6 +37,8 @@ export interface ModelText {
     gapReason: (today: string, target: string) => string;
     unansweredReason: string; reconfirmReason: string;
     markedReason: (statusLabel: string) => string;
+    /** Q27/Q28: separate company-level and seller-level tasks (section 19). */
+    taxLevel: Record<'company' | 'seller', { title: (name: string) => string; role: string; action: string }>;
   };
   timing: Record<Horizon, [string, string, string]>;
   obs: {
@@ -67,8 +75,31 @@ const en: ModelText = {
     r05Text: 'Essential group-provided services lack a viable continuity response at completion. This is a critical separation prerequisite.',
     r06Title: 'Funding through the transaction period is unplanned',
     r06Text: 'There is no usable cash forecast while funding needs may arise before the transaction. Assess whether a funding gap exists and how it would be bridged.',
+    r04ConfirmedTitle: 'Confirmed tax restriction affects the timetable',
+    r04ConfirmedText: 'You reported that a tax adviser has confirmed a restriction or deadline that affects the planned timetable. Plan the timetable and structure around it with the adviser before launch.',
+    r04HistoryText: 'You reported past reorganizations, contributions or share exchanges. A tax adviser should review whether any restriction or deadline affects the transaction. This is a review, not an assertion that a tax charge applies.',
+    r04HistoryUnknownTitle: 'Past reorganizations need clarification',
+    r04HistoryUnknownText: 'It is open whether there were past reorganizations, contributions or share exchanges. Clarify this, so that a tax adviser can decide whether a review of historical restrictions is needed.',
+    r06ConfirmedTitle: 'Confirmed funding gap before the transaction',
+    r06ConfirmedText: 'You reported a confirmed funding gap before the planned transaction without an agreed bridge. Agree funding or a bridge first and assess whether a specialist route is needed.',
+    r06UnknownTitle: 'Possible funding gap needs clarification',
+    r06UnknownText: 'It is open whether there is a funding gap before the planned transaction. Clarify it with your finance lead. This is not a confirmed gap.',
     r07Title: 'Conflicting answers',
     r07Text: 'Answers or contributors conflict. The affected answers are excluded from coverage until the facts are reconfirmed.',
+    contradiction: {
+      objectives: {
+        title: 'Answers on objectives contradict each other',
+        text: 'You reported that the transaction objectives are not yet defined, but also that decision makers agreed them or that options were compared against them. Reconfirm these answers. Until one of them changes, they are excluded from coverage.',
+      },
+      liquidity_forecast: {
+        title: 'Liquidity answer and cash planning need clarification',
+        text: 'You reported no known payment pressure, but also that there is no usable cash forecast for the transaction period. Clarify how the absence of pressure is known. Coverage is not affected.',
+      },
+      group_services: {
+        title: 'Group dependency answers need clarification',
+        text: 'You reported no material dependence on a group that stays behind, but also that essential group-provided services lack a continuity response. Reconfirm which answer reflects the facts. Coverage is not affected.',
+      },
+    },
     appTitle: (route) => `Applicability unresolved: ${route}`,
     appText: (route) => `Clarify whether ${route.toLowerCase()} applies. Until then its questions stay open and the assessment cannot be complete.`,
   },
@@ -84,6 +115,19 @@ const en: ModelText = {
     unansweredReason: 'Not assessed yet. Answer the question to include it in coverage.',
     reconfirmReason: 'This question applies again after a context change. Reconfirm the earlier answer.',
     markedReason: (label) => `Marked as ${label.toLowerCase()}. Resolve it to include it in coverage.`,
+
+    taxLevel: {
+      company: {
+        title: (name) => `${name}: company level`,
+        role: 'Company tax adviser / CFO',
+        action: 'Commission the company-level tax review for this point and close open items.',
+      },
+      seller: {
+        title: (name) => `${name}: seller level`,
+        role: 'Sellers’ tax advisers',
+        action: 'Have each seller’s own tax adviser review this point for the seller and close open items.',
+      },
+    },
   },
   timing: {
     under_6: ['Before launch', 'Within 4 weeks', 'Within 3 months'],
@@ -135,8 +179,31 @@ const de: ModelText = {
     r05Text: 'Für wesentliche Leistungen, die der Konzern erbringt, fehlt zum Vollzug eine tragfähige Lösung zur Fortführung. Das ist eine kritische Voraussetzung der Separierung.',
     r06Title: 'Die Finanzierung über den Transaktionszeitraum ist nicht geplant',
     r06Text: 'Es gibt keine verwendbare Liquiditätsplanung, obwohl vor der Transaktion Finanzierungsbedarf entstehen kann. Prüfen Sie, ob eine Finanzierungslücke besteht und wie sie überbrückt würde.',
+    r04ConfirmedTitle: 'Bestätigte steuerliche Beschränkung betrifft den Zeitplan',
+    r04ConfirmedText: 'Sie haben angegeben, dass ein Steuerberater eine Beschränkung oder Frist bestätigt hat, die den geplanten Zeitplan betrifft. Richten Sie Zeitplan und Struktur vor dem Start gemeinsam mit dem Berater darauf aus.',
+    r04HistoryText: 'Sie haben frühere Umstrukturierungen, Einbringungen oder Anteilstausche angegeben. Ein Steuerberater sollte prüfen, ob eine Beschränkung oder Frist die Transaktion betrifft. Das ist eine Prüfung, keine Aussage, dass eine Steuerbelastung entsteht.',
+    r04HistoryUnknownTitle: 'Frühere Umstrukturierungen müssen geklärt werden',
+    r04HistoryUnknownText: 'Es ist offen, ob es frühere Umstrukturierungen, Einbringungen oder Anteilstausche gab. Klären Sie das, damit ein Steuerberater entscheiden kann, ob frühere Beschränkungen geprüft werden müssen.',
+    r06ConfirmedTitle: 'Bestätigte Finanzierungslücke vor der Transaktion',
+    r06ConfirmedText: 'Sie haben eine bestätigte Finanzierungslücke vor der geplanten Transaktion ohne vereinbarte Überbrückung angegeben. Vereinbaren Sie zuerst eine Finanzierung oder Überbrückung und prüfen Sie, ob ein Spezialistenpfad nötig ist.',
+    r06UnknownTitle: 'Mögliche Finanzierungslücke muss geklärt werden',
+    r06UnknownText: 'Es ist offen, ob vor der geplanten Transaktion eine Finanzierungslücke besteht. Klären Sie das mit Ihrer Finanzverantwortung. Das ist keine bestätigte Lücke.',
     r07Title: 'Widersprüchliche Antworten',
     r07Text: 'Antworten oder Beteiligte widersprechen sich. Die betroffenen Antworten zählen nicht zur Abdeckung, bis die Fakten erneut bestätigt sind.',
+    contradiction: {
+      objectives: {
+        title: 'Die Antworten zu den Zielen widersprechen sich',
+        text: 'Sie haben angegeben, dass die Transaktionsziele noch nicht definiert sind, aber auch, dass die Entscheider sie vereinbart haben oder dass Optionen daran gemessen wurden. Bestätigen Sie diese Antworten erneut. Bis sich eine davon ändert, zählen sie nicht zur Abdeckung.',
+      },
+      liquidity_forecast: {
+        title: 'Angabe zur Liquidität und Liquiditätsplanung müssen geklärt werden',
+        text: 'Sie haben keinen bekannten Zahlungsdruck angegeben, aber auch, dass es keine verwendbare Liquiditätsprognose für den Transaktionszeitraum gibt. Klären Sie, woran Sie erkennen, dass kein Druck besteht. Die Abdeckung ändert sich dadurch nicht.',
+      },
+      group_services: {
+        title: 'Die Angaben zur Konzernabhängigkeit müssen geklärt werden',
+        text: 'Sie haben keine wesentliche Abhängigkeit von einem verbleibenden Konzern angegeben, aber auch, dass für wesentliche Konzernleistungen keine Lösung zur Fortführung besteht. Bestätigen Sie, welche Antwort den Fakten entspricht. Die Abdeckung ändert sich dadurch nicht.',
+      },
+    },
     appTitle: (route) => `Anwendbarkeit ungeklärt: ${route}`,
     appText: (route) => `Klären Sie, ob „${route}“ zutrifft. Bis dahin bleiben die zugehörigen Fragen offen, und die Einschätzung kann nicht vollständig sein.`,
   },
@@ -152,6 +219,19 @@ const de: ModelText = {
     unansweredReason: 'Noch nicht bewertet. Beantworten Sie die Frage, damit sie in die Abdeckung eingeht.',
     reconfirmReason: 'Diese Frage trifft nach einer Änderung des Kontexts wieder zu. Bestätigen Sie die frühere Antwort erneut.',
     markedReason: (label) => `Markiert als „${label}“. Klären Sie den Punkt, damit er in die Abdeckung eingeht.`,
+
+    taxLevel: {
+      company: {
+        title: (name) => `${name}: Ebene der Gesellschaft`,
+        role: 'Steuerberater der Gesellschaft / CFO',
+        action: 'Beauftragen Sie die steuerliche Prüfung dieses Punkts auf Ebene der Gesellschaft und klären Sie offene Punkte.',
+      },
+      seller: {
+        title: (name) => `${name}: Ebene der Verkäufer`,
+        role: 'Steuerberater der Verkäufer',
+        action: 'Lassen Sie diesen Punkt vom eigenen Steuerberater jedes Verkäufers prüfen und klären Sie offene Punkte.',
+      },
+    },
   },
   timing: {
     under_6: ['Vor dem Start', 'Innerhalb von 4 Wochen', 'Innerhalb von 3 Monaten'],

@@ -17,6 +17,8 @@ do $$ begin
   if exists (select 1 from public.question_definitions group by catalogue_version having count(*) <> 55) then raise exception 'expected 55 controls per version'; end if;
   if exists (select 1 from public.profile_weights group by catalogue_version having count(*) <> 48) then raise exception 'expected 48 weights per version'; end if;
   if (select count(*) from public.question_definitions where catalogue_version = 'catalogue-2026.11-v1.1') <> 55 then raise exception 'v1.1 catalogue missing'; end if;
+  if (select count(*) from public.question_definitions where catalogue_version = 'catalogue-2026.11-v1.2') <> 55 then raise exception 'v1.2 catalogue missing'; end if;
+  if (select context_wording->'help'->>'exploration' from public.question_definitions where catalogue_version = 'catalogue-2026.11-v1.2' and id = 'Q01') is null then raise exception 'v1.2 exploration help missing'; end if;
 end $$;
 do $$ begin
   begin perform 1 from public.assessments; raise exception 'anon must not read assessments';

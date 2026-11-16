@@ -82,6 +82,16 @@ export type Horizon = 'under_6' | 'm6_18' | 'm19_36' | 'over_36' | 'undecided';
 export type Liquidity = 'no_pressure' | 'potential' | 'acute' | 'unknown';
 export type TriState = 'yes' | 'no' | 'unknown';
 export type TriggerKey = 'debt' | 'acquisitions' | 'employee_equity' | 'preferences' | 'convertibles' | 'regulated' | 'contingent' | 'group_dependency';
+/**
+ * Specialist triggers added in catalogue v1.2 (brief s.3):
+ *  - restructuring: past reorganizations, contributions or share exchanges. Leads to an R04 review of Q28 only.
+ *  - cross_border_ops: material operations, subsidiaries or employees in more than one country. Switches CROSS_BORDER on.
+ * Kept apart from TriggerKey so that tables keyed by the original eight (e.g. ui-journey trigWhy) stay valid.
+ */
+export type TaxTriggerKey = 'restructuring' | 'cross_border_ops';
+export type AnyTriggerKey = TriggerKey | TaxTriggerKey;
+/** Unscored setup field (s.5): selects the Q07 growth-economics wording. */
+export type EconomicsModel = 'profitable' | 'growth' | 'unknown';
 export type SellerType = 'individuals' | 'holding_companies' | 'corporate_parent' | 'funds' | 'mixed' | 'unknown';
 export type SellerTaxStatus = 'same' | 'different' | 'multiple' | 'unknown';
 
@@ -103,10 +113,22 @@ export interface AssessmentContext {
   perimeter: Perimeter | null;
   horizon: Horizon | null;
   liquidity: Liquidity | null;
-  triggers: Partial<Record<TriggerKey, TriState>>;
+  triggers: Partial<Record<AnyTriggerKey, TriState>>;
   sellerType: SellerType | null;
   sellerTaxStatus: SellerTaxStatus | null;
   company: CompanyProfile;
+  /** Optional (s.5). 'growth' selects the Q07 growth wording. Absent in contexts saved before catalogue v1.2. */
+  economicsModel?: EconomicsModel | null;
+  /**
+   * Optional confirmed predicate for R04 (s.8): a tax adviser has confirmed a
+   * restriction or deadline that affects the planned timetable. 'yes' makes R04 critical.
+   */
+  taxRestrictionConfirmed?: TriState | null;
+  /**
+   * Optional confirmed predicate for R06 (s.8): a confirmed funding gap before
+   * the planned transaction without an agreed bridge. 'yes' makes R06 critical, 'unknown' a review.
+   */
+  fundingGapConfirmed?: TriState | null;
 }
 
 export type Diagnostics = Partial<Record<'E01' | 'E03' | 'E04' | 'E07', string | string[]>>;
@@ -126,4 +148,15 @@ export interface QuestionDef {
   /** Context-specific wording that keeps the meaning of the control. */
   variants?: Partial<Record<'owner_led' | 'employed' | 'growth' | 'venture', string>>;
   dependsOn?: string[];
+  /**
+   * Context-dependent help that replaces (or, where the control has general
+   * help, follows) the help text. Selected by routing.questionHelp.
+   */
+  helpVariants?: Partial<Record<'exploration', string>>;
+  /**
+   * Risk rules (plan.ts evaluateRisks) that read this control's answer (s.18
+   * "linked task/risk rules"). Documentation and traceability only: the rules
+   * themselves live in plan.ts and scoring.ts. TypeScript only, not seeded.
+   */
+  linkedRules?: string[];
 }

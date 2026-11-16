@@ -13,7 +13,7 @@ function ctx(over: Partial<AssessmentContext> = {}): AssessmentContext {
   return {
     role: 'owner', ownershipTags: ['private_family'], managementModel: 'owner_led', profile: 'OWNER',
     objectives: ['full_sale'], perimeter: 'whole_business', horizon: 'm6_18', liquidity: 'no_pressure',
-    triggers: { debt: 'no', acquisitions: 'no', employee_equity: 'no', preferences: 'no', convertibles: 'no', regulated: 'no', contingent: 'no', group_dependency: 'no' },
+    triggers: { debt: 'no', acquisitions: 'no', employee_equity: 'no', preferences: 'no', convertibles: 'no', regulated: 'no', contingent: 'no', group_dependency: 'no', restructuring: 'no', cross_border_ops: 'no' },
     sellerType: 'individuals', sellerTaxStatus: 'same',
     company: { businessModel: null, sector: null, revenueBand: null, employeeBand: null, jurisdiction: 'DE' },
     ...over,

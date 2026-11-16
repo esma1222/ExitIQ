@@ -130,6 +130,16 @@ export function controlStateLabel(lang: Lang, c: ControlResult | undefined): str
 
 type Result = Pick<ResultSnapshot, 'tasks'> & { score: ScoreResult };
 
+/** Sum of task impacts, counting each source control once (a split tax task carries the control's full impact twice). */
+function packageImpact(tasks: Task[]): number {
+  const seen = new Map<string, number>();
+  for (const t of tasks) {
+    const id = t.sourceQuestionIds[0] ?? t.key;
+    seen.set(id, Math.max(seen.get(id) ?? 0, t.impact));
+  }
+  return [...seen.values()].reduce((s, x) => s + x, 0);
+}
+
 export function buildPlanView(r: Result, lang: Lang = 'en'): PlanView {
   const T = REPORT_TEXT[lang];
   const tasks = r.tasks;
@@ -158,7 +168,7 @@ export function buildPlanView(r: Result, lang: Lang = 'en'): PlanView {
     const outside = [...new Set(ptasks.flatMap((t) => t.waitingFor.filter((d) => PACKAGE_OF[d] !== p.key)))];
     built.set(p.key, {
       key: p.key, workstream: p.workstream, workstreamName: T.workstreams[p.workstream], name: text.name, owner: text.owner, output: text.output,
-      impact: ptasks.reduce((s, t) => s + t.impact, 0), tasks: ptasks, controls, dependsOn: [], waitingFor: outside,
+      impact: packageImpact(ptasks), tasks: ptasks, controls, dependsOn: [], waitingFor: outside,
     });
   }
   for (const pk of built.values()) {
@@ -207,7 +217,8 @@ export function buildPlanView(r: Result, lang: Lang = 'en'): PlanView {
   const reserve = clarifyCount >= MANY_OPEN ? 1 : 0;
   for (const p of packages) {
     if (steps.length >= MAX_NEXT_STEPS - reserve) break;
-    const ids = p.tasks.flatMap((t) => t.sourceQuestionIds);
+    // Q27/Q28 have a company and a seller task with the same source control: count the control once.
+    const ids = [...new Set(p.tasks.flatMap((t) => t.sourceQuestionIds))];
     steps.push({ kind: 'package', title: p.name, detail: S.packageDetail(ids.length, p.output), owner: p.owner, questionIds: ids,
       firstQuestion: ids[0] ?? null, packageKey: p.key, ruleId: null });
   }

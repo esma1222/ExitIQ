@@ -1,14 +1,22 @@
 // Builds the catalogue seed SQL from src/model/catalogue.ts.
 import { CATALOGUE_VERSION, PROFILE_WEIGHTS, QUESTIONS } from '../src/model/catalogue';
+import type { QuestionDef } from '../src/model/types';
 
 const lit = (s: string | null | undefined) => (s == null ? 'null' : `'${s.replace(/'/g, "''")}'`);
 const json = (v: unknown) => `${lit(JSON.stringify(v))}::jsonb`;
 const arr = (xs: string[] | undefined) => (xs && xs.length ? `array[${xs.map(lit).join(', ')}]::text[]` : `'{}'::text[]`);
 
+/**
+ * context_wording holds the wording variants and, from v1.2, the
+ * context-dependent help under the key "help" (e.g. {"help": {"exploration": ...}}).
+ * linkedRules stay TypeScript only.
+ */
+const contextWording = (q: QuestionDef) => ({ ...(q.variants ?? {}), ...(q.helpVariants ? { help: q.helpVariants } : {}) });
+
 export function catalogueSql(): string {
   const rows = QUESTIONS.map((q) =>
     `  (${[lit(q.id), lit(CATALOGUE_VERSION), lit(q.domain), q.localWeight, lit(q.route), lit(q.name), lit(q.question),
-      json(q.variants ?? {}), json(q.anchors), lit(q.help ?? null), lit(q.evidenceRequest ?? null), lit(q.contributor), arr(q.dependsOn)].join(', ')})`,
+      json(contextWording(q)), json(q.anchors), lit(q.help ?? null), lit(q.evidenceRequest ?? null), lit(q.contributor), arr(q.dependsOn)].join(', ')})`,
   );
   const weights = Object.entries(PROFILE_WEIGHTS).flatMap(([p, ws]) =>
     Object.entries(ws).map(([d, w]) => `  (${lit(CATALOGUE_VERSION)}, ${lit(p)}, ${lit(d)}, ${w})`),
@@ -33,4 +41,4 @@ on conflict (catalogue_version, profile, domain) do update set weight = excluded
 }
 
 // Each catalogue version gets its own seed migration; earlier ones stay as applied.
-export const SEED_FILE = 'supabase/migrations/20261111120000_seed_catalogue_v1_1.sql';
+export const SEED_FILE = 'supabase/migrations/20261116120000_seed_catalogue_v1_2.sql';

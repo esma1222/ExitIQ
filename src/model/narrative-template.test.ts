@@ -8,7 +8,7 @@ const T = '2026-11-10T10:00:00.000Z';
 const ctx: AssessmentContext = {
   role: 'owner', ownershipTags: ['private_family'], managementModel: 'owner_led', profile: 'OWNER',
   objectives: ['full_sale'], perimeter: 'whole_business', horizon: 'under_6', liquidity: 'no_pressure',
-  triggers: { debt: 'yes', acquisitions: 'no', employee_equity: 'unknown', preferences: 'no', convertibles: 'no', regulated: 'no', contingent: 'no', group_dependency: 'no' },
+  triggers: { debt: 'yes', acquisitions: 'no', employee_equity: 'unknown', preferences: 'no', convertibles: 'no', regulated: 'no', contingent: 'no', group_dependency: 'no', restructuring: 'no', cross_border_ops: 'no' },
   sellerType: 'individuals', sellerTaxStatus: 'same',
   company: { businessModel: null, sector: null, revenueBand: null, employeeBand: null, jurisdiction: null },
 };

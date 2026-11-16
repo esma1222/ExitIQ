@@ -3,8 +3,8 @@
 // labels are presentation only.
 
 import type {
-  Horizon, Liquidity, ManagementModel, Objective, OwnershipTag, Perimeter, RespondentRole,
-  SellerTaxStatus, SellerType, TriggerKey,
+  AnyTriggerKey, EconomicsModel, Horizon, Liquidity, ManagementModel, Objective, OwnershipTag, Perimeter, RespondentRole,
+  SellerTaxStatus, SellerType,
 } from './types';
 
 export type Opt<T extends string> = { value: T; label: string };
@@ -68,7 +68,7 @@ export const LIQUIDITY_OPTIONS: Opt<Liquidity>[] = [
   { value: 'unknown', label: 'Unknown' },
 ];
 
-export const TRIGGER_OPTIONS: Opt<TriggerKey>[] = [
+export const TRIGGER_OPTIONS: Opt<AnyTriggerKey>[] = [
   { value: 'debt', label: 'External or shareholder debt, security or guarantees' },
   { value: 'acquisitions', label: 'A past acquisition with ongoing integration obligations' },
   { value: 'employee_equity', label: 'Employee or management equity: options, shares, virtual equity or a MIP' },
@@ -77,6 +77,16 @@ export const TRIGGER_OPTIONS: Opt<TriggerKey>[] = [
   { value: 'regulated', label: 'Material business licences, permits or regulatory approvals' },
   { value: 'contingent', label: 'Earn-out, rollover or deferred payment under discussion' },
   { value: 'group_dependency', label: 'Material dependence on a group that stays behind' },
+  // v1.2 (brief s.3): restructuring history and company-side cross-border exposure.
+  { value: 'restructuring', label: 'Past reorganizations, contributions of shares or businesses, or share exchanges in recent years' },
+  { value: 'cross_border_ops', label: 'Material operations, subsidiaries or employees in more than one country' },
+];
+
+/** Section 5: selects the Q07 wording. Not scored. */
+export const ECONOMICS_OPTIONS: Opt<EconomicsModel>[] = [
+  { value: 'profitable', label: 'Run for profit' },
+  { value: 'growth', label: 'Deliberately investing in growth at a loss' },
+  { value: 'unknown', label: 'Not sure' },
 ];
 
 export const SELLER_TYPE_OPTIONS: Opt<SellerType>[] = [

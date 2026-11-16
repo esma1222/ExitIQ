@@ -6,7 +6,7 @@
 //   role (ROLE_OPTIONS), ownership (OWNERSHIP_OPTIONS), management (MANAGEMENT_OPTIONS),
 //   objective (OBJECTIVE_OPTIONS), perimeter (PERIMETER_OPTIONS), horizon (HORIZON_OPTIONS),
 //   liquidity (LIQUIDITY_OPTIONS), trigger (TRIGGER_OPTIONS), sellerType (SELLER_TYPE_OPTIONS),
-//   sellerTax (SELLER_TAX_OPTIONS).
+//   sellerTax (SELLER_TAX_OPTIONS), economics (ECONOMICS_OPTIONS).
 //
 // Wording follows the German landing copy (src/views/landing-copy.ts, `de`)
 // for dimensions, domains, module names, E01 strengths and E04 bands.
@@ -27,6 +27,9 @@ const questions: Record<string, QuestionText> = {
       'Wir haben die Ziele der geplanten Transaktion dokumentiert und priorisiert.',
     ],
     contributor: 'Führender Gesellschafter / Finanzinvestor',
+    helpVariants: {
+      exploration: 'Sie loten Optionen aus. Ein dokumentiertes, priorisiertes Ziel, die Alternativen zu prüfen, einschließlich eines Verzichts auf den Verkauf, gilt als vollständig definiert und kann 100 Punkte erreichen. Eine beschlossene Verkaufsentscheidung ist nicht erforderlich.',
+    },
     evidenceRequest: ev('die dokumentierten, priorisierten Ziele'),
   },
   Q02: {
@@ -71,6 +74,9 @@ const questions: Record<string, QuestionText> = {
       'Wir haben einen Vergleich der umsetzbaren Optionen und ihrer jeweiligen Vor- und Nachteile dokumentiert.',
     ],
     contributor: 'Transaktionsleitung / Berater',
+    helpVariants: {
+      exploration: 'Sie loten Optionen aus. Ein dokumentierter Vergleich der geprüften Alternativen, einschließlich der Fortführung wie bisher, kann 100 Punkte erreichen. Eine beschlossene Verkaufsentscheidung ist nicht erforderlich.',
+    },
     evidenceRequest: ev('die umsetzbaren Optionen und ihre Vor- und Nachteile'),
   },
   Q06: {
@@ -118,6 +124,7 @@ const questions: Record<string, QuestionText> = {
       'Wir haben die Abhängigkeit und einen angemessenen Plan zur Begrenzung der Auswirkungen dokumentiert.',
     ],
     contributor: 'Vertriebsleitung / CFO',
+    help: 'Es geht darum, wie Sie den Verlust eines wesentlichen Kunden bewältigen würden, nicht darum, wie groß sein Anteil am Umsatz ist.',
     evidenceRequest: ev('die Abhängigkeit und angemessene Gegenmaßnahmen'),
   },
   Q10: {
@@ -151,6 +158,7 @@ const questions: Record<string, QuestionText> = {
       'Wichtige Entscheidungen können auf Grundlage dokumentierter Vollmachten weiter getroffen werden.',
     ],
     contributor: 'Geschäftsführung',
+    help: 'Es geht um Entscheidungen: ob die Befugnis zu entscheiden bei einer Abwesenheit weiterbesteht. Die Vertretung für Spezialwissen ist eine eigene Frage.',
     variants: {
       owner_led: 'Welche wichtigen Entscheidungen würden sich verzögern, wenn Sie vier Wochen nicht verfügbar wären?',
       employed: 'Welche wichtigen Entscheidungen würden sich verzögern, wenn eine zentrale Führungskraft vier Wochen nicht verfügbar wäre?',
@@ -166,6 +174,7 @@ const questions: Record<string, QuestionText> = {
       'Eine fähige Vertretung ist vorhanden und durch die nötige Wissensübergabe abgesichert.',
     ],
     contributor: 'Operations / Personalleitung',
+    help: 'Es geht um Facharbeit: ob jemand anderes sie erledigen kann. Wer Entscheidungen trifft und dokumentierte Routineabläufe sind eigene Fragen.',
     evidenceRequest: ev('eine fähige Vertretung und die Übergabe des wesentlichen Wissens'),
   },
   Q14: {
@@ -188,6 +197,7 @@ const questions: Record<string, QuestionText> = {
       'Für wesentliche Prozesse gibt es brauchbare Dokumentation und klar zugewiesene Verantwortliche.',
     ],
     contributor: 'Operations',
+    help: 'Es geht um wiederholbare Betriebsabläufe, denen eine eingearbeitete Person folgen kann. Die Vertretung für das Spezialwissen einer Person ist eine eigene Frage.',
     evidenceRequest: ev('die brauchbare Dokumentation der wesentlichen Prozesse und ihre klaren Verantwortlichen'),
   },
   Q16: {
@@ -857,6 +867,13 @@ export const DE: CatalogueTranslation = {
       regulated: 'Wesentliche Gewerbeerlaubnisse, Genehmigungen oder behördliche Zulassungen',
       contingent: 'Earn-out, Rückbeteiligung oder aufgeschobene Kaufpreiszahlung in Diskussion',
       group_dependency: 'Wesentliche Abhängigkeit von einem Konzern, der beim Verkäufer verbleibt',
+      restructuring: 'Frühere Umstrukturierungen, Einbringungen von Anteilen oder Betrieben oder Anteilstausche in den letzten Jahren',
+      cross_border_ops: 'Wesentliche Geschäftstätigkeit, Tochtergesellschaften oder Mitarbeitende in mehr als einem Land',
+    },
+    economics: {
+      profitable: 'Auf Gewinn ausgerichtet',
+      growth: 'Bewusste Investition in Wachstum bei Verlusten',
+      unknown: 'Nicht sicher',
     },
     sellerType: {
       individuals: 'Natürliche Personen',

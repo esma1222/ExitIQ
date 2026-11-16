@@ -5,7 +5,7 @@
 import type { Lang } from '../lib/i18n';
 import { localQuestion } from '../i18n/localize';
 import { QUESTIONS } from './catalogue';
-import type { AssessmentContext, Profile, QuestionDef, RouteCode, RouteMap, RouteState, TriState, TriggerKey } from './types';
+import type { AnyTriggerKey, AssessmentContext, Profile, QuestionDef, RouteCode, RouteMap, RouteState, TriState } from './types';
 
 const fromTri = (v: TriState | undefined): RouteState =>
   v === 'yes' ? 'on' : v === 'unknown' ? 'pending' : v === 'no' ? 'off' : 'pending';
@@ -19,7 +19,7 @@ const bool = (b: boolean): RouteState => (b ? 'on' : 'off');
  * that nothing is hidden by accident. The context screen asks every trigger
  * explicitly, so in practice this only matters for partially saved contexts.
  */
-export function trigger(ctx: AssessmentContext, k: TriggerKey): RouteState {
+export function trigger(ctx: AssessmentContext, k: AnyTriggerKey): RouteState {
   return fromTri(ctx.triggers[k]);
 }
 
@@ -37,9 +37,14 @@ export function resolveRoutes(ctx: AssessmentContext): RouteMap {
   const investorTag: RouteState = pe || vc ? 'on' : ownershipUnknown ? 'pending' : 'off';
   const peTag: RouteState = pe ? 'on' : ownershipUnknown ? 'pending' : 'off';
 
-  const crossBorder: RouteState =
+  // Seller-side: sellers taxed in another or several countries. Company-side:
+  // material operations, subsidiaries or employees in more than one country.
+  // Either one known positively switches the route on; an open answer on
+  // either side keeps it pending.
+  const sellerSide: RouteState =
     ctx.sellerTaxStatus === 'different' || ctx.sellerTaxStatus === 'multiple' ? 'on'
       : ctx.sellerTaxStatus === 'same' ? 'off' : 'pending';
+  const crossBorder: RouteState = any(sellerSide, trigger(ctx, 'cross_border_ops'));
 
   return {
     CORE: 'on',
@@ -105,9 +110,45 @@ export function questionText(q0: QuestionDef, ctx: AssessmentContext, lang: Lang
   if (!v) return q.question;
   const venture = ctx.profile === 'VC' || ctx.ownershipTags.includes('vc');
   if (q.id === 'Q12') return ctx.managementModel === 'employed' ? v.employed! : ctx.managementModel === 'owner_led' ? v.owner_led! : q.question;
-  if (q.id === 'Q07' && venture && v.growth) return v.growth;
+  // Growth-economics wording for a business deliberately investing in growth at a loss, or venture-backed.
+  if (q.id === 'Q07' && (ctx.economicsModel === 'growth' || venture) && v.growth) return v.growth;
   if (q.id === 'Q32' && venture && v.venture) return v.venture;
   return q.question;
+}
+
+/**
+ * Help text for the current context (section 10 context note). With an
+ * exploration objective, Q01 and Q05 explain that an explicit exploration
+ * objective and comparison can score 100. A context variant follows any
+ * general help of the control. Undefined when the control has no help.
+ */
+export function questionHelp(q0: QuestionDef, ctx: AssessmentContext, lang: Lang = 'en'): string | undefined {
+  const q = localQuestion(lang, q0);
+  const extra = ctx.objectives.includes('exploration') ? q.helpVariants?.exploration : undefined;
+  if (!extra) return q.help;
+  return q.help ? `${q.help} ${extra}` : extra;
+}
+
+/**
+ * Section 2: show changes to applicability before previous answers are set
+ * aside. Compares two route maps: `removedAnswered` are controls with a kept,
+ * active answer that would leave the applicable set; `added` are controls
+ * that would join it. Pure; the caller decides whether to ask first.
+ */
+export function applicabilityChanges(
+  before: RouteMap, after: RouteMap, answers: Record<string, { inactiveSince?: string | null } | undefined>,
+): { removedAnswered: string[]; added: string[] } {
+  const removedAnswered: string[] = [];
+  const added: string[] = [];
+  for (const q of QUESTIONS) {
+    const was = before[q.route] !== 'off';
+    const is = after[q.route] !== 'off';
+    if (was && !is) {
+      const a = answers[q.id];
+      if (a && !a.inactiveSince) removedAnswered.push(q.id);
+    } else if (!was && is) added.push(q.id);
+  }
+  return { removedAnswered, added };
 }
 
 /**

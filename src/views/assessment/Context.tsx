@@ -1,19 +1,21 @@
+import { useState, type ReactNode } from 'react';
 import { navigate } from '../../App';
 import { CheckboxGroup, Field, RadioGroup, Segmented } from '../../components/ui';
 import { PROFILES } from '../../model/catalogue';
-import { bandLabel, localOptions, profileText } from '../../i18n/localize';
+import { bandLabel, localOptions, localQuestionById, profileText } from '../../i18n/localize';
 import { useT } from '../../i18n/ui';
 import { useJT } from '../../i18n/ui-journey';
+import { useST } from '../../i18n/ui-setup';
 import { contextComplete, setupComplete, specialistComplete } from '../../lib/journey';
 import { useLang } from '../../lib/i18n';
 import {
-  BUSINESS_MODELS, EMPLOYEE_BANDS, HORIZON_OPTIONS, LIQUIDITY_OPTIONS, MANAGEMENT_OPTIONS, OBJECTIVE_OPTIONS, OWNERSHIP_OPTIONS,
+  BUSINESS_MODELS, ECONOMICS_OPTIONS, EMPLOYEE_BANDS, HORIZON_OPTIONS, LIQUIDITY_OPTIONS, MANAGEMENT_OPTIONS, OBJECTIVE_OPTIONS, OWNERSHIP_OPTIONS,
   PERIMETER_OPTIONS, REVENUE_BANDS, ROLE_OPTIONS, SELLER_TAX_OPTIONS, SELLER_TYPE_OPTIONS, TRIGGER_OPTIONS,
 } from '../../model/options';
-import { suggestProfile } from '../../model/routing';
-import type { AssessmentContext, OwnershipTag, TriState } from '../../model/types';
+import { applicabilityChanges, resolveRoutes, suggestProfile } from '../../model/routing';
+import type { AssessmentContext, OwnershipTag, TriState, TriggerKey } from '../../model/types';
 import { go, setContext, useAssessment } from '../../lib/store';
-import { Banners } from './Banners';
+import { Banner, Banners } from './Banners';
 
 function toggle<T>(xs: T[], v: T): T[] {
   return xs.includes(v) ? xs.filter((x) => x !== v) : [...xs, v];
@@ -21,9 +23,52 @@ function toggle<T>(xs: T[], v: T): T[] {
 
 const TRI_VALUES: TriState[] = ['yes', 'no', 'unknown'];
 
+/**
+ * Section 2: show changes to applicability before answers are set aside. A
+ * context change that would take answered questions out of scope waits for an
+ * inline confirmation next to the field; any other change applies at once.
+ * The store keeps the answers either way (setContext marks them inactive).
+ */
+function useGuardedSet() {
+  const { ctx, answers } = useAssessment();
+  const [pending, setPending] = useState<{ field: string; patch: Partial<AssessmentContext>; removed: string[]; added: number } | null>(null);
+  const set = (field: string, patch: Partial<AssessmentContext>) => {
+    const ch = applicabilityChanges(resolveRoutes(ctx), resolveRoutes({ ...ctx, ...patch }), answers);
+    if (ch.removedAnswered.length) setPending({ field, patch, removed: ch.removedAnswered, added: ch.added.length });
+    else {
+      setPending(null);
+      setContext(patch);
+    }
+  };
+  const confirm = (field: string): ReactNode =>
+    pending && pending.field === field ? (
+      <ScopeConfirm removed={pending.removed} added={pending.added}
+        onApply={() => { setContext(pending.patch); setPending(null); }} onCancel={() => setPending(null)} />
+    ) : null;
+  return { set, confirm };
+}
+
+function ScopeConfirm({ removed, added, onApply, onCancel }: { removed: string[]; added: number; onApply: () => void; onCancel: () => void }) {
+  const lang = useLang();
+  const st = useST();
+  const list = removed.map((id) => `${id} ${localQuestionById(lang, id).name}`).join(', ');
+  return (
+    <div role="alert" style={{ marginTop: 12 }}>
+      <Banner tone="lime" tag={st.scopeTitle}>
+        {st.scopeText(removed.length, list)} {st.scopeKept}{added > 0 && <> {st.scopeAdded(added)}</>}
+        <span style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+          <button type="button" className="btn btn-lime btn-sm" onClick={onApply}>{st.apply}</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>{st.cancel}</button>
+        </span>
+      </Banner>
+    </div>
+  );
+}
+
 /** Step 1: four unscored questions (ownership, management, objectives, liquidity). */
 export function ContextScreen() {
   const { ctx } = useAssessment();
+  const { set: guarded, confirm } = useGuardedSet();
   const set = (p: Partial<AssessmentContext>) => setContext(p);
   const lang = useLang();
   const t = useT();
@@ -38,13 +83,15 @@ export function ContextScreen() {
       <PrivacyNotice />
       <Field id="f-own" label={t.ownLabel} why={t.ownWhy}>
         <CheckboxGroup label={t.ownAria} choices={localOptions(lang, 'ownership', OWNERSHIP_OPTIONS)} values={ctx.ownershipTags}
-          onToggle={(v: OwnershipTag) => set({ ownershipTags: v === 'unknown' ? (ctx.ownershipTags.includes('unknown') ? [] : ['unknown']) : toggle(ctx.ownershipTags.filter((x) => x !== 'unknown'), v) })} />
+          onToggle={(v: OwnershipTag) => guarded('own', { ownershipTags: v === 'unknown' ? (ctx.ownershipTags.includes('unknown') ? [] : ['unknown']) : toggle(ctx.ownershipTags.filter((x) => x !== 'unknown'), v) })} />
+        {confirm('own')}
       </Field>
       <Field id="f-mgmt" label={t.mgmtLabel} why={t.mgmtWhy}>
         <RadioGroup label={t.mgmtAria} choices={localOptions(lang, 'management', MANAGEMENT_OPTIONS)} value={ctx.managementModel} onChange={(managementModel) => set({ managementModel })} />
       </Field>
       <Field id="f-obj" label={t.objLabel} why={t.objWhy}>
-        <CheckboxGroup label={t.objAria} choices={localOptions(lang, 'objective', OBJECTIVE_OPTIONS)} values={ctx.objectives} onToggle={(v) => set({ objectives: toggle(ctx.objectives, v) })} />
+        <CheckboxGroup label={t.objAria} choices={localOptions(lang, 'objective', OBJECTIVE_OPTIONS)} values={ctx.objectives} onToggle={(v) => guarded('obj', { objectives: toggle(ctx.objectives, v) })} />
+        {confirm('obj')}
       </Field>
       <Field id="f-liq" label={t.liqLabel} why={t.liqWhy}>
         <RadioGroup label={t.liqAria} choices={localOptions(lang, 'liquidity', LIQUIDITY_OPTIONS)} value={ctx.liquidity} onChange={(liquidity) => set({ liquidity })} min="220px" />
@@ -64,10 +111,12 @@ export function ContextScreen() {
 /** Setup for the detailed assessment, after the initial picture: page 1 (you and the transaction), page 2 (specialist topics and sellers). */
 export function SetupScreen({ step }: { step: 'setup' | 'specialist' }) {
   const { ctx } = useAssessment();
+  const { set: guarded, confirm } = useGuardedSet();
   const set = (p: Partial<AssessmentContext>) => setContext(p);
   const lang = useLang();
   const t = useT();
   const jt = useJT();
+  const st = useST();
   const TRI = TRI_VALUES.map((value) => ({ value, label: t.tri[value] }));
 
   if (step === 'setup') {
@@ -81,7 +130,8 @@ export function SetupScreen({ step }: { step: 'setup' | 'specialist' }) {
           <RadioGroup label={t.roleAria} choices={localOptions(lang, 'role', ROLE_OPTIONS)} value={ctx.role} onChange={(role) => set({ role })} />
         </Field>
         <Field id="f-per" label={t.perLabel} why={t.perWhy}>
-          <RadioGroup label={t.perAria} choices={localOptions(lang, 'perimeter', PERIMETER_OPTIONS)} value={ctx.perimeter} onChange={(perimeter) => set({ perimeter })} />
+          <RadioGroup label={t.perAria} choices={localOptions(lang, 'perimeter', PERIMETER_OPTIONS)} value={ctx.perimeter} onChange={(perimeter) => guarded('per', { perimeter })} />
+          {confirm('per')}
         </Field>
         <Field id="f-hor" label={t.horLabel} why={t.horWhy}>
           <RadioGroup label={t.horAria} choices={localOptions(lang, 'horizon', HORIZON_OPTIONS)} value={ctx.horizon} onChange={(horizon) => set({ horizon })} min="160px" />
@@ -92,9 +142,17 @@ export function SetupScreen({ step }: { step: 'setup' | 'specialist' }) {
               { value: 'UNDECIDED', label: t.undecided, sub: t.undecidedSub, tag: '' }]}
             value={ctx.profile} onChange={(profile) => set({ profile })} />
         </Field>
+        <Field id="f-econ" label={st.econLabel} why={st.econWhy}>
+          <RadioGroup label={st.econAria} choices={localOptions(lang, 'economics', ECONOMICS_OPTIONS)} value={ctx.economicsModel ?? null} onChange={(economicsModel) => set({ economicsModel })} min="220px" />
+        </Field>
         <Field id="f-company" label={t.companyLabel} why={t.companyWhy}>
           <div className="grid-auto" style={{ ['--min' as string]: '200px', gap: 12 }}>
             <Select label={t.businessModel} value={ctx.company.businessModel} options={BUSINESS_MODELS} onChange={(businessModel) => set({ company: { ...ctx.company, businessModel } })} />
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
+              {st.sector}
+              <input className="input" value={ctx.company.sector ?? ''} maxLength={80} placeholder={st.sectorPlaceholder}
+                onChange={(e) => set({ company: { ...ctx.company, sector: e.target.value || null } })} />
+            </label>
             <Select label={t.revenue} value={ctx.company.revenueBand} options={REVENUE_BANDS} onChange={(revenueBand) => set({ company: { ...ctx.company, revenueBand } })} />
             <Select label={t.employees} value={ctx.company.employeeBand} options={EMPLOYEE_BANDS} onChange={(employeeBand) => set({ company: { ...ctx.company, employeeBand } })} />
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
@@ -126,18 +184,33 @@ export function SetupScreen({ step }: { step: 'setup' | 'specialist' }) {
             <div key={o.value} className="opt trigger-row">
               <span className="trigger-text">
                 <span id={`trig-${o.value}`}>{o.label}</span>
-                <span className="sub">{jt.trigWhy[o.value]}</span>
+                <span className="sub">{o.value === 'restructuring' || o.value === 'cross_border_ops' ? st.trigWhy[o.value] : jt.trigWhy[o.value as TriggerKey]}</span>
               </span>
-              <Segmented label={o.label} choices={TRI} value={ctx.triggers[o.value]} onChange={(v) => set({ triggers: { ...ctx.triggers, [o.value]: v } })} />
+              <Segmented label={o.label} choices={TRI} value={ctx.triggers[o.value]} onChange={(v) => guarded('trig', { triggers: { ...ctx.triggers, [o.value]: v } })} />
             </div>
           ))}
         </div>
+        {confirm('trig')}
       </Field>
       <Field id="f-sel" label={t.selLabel} why={`${t.selWhy} ${jt.sellerWhy}`}>
         <RadioGroup label={t.selAria} choices={localOptions(lang, 'sellerType', SELLER_TYPE_OPTIONS)} value={ctx.sellerType} onChange={(sellerType) => set({ sellerType })} />
       </Field>
       <Field id="f-tax" label={t.taxLabel} why={jt.taxResWhy}>
-        <RadioGroup label={t.taxAria} choices={localOptions(lang, 'sellerTax', SELLER_TAX_OPTIONS)} value={ctx.sellerTaxStatus} onChange={(sellerTaxStatus) => set({ sellerTaxStatus })} min="220px" />
+        <RadioGroup label={t.taxAria} choices={localOptions(lang, 'sellerTax', SELLER_TAX_OPTIONS)} value={ctx.sellerTaxStatus} onChange={(sellerTaxStatus) => guarded('tax', { sellerTaxStatus })} min="220px" />
+        {confirm('tax')}
+      </Field>
+      <Field id="f-confirmed" label={st.confirmedLabel} why={st.confirmedWhy}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {([['taxRestrictionConfirmed', st.taxConfirmed, st.taxConfirmedWhy], ['fundingGapConfirmed', st.fundingGap, st.fundingGapWhy]] as const).map(([key, label, why]) => (
+            <div key={key} className="opt trigger-row">
+              <span className="trigger-text">
+                <span>{label}</span>
+                <span className="sub">{why}</span>
+              </span>
+              <Segmented label={label} choices={TRI} value={ctx[key] ?? null} onChange={(v) => set({ [key]: v })} />
+            </div>
+          ))}
+        </div>
       </Field>
       <div className="nav-row">
         <button type="button" className="btn btn-ghost" onClick={() => go('setup')}>{t.back}</button>

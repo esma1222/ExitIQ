@@ -93,6 +93,56 @@ export function hasConflict(a: Answer | undefined): boolean {
   return new Set(byRespondent.values()).size > 1;
 }
 
+export type ContradictionKey = 'objectives' | 'liquidity_forecast' | 'group_services';
+
+export interface Contradiction {
+  key: ContradictionKey;
+  /** Controls whose answers need reconfirmation. */
+  questionIds: string[];
+  /** True when the affected answers leave known coverage until one of them changes (R07, treated like CONFLICTED). */
+  excludeFromCoverage: boolean;
+}
+
+const pointsOf = (answers: AnswerMap, id: string): Points | null => {
+  const a = answers[id];
+  return isKnown(a) && !a.inactiveSince ? a.points : null;
+};
+
+/**
+ * Section 8, R07: answers that contradict each other, detected
+ * deterministically. Pure. Never picks the more optimistic answer.
+ *  - objectives: Q01 = 0 (objectives not defined) while Q03 = 100 (agreed) or
+ *    Q05 = 100 (options compared against them). Excluded from coverage until
+ *    the user changes one of the answers.
+ *  - liquidity_forecast: context "no known pressure" while Q08 = 0 (no usable
+ *    forecast). Clarification only; coverage unchanged.
+ *  - group_services: "no material dependence on a group that stays behind"
+ *    while Q46 = 0 (essential group-provided services lack a continuity
+ *    response). Clarification only; coverage unchanged.
+ * "No convertibles" versus an answered Q51 cannot occur: Q51 is out of scope
+ * when convertibles are answered "no", and its answer is then kept inactive.
+ */
+export function contradictions(ctx: AssessmentContext, answers: AnswerMap): Contradiction[] {
+  const out: Contradiction[] = [];
+  const p = (id: string) => pointsOf(answers, id);
+  if (p('Q01') === 0) {
+    const agreed = ['Q03', 'Q05'].filter((id) => p(id) === 100);
+    if (agreed.length) out.push({ key: 'objectives', questionIds: ['Q01', ...agreed], excludeFromCoverage: true });
+  }
+  if (ctx.liquidity === 'no_pressure' && p('Q08') === 0) {
+    out.push({ key: 'liquidity_forecast', questionIds: ['Q08'], excludeFromCoverage: false });
+  }
+  if (ctx.triggers.group_dependency === 'no' && p('Q46') === 0) {
+    out.push({ key: 'group_services', questionIds: ['Q46'], excludeFromCoverage: false });
+  }
+  return out;
+}
+
+/** Controls excluded from known coverage by a contradiction (see `contradictions`). */
+export function contradictedIds(ctx: AssessmentContext, answers: AnswerMap): Set<string> {
+  return new Set(contradictions(ctx, answers).filter((c) => c.excludeFromCoverage).flatMap((c) => c.questionIds));
+}
+
 export function evidenceFactor(a: Answer | undefined): number {
   if (!isKnown(a) || !a.evidence) return 0;
   const ev = a.evidence;
@@ -119,6 +169,8 @@ export function computeScores(ctx: AssessmentContext, answers: AnswerMap): Score
   // Confirmed N/A removes local weight; requested N/A does not.
   const applicable = applicableQuestions(routes).filter((q) => answers[q.id]?.status !== 'not_applicable_confirmed');
   const controls: Record<string, ControlResult> = {};
+  // R07: answers that contradict each other count like CONFLICTED answers.
+  const contradicted = contradictedIds(ctx, answers);
 
   const dimensions: DimensionResult[] = DIMENSIONS.map((D) => {
     let knownWeight = 0;
@@ -141,12 +193,12 @@ export function computeScores(ctx: AssessmentContext, answers: AnswerMap): Score
       for (const q of A) {
         const a = answers[q.id];
         const e = (p * q.localWeight) / sumU;
-        const known = isKnown(a);
+        const known = isKnown(a) && !contradicted.has(q.id);
         const isPending = routes[q.route] === 'pending';
         if (isPending) pending = true;
         const v = known ? evidenceFactor(a) : 0;
         controls[q.id] = {
-          id: q.id, domain: d, effectiveWeight: e, status: controlStatus(a),
+          id: q.id, domain: d, effectiveWeight: e, status: contradicted.has(q.id) && isKnown(a) ? 'conflicted' : controlStatus(a),
           points: known ? a.points : null, known, evidenceFactor: v, pendingApplicability: isPending,
         };
         evidence += e * v;
@@ -193,7 +245,7 @@ export function computeScores(ctx: AssessmentContext, answers: AnswerMap): Score
   const dataComplete =
     !!profile &&
     specialist.length === 0 &&
-    applicable.every((q) => isKnown(answers[q.id]) && routes[q.route] !== 'pending');
+    applicable.every((q) => controls[q.id]?.known && routes[q.route] !== 'pending');
 
   return { profile, weightingProfile, routes, applicable, controls, dimensions, specialist, dataComplete };
 }

@@ -9,7 +9,7 @@
 
 import type { DimensionKey, DomainKey, Profile, QuestionDef, RouteCode } from './types';
 
-export const CATALOGUE_VERSION = 'catalogue-2026.11-v1.1';
+export const CATALOGUE_VERSION = 'catalogue-2026.11-v1.2';
 export const SCORING_VERSION = 'scoring-1.0.0';
 export const REPORT_VERSION = 'report-1.0.0';
 
@@ -361,7 +361,39 @@ const HELP: Record<string, string> = {
   Q19: 'This measures whether the proposition can be supported, not whether a strong moat exists.',
   Q25: 'A general tax adviser is not the same as transaction-specific analysis.',
   Q28: 'Past restructuring leads to a specialist review. It does not by itself mean a tax charge or deadline applies.',
+  // v1.2: separate controls that users read as overlapping (MVP test report, redundancy audit).
+  Q09: 'This is about how you would manage the loss of a material customer, not about the size of its share of revenue.',
+  Q12: 'This is about decisions: whether the authority to decide continues during an absence. Cover for specialist knowledge is a separate question.',
+  Q13: 'This is about specialist work: whether someone else can do it. Who takes decisions and documented routine procedures are separate questions.',
+  Q15: 'This is about repeatable operating procedures that a trained person can follow. Cover for one person’s specialist expertise is a separate question.',
   Q49: 'Can cover group tax arrangements, intercompany balances, transfer pricing and restructuring needs. It is not a tax opinion.',
+};
+
+/** Context-dependent help (selected by routing.questionHelp). */
+const HELP_VARIANTS: Record<string, QuestionDef['helpVariants']> = {
+  // Section 10 context note: exploration can score 100 when the objective and comparison are explicit.
+  Q01: { exploration: 'You are exploring options. A documented, prioritized objective to assess the alternatives, including not selling, counts as fully defined and can score 100. An approved sale decision is not required.' },
+  Q05: { exploration: 'You are exploring options. A documented comparison of the alternatives you are exploring, including continuing as today, can score 100. An approved sale decision is not required.' },
+};
+
+/**
+ * Section 18 "linked task/risk rules": the rules in plan.ts and scoring.ts that
+ * read each control. Documentation and traceability only (not seeded to the
+ * database); a test checks that every listed rule exists.
+ *   R02 authority (Q04), R03 essential rights (Q32, Q33), R04 tax timing (Q28),
+ *   R05 separation (Q46), R06 funding (Q08), R07 cross-answer contradictions
+ *   (Q01 with Q03/Q05; context liquidity with Q08; group dependency with Q46).
+ */
+const LINKED_RULES: Record<string, string[]> = {
+  Q01: ['R07'],
+  Q03: ['R07'],
+  Q04: ['R02'],
+  Q05: ['R07'],
+  Q08: ['R06', 'R07'],
+  Q28: ['R04'],
+  Q32: ['R03'],
+  Q33: ['R03'],
+  Q46: ['R05', 'R07'],
 };
 
 /**
@@ -432,6 +464,8 @@ export const QUESTIONS: QuestionDef[] = BASE.map((b) => ({
   variants: VARIANTS[b.id],
   dependsOn: DEPENDENCIES[b.id],
   help: HELP[b.id],
+  helpVariants: HELP_VARIANTS[b.id],
+  linkedRules: LINKED_RULES[b.id],
   evidenceRequest: `A dated document with a named owner that shows: ${EVIDENCE_BASIS[b.id].replace(/\.$/, '').toLowerCase()}.`,
 }));
 

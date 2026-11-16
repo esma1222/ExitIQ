@@ -21,6 +21,8 @@ export interface QuestionText {
   help?: string;
   evidenceRequest?: string;
   variants?: Partial<Record<'owner_led' | 'employed' | 'growth' | 'venture', string>>;
+  /** Context-dependent help (same keys as QuestionDef.helpVariants). */
+  helpVariants?: Partial<Record<'exploration', string>>;
 }
 
 export interface DiscoveryText {
@@ -83,7 +85,10 @@ export function localQuestion(lang: Lang, q: QuestionDef): QuestionDef {
   if (lang === 'en') return q;
   const t = DE.questions[q.id];
   if (!t) return q;
-  return { ...q, ...t, variants: t.variants ?? q.variants, help: t.help ?? q.help, evidenceRequest: t.evidenceRequest ?? q.evidenceRequest };
+  return {
+    ...q, ...t, variants: t.variants ?? q.variants, help: t.help ?? q.help, helpVariants: t.helpVariants ?? q.helpVariants,
+    evidenceRequest: t.evidenceRequest ?? q.evidenceRequest,
+  };
 }
 
 export function localQuestionById(lang: Lang, id: string): QuestionDef {

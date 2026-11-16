@@ -14,7 +14,7 @@ function ctx(over: Partial<AssessmentContext> = {}): AssessmentContext {
   return {
     role: 'owner', ownershipTags: ['private_family'], managementModel: 'owner_led', profile: 'OWNER',
     objectives: ['full_sale'], perimeter: 'whole_business', horizon: 'm6_18', liquidity: 'no_pressure',
-    triggers: { debt: 'no', acquisitions: 'no', employee_equity: 'no', preferences: 'no', convertibles: 'no', regulated: 'no', contingent: 'no', group_dependency: 'no' },
+    triggers: { debt: 'no', acquisitions: 'no', employee_equity: 'no', preferences: 'no', convertibles: 'no', regulated: 'no', contingent: 'no', group_dependency: 'no', restructuring: 'no', cross_border_ops: 'no' },
     sellerType: 'individuals', sellerTaxStatus: 'same',
     company: { businessModel: null, sector: null, revenueBand: null, employeeBand: null, jurisdiction: null },
     ...over,
@@ -140,7 +140,7 @@ describe('old saved screens', () => {
 describe('setup workload and earlier facts', () => {
   it('counts open setup questions', () => {
     expect(openSetupQuestions(ctx())).toBe(0);
-    expect(openSetupQuestions(blankCtx())).toBe(14);
+    expect(openSetupQuestions(blankCtx())).toBe(16);
   });
 
   it('links related facts without touching scoring', () => {

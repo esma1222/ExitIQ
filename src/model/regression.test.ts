@@ -14,7 +14,7 @@ function ctx(profile: Profile, over: Partial<AssessmentContext> = {}): Assessmen
   return {
     role: 'owner', ownershipTags: ['private_family'], managementModel: 'owner_led', profile,
     objectives: ['full_sale'], perimeter: 'whole_business', horizon: 'm6_18', liquidity: 'no_pressure',
-    triggers: { debt: 'no', acquisitions: 'no', employee_equity: 'no', preferences: 'no', convertibles: 'no', regulated: 'no', contingent: 'no', group_dependency: 'no' },
+    triggers: { debt: 'no', acquisitions: 'no', employee_equity: 'no', preferences: 'no', convertibles: 'no', regulated: 'no', contingent: 'no', group_dependency: 'no', restructuring: 'no', cross_border_ops: 'no' },
     sellerType: 'individuals', sellerTaxStatus: 'same',
     company: { businessModel: null, sector: null, revenueBand: null, employeeBand: null, jurisdiction: null },
     ...over,
@@ -190,7 +190,7 @@ describe('EN and DE equivalence', () => {
     const all = ctx('VC', {
       ownershipTags: ['vc', 'pe', 'corporate_group'], perimeter: 'business_unit_assets', objectives: ['partial_sale', 'growth_capital'],
       sellerTaxStatus: 'different',
-      triggers: { debt: 'yes', acquisitions: 'yes', employee_equity: 'yes', preferences: 'yes', convertibles: 'yes', regulated: 'yes', contingent: 'yes', group_dependency: 'yes' },
+      triggers: { debt: 'yes', acquisitions: 'yes', employee_equity: 'yes', preferences: 'yes', convertibles: 'yes', regulated: 'yes', contingent: 'yes', group_dependency: 'yes', restructuring: 'yes', cross_border_ops: 'yes' },
     });
     expect(applicableQuestions(resolveRoutes(all)).map((q) => q.id).sort()).toEqual(QUESTIONS.map((q) => q.id).sort());
   });

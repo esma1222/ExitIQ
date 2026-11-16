@@ -13,7 +13,7 @@ function ctx(over: Partial<AssessmentContext> = {}): AssessmentContext {
   return {
     role: 'owner', ownershipTags: ['private_family'], managementModel: 'owner_led', profile: 'OWNER',
     objectives: ['full_sale'], perimeter: 'whole_business', horizon: 'm6_18', liquidity: 'no_pressure',
-    triggers: { debt: 'no', acquisitions: 'no', employee_equity: 'no', preferences: 'no', convertibles: 'no', regulated: 'no', contingent: 'no', group_dependency: 'no' },
+    triggers: { debt: 'no', acquisitions: 'no', employee_equity: 'no', preferences: 'no', convertibles: 'no', regulated: 'no', contingent: 'no', group_dependency: 'no', restructuring: 'no', cross_border_ops: 'no' },
     sellerType: 'individuals', sellerTaxStatus: 'same',
     company: { businessModel: null, sector: null, revenueBand: null, employeeBand: null, jurisdiction: 'DE' },
     ...over,
@@ -273,10 +273,17 @@ describe('Risks and priorities', () => {
     const r = buildResult(ctx(), { Q33: st('unknown') });
     expect(r.risks.filter((x) => x.rule === 'R03' && x.severity === 'critical')).toHaveLength(0);
   });
-  it('tax history: Q28 needing review creates a specialist review, never a critical tax charge', () => {
-    const r = buildResult(ctx(), { Q28: st('needs_adviser_review') });
-    const r04 = r.risks.find((x) => x.rule === 'R04')!;
-    expect(r04.severity).toBe('review');
+  it('tax history: past restructuring activates a specialist review of Q28, never a critical tax charge', () => {
+    const c = ctx({ triggers: { ...ctx().triggers, restructuring: 'yes' } });
+    const r = buildResult(c, {});
+    const r04 = r.risks.filter((x) => x.rule === 'R04');
+    expect(r04).toHaveLength(1);
+    expect(r04[0]).toMatchObject({ severity: 'review', basis: 'unresolved', questionIds: ['Q28'] });
+    expect(r04[0].text).toMatch(/not an assertion that a tax charge applies/);
+    expect(r.riskStatus).toBe('review');
+    expect(r.tasks.find((t) => t.ruleId === 'R04')).toMatchObject({ priorityClass: 2, kind: 'open', sourceQuestionIds: ['Q28'] });
+    // Q28 needing adviser review stays a review as well.
+    expect(buildResult(ctx(), { Q28: st('needs_adviser_review') }).risks.find((x) => x.rule === 'R04')!.severity).toBe('review');
   });
   it('critical risks stay visible and are not cleared by high scores elsewhere', () => {
     const c = ctx({ horizon: 'under_6' });

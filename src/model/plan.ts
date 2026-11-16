@@ -8,7 +8,7 @@ import {
 } from '../i18n/localize';
 import { CATALOGUE_VERSION, QUESTION_BY_ID, REPORT_VERSION, SCORING_VERSION, dimensionOf } from './catalogue';
 import { activeModules, pendingModules } from './routing';
-import { computeScores, hasConflict, isKnown, type ScoreResult } from './scoring';
+import { computeScores, contradictions, hasConflict, isKnown, type ScoreResult } from './scoring';
 import { PACKAGE_OF, controlState, workstreamOf } from './packages';
 import type { ControlResult } from './scoring';
 import { MODEL_TEXT, REPORT_TEXT, type GrowthConstraint } from './text';
@@ -95,10 +95,22 @@ export function evaluateRisks(ctx: AssessmentContext, answers: AnswerMap, score:
       text: T.r03OpenText, questionIds: rightsOpen });
   }
 
-  // R04 Tax timing: only a specialist can confirm. Restructuring history creates a review task.
-  if (status(answers, 'Q28') === 'needs_adviser_review' || v(answers, 'Q28') === 0) {
+  // R04 Tax timing: only a specialist can confirm. Critical only when a tax
+  // adviser has confirmed a restriction or deadline affecting the timetable.
+  // Restructuring history alone creates a review task, never a critical flag.
+  const historyReviewed = v(answers, 'Q28') === 100;
+  if (ctx.taxRestrictionConfirmed === 'yes') {
+    r.push({ rule: 'R04', severity: 'critical', basis: 'confirmed', title: T.r04ConfirmedTitle,
+      text: T.r04ConfirmedText, questionIds: ['Q28'] });
+  } else if (status(answers, 'Q28') === 'needs_adviser_review' || v(answers, 'Q28') === 0) {
     r.push({ rule: 'R04', severity: 'review', basis: 'unresolved', title: T.r04Title,
       text: T.r04Text, questionIds: ['Q28'] });
+  } else if (ctx.triggers.restructuring === 'yes' && !historyReviewed) {
+    r.push({ rule: 'R04', severity: 'review', basis: 'unresolved', title: T.r04Title,
+      text: T.r04HistoryText, questionIds: ['Q28'] });
+  } else if (ctx.triggers.restructuring === 'unknown' && !historyReviewed) {
+    r.push({ rule: 'R04', severity: 'review', basis: 'unresolved', title: T.r04HistoryUnknownTitle,
+      text: T.r04HistoryUnknownText, questionIds: ['Q28'] });
   }
 
   // R05 Separation: SEPARATION active and an essential service lacks a continuity plan.
@@ -107,8 +119,16 @@ export function evaluateRisks(ctx: AssessmentContext, answers: AnswerMap, score:
       text: T.r05Text, questionIds: ['Q46'] });
   }
 
-  // R06 Funding: no forecast while liquidity pressure is possible. A confirmed gap needs specialist judgement.
-  if (v(answers, 'Q08') === 0 && (ctx.liquidity === 'potential' || ctx.liquidity === 'unknown' || ctx.objectives.includes('growth_capital'))) {
+  // R06 Funding: critical only for a confirmed funding gap before the
+  // timetable without an agreed bridge. An open answer, or no forecast while
+  // liquidity pressure is possible, needs review.
+  if (ctx.fundingGapConfirmed === 'yes') {
+    r.push({ rule: 'R06', severity: 'critical', basis: 'confirmed', title: T.r06ConfirmedTitle,
+      text: T.r06ConfirmedText, questionIds: ['Q08'] });
+  } else if (ctx.fundingGapConfirmed === 'unknown') {
+    r.push({ rule: 'R06', severity: 'review', basis: 'unresolved', title: T.r06UnknownTitle,
+      text: T.r06UnknownText, questionIds: ['Q08'] });
+  } else if (v(answers, 'Q08') === 0 && (ctx.liquidity === 'potential' || ctx.liquidity === 'unknown' || ctx.objectives.includes('growth_capital'))) {
     r.push({ rule: 'R06', severity: 'review', basis: 'unresolved', title: T.r06Title,
       text: T.r06Text, questionIds: ['Q08'] });
   }
@@ -118,6 +138,13 @@ export function evaluateRisks(ctx: AssessmentContext, answers: AnswerMap, score:
   if (conflicted.length) {
     r.push({ rule: 'R07', severity: 'review', basis: 'unresolved', title: T.r07Title,
       text: T.r07Text, questionIds: conflicted });
+  }
+  // R07 cross-answer contradictions (scoring.contradictions): reconfirm the facts.
+  for (const c of contradictions(ctx, answers)) {
+    const ids = c.questionIds.filter((id) => applicable.has(id));
+    if (!ids.length) continue;
+    const C = T.contradiction[c.key];
+    r.push({ rule: 'R07', severity: 'review', basis: 'unresolved', title: C.title, text: C.text, questionIds: ids });
   }
 
   // Applicability unresolved
@@ -184,13 +211,21 @@ export function buildTasks(ctx: AssessmentContext, answers: AnswerMap, score: Sc
       dependencies: deps, evidenceRequired: q.evidenceRequest ?? null, sourceQuestionIds: [q.id], ruleId: null,
       dimension: dimensionName(lang, dimensionOf(q.domain)), domain: domainName(lang, q.domain), accountableRole: q.contributor, action: domainAction(lang, q.domain).action,
     };
-    if (isKnown(a)) {
+    if (isKnown(a) && c?.known !== false) {
       if (a.points === 100) continue;
-      tasks.push({ ...base, key: `Q:${q.id}`, priorityClass: 3, kind: 'gap', label: a.points === 0 ? L.gap : L.partial, title: q.name,
+      const gap = { ...base, priorityClass: 3 as const, kind: 'gap' as const, label: a.points === 0 ? L.gap : L.partial,
         reason: L.gapReason(q.anchors[a.points / 50], q.anchors[2]), suggestedTiming: timing[2], timingRank: 2,
-        impact: (e * (100 - a.points)) / 100 });
+        impact: (e * (100 - a.points)) / 100 };
+      if (SPLIT_TAX_LEVELS.has(q.id)) {
+        // Section 19: separate company and seller tasks for the same tax issue.
+        // Same source control and work package; each carries the full impact.
+        for (const level of ['company', 'seller'] as const) {
+          const X = L.taxLevel[level];
+          tasks.push({ ...gap, key: `Q:${q.id}:${level}`, title: X.title(q.name), accountableRole: X.role, action: X.action });
+        }
+      } else tasks.push({ ...gap, key: `Q:${q.id}`, title: q.name });
     } else {
-      const st = !a ? 'unanswered' : a.requiresReconfirmation ? 'reconfirm' : hasConflict(a) ? 'conflicted' : a.status;
+      const st = !a ? 'unanswered' : a.requiresReconfirmation ? 'reconfirm' : hasConflict(a) || c?.status === 'conflicted' ? 'conflicted' : a.status;
       const label = st === 'unanswered' ? L.unanswered : st === 'needs_adviser_review' ? L.adviserReview : st === 'reconfirm' ? L.reconfirm : L.confirm;
       const reason = st === 'unanswered' ? L.unansweredReason
         : st === 'reconfirm' ? L.reconfirmReason
@@ -205,6 +240,14 @@ export function buildTasks(ctx: AssessmentContext, answers: AnswerMap, score: Sc
   tasks.sort((x, y) => x.priorityClass - y.priorityClass || x.timingRank - y.timingRank || y.impact - x.impact);
   return dependencyOrder(tasks);
 }
+
+/**
+ * Tax controls that affect both the company and the sellers (TAX_SCOPE
+ * company_seller). A preparation gap produces one company-level and one
+ * seller-level task with keys `Q:<id>:company` and `Q:<id>:seller`. Open
+ * questions stay a single clarification: one answer resolves both levels.
+ */
+export const SPLIT_TAX_LEVELS = new Set(['Q27', 'Q28']);
 
 /**
  * Within a priority class a task never comes before a task it depends on: the
@@ -320,13 +363,13 @@ export interface ResultSnapshot {
  * Scores, ids, rules, task keys, ordering and classes are identical in every
  * language. Stored snapshots use the default English output.
  */
-export function buildResult(ctx: AssessmentContext, answers: AnswerMap, now = new Date().toISOString(), lang: Lang = 'en'): ResultSnapshot & { score: ScoreResult } {
+export function buildResult(
+  ctx: AssessmentContext, answers: AnswerMap, now = new Date().toISOString(), lang: Lang = 'en', diag?: Diagnostics,
+): ResultSnapshot & { score: ScoreResult } {
   const score = computeScores(ctx, answers);
   const risks = evaluateRisks(ctx, answers, score, lang);
   const tasks = buildTasks(ctx, answers, score, risks, lang);
-  const strengths = score.applicable
-    .filter((q) => isKnown(answers[q.id]) && answers[q.id].points === 100)
-    .sort((a, b) => (score.controls[b.id]?.effectiveWeight ?? 0) - (score.controls[a.id]?.effectiveWeight ?? 0))
+  const strengths = supportedStrengths(score, diag)
     .slice(0, 3)
     .map((q) => localQuestion(lang, q))
     .map((q) => ({ id: q.id, name: q.name, text: q.anchors[2] }));
@@ -347,8 +390,22 @@ export function buildResult(ctx: AssessmentContext, answers: AnswerMap, now = ne
     strengths,
     tasks,
     tax: taxSection(answers, score, lang),
-    unresolved: score.applicable.filter((q) => !isKnown(answers[q.id])).map((q) => q.id),
+    unresolved: score.applicable.filter((q) => !score.controls[q.id]?.known).map((q) => q.id),
   };
+}
+
+/**
+ * Controls answered at the full anchor, strongest first. With discovery
+ * answers (`diag`), controls that test a strength the user stated in E01
+ * (STRENGTH_CONTROL) come first among them; then higher effective weight;
+ * then catalogue order. Without `diag` the order is by weight only.
+ */
+export function supportedStrengths(score: ScoreResult, diag?: Diagnostics): QuestionDef[] {
+  const stated = new Set((Array.isArray(diag?.E01) ? diag!.E01 : []).map((x) => STRENGTH_CONTROL[x]).filter(Boolean));
+  const w = (id: string) => score.controls[id]?.effectiveWeight ?? 0;
+  return score.applicable
+    .filter((q) => score.controls[q.id]?.known && score.controls[q.id].points === 100)
+    .sort((a, b) => Number(stated.has(b.id)) - Number(stated.has(a.id)) || w(b.id) - w(a.id));
 }
 
 // ── What a buyer will investigate (self-reported discovery answers) ─────────
