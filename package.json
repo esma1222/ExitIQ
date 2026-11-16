@@ -14,7 +14,8 @@
     "test": "vitest run",
     "gen:catalogue-sql": "tsx scripts/generate-catalogue-sql.ts",
     "db:test": "bash scripts/test-migrations-local.sh",
-    "gen:review": "tsx scripts/generate-review-workbook.mts"
+    "gen:review": "tsx scripts/generate-review-workbook.mts",
+    "gen:review:signoff": "tsx scripts/generate-review-workbook.mts --signoff docs/review/signoff-v1.2.json"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

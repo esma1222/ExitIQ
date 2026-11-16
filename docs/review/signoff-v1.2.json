@@ -1,0 +1,535 @@
+{
+  "catalogueVersion": "catalogue-2026.11-v1.2",
+  "reviewer": "Claude Code (AI review) on behalf of Esma, atares",
+  "reviewedOn": "2026-11-16",
+  "keys": {
+    "Questions": "question id",
+    "Variants": "question id|variant",
+    "Discovery": "discovery id",
+    "Setup v1.2": "Where|Question (EN)",
+    "Weights": "domain key",
+    "Rules": "rule name",
+    "Work packages": "work package name (EN)",
+    "Terms to check": "Where|English"
+  },
+  "sheets": {
+    "Questions": {
+      "Q01": {
+        "review": "Approved",
+        "comment": "Changed (EN): prioritised → prioritized in the question, the 100 anchor and the evidence request. DE approved."
+      },
+      "Q02": {
+        "review": "Approved",
+        "comment": "Changed (DE): 0 anchor \"einen geplanten Zeitplan\" → \"einen angestrebten Zeitplan\" (avoids the pleonasm, matches \"intended\"). EN approved."
+      },
+      "Q03": {
+        "review": "Approved",
+        "comment": "Changed (EN): 100 anchor \"have agreed the objectives\" → \"have agreed on the objectives\" (American usage). DE approved."
+      },
+      "Q04": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q05": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q06": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q07": {
+        "review": "Approved",
+        "comment": "Approved. \"nachhaltige Ergebnisse\" kept (IDW S1 term for repeatable earnings, see Terms to check)."
+      },
+      "Q08": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q09": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q10": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q11": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q12": {
+        "review": "Approved",
+        "comment": "Approved. 0 anchor (even routine decisions delayed) sits clearly below 50 (some important decisions delayed); help text separates it from Q13."
+      },
+      "Q13": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q14": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q15": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q16": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q17": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q18": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q19": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q20": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q21": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q22": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q23": {
+        "review": "Approved",
+        "comment": "Approved. German name kept (see Terms to check); anchors progress from not mapped to preliminary to documented for review."
+      },
+      "Q24": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q25": {
+        "review": "Approved",
+        "comment": "Changed (DE): \"Steuerlicher Workstream\" → \"Steuerlicher Arbeitsstrang\" in the name and the 0 anchor, consistent with the report, export and narrative. EN approved."
+      },
+      "Q26": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q27": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q28": {
+        "review": "Approved",
+        "comment": "Changed (EN): reorganisations → reorganizations in the question. DE approved."
+      },
+      "Q29": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q30": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q31": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q32": {
+        "review": "Approved",
+        "comment": "Approved. \"rechtliches Eigentum an den Anteilen\" follows the usual German SPA title guarantee wording."
+      },
+      "Q33": {
+        "review": "Approved",
+        "comment": "Changed (EN): licence → license in the 50 and 100 anchors and the evidence request. DE approved."
+      },
+      "Q34": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q35": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q36": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q37": {
+        "review": "Approved",
+        "comment": "Changed (EN): licences → licenses. Changed (DE): \"wesentliche Lizenzen\" → \"wesentliche Erlaubnisse\" (regulatory permits; \"Lizenzen\" reads as IP licenses in German)."
+      },
+      "Q38": {
+        "review": "Approved",
+        "comment": "Approved. \"Liquidationspräferenzen\" and \"Erlösverteilungsrechte\" kept (see Terms to check)."
+      },
+      "Q39": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q40": {
+        "review": "Approved",
+        "comment": "Changed (EN): organise → organize in the question. DE approved."
+      },
+      "Q41": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q42": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q43": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q44": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q45": {
+        "review": "Approved",
+        "comment": "Approved. \"Stand-alone\" spelling now also used in the financials work package (DE)."
+      },
+      "Q46": {
+        "review": "Approved",
+        "comment": "Approved. \"Separierung\" kept (see Terms to check)."
+      },
+      "Q47": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q48": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q49": {
+        "review": "Approved",
+        "comment": "Approved. DE help keeps the example \"(etwa Organschaften)\" (see Terms to check)."
+      },
+      "Q50": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q51": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q52": {
+        "review": "Approved",
+        "comment": "Changed (DE): \"die steuerlichen Workstreams\" → \"die steuerlichen Arbeitsstränge\", consistent with Q25 and the report. EN approved."
+      },
+      "Q53": {
+        "review": "Approved",
+        "comment": "Approved. \"Asset Deal\" kept (see Terms to check)."
+      },
+      "Q54": {
+        "review": "Approved",
+        "comment": "EN and DE clear and consistent; 0/50/100 progress clearly; 100 matches the evidence request."
+      },
+      "Q55": {
+        "review": "Approved",
+        "comment": "Approved. Primary versus secondary proceeds stated explicitly in EN and DE."
+      }
+    },
+    "Variants": {
+      "Q07|growth": {
+        "review": "Approved",
+        "comment": "Approved. Same anchors and scoring; wording fits loss-making growth and venture-backed companies."
+      },
+      "Q12|owner_led": {
+        "review": "Approved",
+        "comment": "Approved. Direct \"you\" wording for owner-led companies; same anchors."
+      },
+      "Q12|employed": {
+        "review": "Approved",
+        "comment": "Approved. Same anchors; \"zentrale Führungskraft\" fits employed management."
+      },
+      "Q32|venture": {
+        "review": "Approved",
+        "comment": "Approved. Fully diluted cap table is the right reference for venture-backed companies."
+      }
+    },
+    "Discovery": {
+      "E01": {
+        "review": "Approved",
+        "comment": "Approved. Options are clear; DE strength labels match the landing page (see Terms to check)."
+      },
+      "E04": {
+        "review": "Approved",
+        "comment": "Approved. Bands without overlap; ranges with hyphen; not scored."
+      },
+      "E05": {
+        "review": "Approved",
+        "comment": "Changed (EN): help \"decision makers\" → \"decision-makers\", consistent with Q03 and the landing page. Uses Q12 with its anchors."
+      },
+      "E02": {
+        "review": "Approved",
+        "comment": "Approved. Conversational heading leads into Q19 with its exact anchors."
+      },
+      "E03": {
+        "review": "Approved",
+        "comment": "Approved. Bands without overlap; help makes clear a low share is not a weakness."
+      },
+      "E06": {
+        "review": "Approved",
+        "comment": "Approved. Same wording and anchors as Q13."
+      },
+      "E07": {
+        "review": "Approved",
+        "comment": "Approved. Options cover the usual growth constraints; \"Working Capital\" kept (see Terms to check)."
+      },
+      "E08": {
+        "review": "Approved",
+        "comment": "Approved. Leads into Q25 with its exact anchors; help matches Q25."
+      }
+    },
+    "Setup v1.2": {
+      "Company|Is the business currently run for profit, or deliberately investing in growth at a loss?": {
+        "review": "Approved",
+        "comment": "Changed (DE): question \"auf Gewinn geführt ... und macht dabei Verluste\" → \"gewinnorientiert geführt ... und nimmt dabei Verluste in Kauf\"; explanation \"Es bestimmt\" → \"Die Angabe bestimmt\". EN approved."
+      },
+      "Company|Sector": {
+        "review": "Approved",
+        "comment": "Approved. Free text with an example; \"specialty\" is American spelling."
+      },
+      "Specialist topics|Past reorganizations, contributions of shares or businesses, or share exchanges in recent years": {
+        "review": "Approved",
+        "comment": "Approved. DE uses the German tax terms (Einbringung, Anteilstausch); explanation states it is a review, not a tax finding."
+      },
+      "Specialist topics|Material operations, subsidiaries or employees in more than one country": {
+        "review": "Approved",
+        "comment": "Changed (DE): explanation \"Ergänzt die Abstimmung ... über die beteiligten Länder\" → \"Ergänzt die Koordination ... über die beteiligten Länder hinweg\". EN approved."
+      },
+      "Confirmed facts|Has a tax adviser confirmed a restriction or deadline that affects the planned timetable?": {
+        "review": "Approved",
+        "comment": "Approved. Matches R04: only a confirmed restriction makes it critical."
+      },
+      "Confirmed facts|Is there a confirmed funding gap before the planned transaction without an agreed bridge?": {
+        "review": "Approved",
+        "comment": "Approved. Matches R06: only a confirmed gap makes it critical; \"not sure\" gives a review."
+      }
+    },
+    "Weights": {
+      "S1": {
+        "review": "Approved",
+        "comment": "Approved as proposed v1 expert parameter; S dimension sums to 100 in all four profiles (checked against PROFILE_WEIGHTS)."
+      },
+      "S2": {
+        "review": "Approved",
+        "comment": "Approved as proposed v1 expert parameter; S dimension sums to 100 in all four profiles (checked against PROFILE_WEIGHTS)."
+      },
+      "S3": {
+        "review": "Approved",
+        "comment": "Approved as proposed v1 expert parameter; S dimension sums to 100 in all four profiles (checked against PROFILE_WEIGHTS)."
+      },
+      "O1": {
+        "review": "Approved",
+        "comment": "Approved as proposed v1 expert parameter; O dimension sums to 100 in all four profiles (checked against PROFILE_WEIGHTS)."
+      },
+      "O2": {
+        "review": "Approved",
+        "comment": "Approved as proposed v1 expert parameter; O dimension sums to 100 in all four profiles (checked against PROFILE_WEIGHTS)."
+      },
+      "O3": {
+        "review": "Approved",
+        "comment": "Approved as proposed v1 expert parameter; O dimension sums to 100 in all four profiles (checked against PROFILE_WEIGHTS)."
+      },
+      "O4": {
+        "review": "Approved",
+        "comment": "Approved as proposed v1 expert parameter; O dimension sums to 100 in all four profiles (checked against PROFILE_WEIGHTS)."
+      },
+      "O5": {
+        "review": "Approved",
+        "comment": "Approved as proposed v1 expert parameter; O dimension sums to 100 in all four profiles (checked against PROFILE_WEIGHTS)."
+      },
+      "T1": {
+        "review": "Approved",
+        "comment": "Approved as proposed v1 expert parameter; T dimension sums to 100 in all four profiles (checked against PROFILE_WEIGHTS)."
+      },
+      "T2": {
+        "review": "Approved",
+        "comment": "Approved as proposed v1 expert parameter; T dimension sums to 100 in all four profiles (checked against PROFILE_WEIGHTS)."
+      },
+      "T3": {
+        "review": "Approved",
+        "comment": "Approved as proposed v1 expert parameter; T dimension sums to 100 in all four profiles (checked against PROFILE_WEIGHTS)."
+      },
+      "T4": {
+        "review": "Approved",
+        "comment": "Approved as proposed v1 expert parameter; T dimension sums to 100 in all four profiles (checked against PROFILE_WEIGHTS)."
+      }
+    },
+    "Rules": {
+      "Index shown from": {
+        "review": "Approved",
+        "comment": "Approved. Matches DISPLAY_COVERAGE_MIN 0.8 and DOMAIN_LOCAL_COVERAGE_MIN 0.5 in scoring.ts."
+      },
+      "Answer points": {
+        "review": "Approved",
+        "comment": "Approved. Open statuses are excluded from coverage, never scored as zero."
+      },
+      "Evidence support": {
+        "review": "Approved",
+        "comment": "Changed: authorised → authorized. Matches evidenceFactor in scoring.ts (0, 0.5 with reference, role and date, 1 when reviewed)."
+      },
+      "R01 Liquidity": {
+        "review": "Approved",
+        "comment": "Approved. Matches plan.ts: acute liquidity gives R01 critical and the specialist route."
+      },
+      "R02 Authority": {
+        "review": "Approved",
+        "comment": "Changed: added the review case \"Q04 open (unknown or needs review) with a launch within six months: review\" so the text covers both branches in plan.ts."
+      },
+      "R03 Essential rights": {
+        "review": "Approved",
+        "comment": "Approved. Matches plan.ts: Q32 or Q33 = 0 critical; open answers review only."
+      },
+      "R04 Tax timing": {
+        "review": "Approved",
+        "comment": "Approved. Matches plan.ts: critical only with confirmed restriction; review for Q28 = 0, adviser review, or reported (or unsure) restructuring with Q28 below 100."
+      },
+      "R05 Separation": {
+        "review": "Approved",
+        "comment": "Approved. Matches plan.ts: separation route on and Q46 = 0."
+      },
+      "R06 Funding": {
+        "review": "Approved",
+        "comment": "Approved. Matches plan.ts: confirmed gap critical, \"not sure\" review, otherwise Q08 = 0 with possible or unknown pressure or growth capital."
+      },
+      "R07 Contradiction": {
+        "review": "Approved",
+        "comment": "Approved. Matches contradictions() in scoring.ts and the R07 branches in plan.ts."
+      },
+      "Cross-border tax module": {
+        "review": "Approved",
+        "comment": "Approved. Matches routing.ts: seller tax residence different or multiple, or cross-border operations; pending while unknown."
+      },
+      "Tax actions Q27, Q28": {
+        "review": "Approved",
+        "comment": "Approved. Matches SPLIT_TAX_LEVELS in plan.ts."
+      },
+      "Q07 wording": {
+        "review": "Approved",
+        "comment": "Approved. Matches routing.ts (economics = growth or venture-backed)."
+      },
+      "Strengths": {
+        "review": "Approved",
+        "comment": "Approved. Up to three 100-point answers, E01 matches first."
+      },
+      "Next steps": {
+        "review": "Approved",
+        "comment": "Approved. Matches MAX_NEXT_STEPS = 3 and the ordering in packages.ts."
+      }
+    },
+    "Work packages": {
+      "Set the objectives, timetable and transaction options": {
+        "review": "Approved",
+        "comment": "Changed (EN): output prioritised → prioritized. Q01, Q02, Q05 exist."
+      },
+      "Align decision-makers and map approvals": {
+        "review": "Approved",
+        "comment": "Changed (EN): output \"the objectives they have agreed\" → \"the objectives they have agreed on\". Q03, Q04, Q54 exist."
+      },
+      "Prepare the reconciled financial package": {
+        "review": "Approved",
+        "comment": "Changed (DE): output \"Standalone-Zahlen\" → \"Stand-alone-Zahlen\", consistent with Q45. Question ids exist."
+      },
+      "Plan liquidity and financing through the transaction": {
+        "review": "Approved",
+        "comment": "Approved. Q08, Q24 exist."
+      },
+      "Prepare the customer and supply dependency file": {
+        "review": "Approved",
+        "comment": "Approved. Q09, Q10, Q11, Q14 exist."
+      },
+      "Evidence the proposition and growth plan": {
+        "review": "Approved",
+        "comment": "Approved. Q16, Q19, Q20, Q50 exist."
+      },
+      "Secure leadership and know-how continuity": {
+        "review": "Approved",
+        "comment": "Approved. Q06, Q12, Q13 exist."
+      },
+      "Document processes, systems and integration": {
+        "review": "Approved",
+        "comment": "Approved. Q15, Q17, Q18 exist."
+      },
+      "Build the seller and structure tax map": {
+        "review": "Approved",
+        "comment": "Approved. Q26, Q27, Q31, Q52 exist."
+      },
+      "Set up the tax workstream and exposure register": {
+        "review": "Approved",
+        "comment": "Approved. Q25, Q28, Q29, Q30 exist."
+      },
+      "Build one cap-table and exit-waterfall package": {
+        "review": "Approved",
+        "comment": "Approved. Q32, Q38, Q39, Q51 exist."
+      },
+      "Reconcile rights, contracts and compliance": {
+        "review": "Approved",
+        "comment": "Changed (EN): output licence → license. Q33-Q37 exist."
+      },
+      "Plan Day 1 separation": {
+        "review": "Approved",
+        "comment": "Approved. Q44, Q46, Q47, Q48, Q49, Q53 exist."
+      },
+      "Set up the process team and issue log": {
+        "review": "Approved",
+        "comment": "Approved. Q41, Q42 exist."
+      },
+      "Prepare the data room and disclosure plan": {
+        "review": "Approved",
+        "comment": "Approved. Q40, Q43 exist; all 55 questions belong to exactly one package."
+      }
+    }
+  },
+  "terms": {
+    "Module rollover or earn-out|Rollover or earn-out": {
+      "decision": "Keep \"Earn-out oder Rückbeteiligung\": both are the established German M&A terms."
+    },
+    "Module asset transfer|Asset transfer": {
+      "decision": "Keep \"Asset Deal\": standard in German M&A practice and known to owners; the descriptive alternative is longer and less precise."
+    },
+    "Module separation|Separation": {
+      "decision": "Keep \"Separierung\": used consistently in about ten places and understood by corporate sellers; \"Carve-out\" stays for the figures (Carve-out-Zahlen)."
+    },
+    "Module primary capital|Primary capital": {
+      "decision": "Keep \"Kapitalerhöhung\": the term owners use for new money; Q55 itself separates primary capital from secondary proceeds."
+    },
+    "Leads and contributors|Board": {
+      "decision": "Keep \"Gremien\": covers Geschäftsführung, Beirat, Aufsichtsrat and Gesellschafterversammlung, as German governance requires."
+    },
+    "Leads and contributors|CEO": {
+      "decision": "Keep \"Geschäftsführung\": the body that holds the CEO role in a GmbH; fits the Mittelstand."
+    },
+    "Q07|repeatable earnings": {
+      "decision": "Keep \"nachhaltige Ergebnisse\": the IDW S1 valuation term (nachhaltig erzielbare Ergebnisse); the context excludes the sustainability reading."
+    },
+    "Q23|Enterprise to equity bridge": {
+      "decision": "Keep the German name: owners understand Unternehmenswert and Eigenkapitalwert; \"Equity Bridge\" is adviser jargon."
+    },
+    "Q38|investor preferences / distribution rights": {
+      "decision": "Keep: \"Liquidationspräferenz\" is the usual German term sheet term; \"Erlösverteilung\" matches German VC practice."
+    },
+    "Q49 help|group tax arrangements": {
+      "decision": "Keep \"(etwa Organschaften)\": the most relevant German group tax arrangement in a carve-out; a local example, same meaning."
+    },
+    "E01|Distinctive products or technology": {
+      "decision": "Keep \"Differenzierende Produkte oder Technologie\": common in German strategy language and matches the landing page; \"unverwechselbar\" sounds like marketing."
+    },
+    "E07|Working capital": {
+      "decision": "Keep \"Working Capital\": standard in German M&A and SPA practice; \"Umlaufvermögen\" is narrower, \"Betriebskapital\" rarely used."
+    },
+    "Specialist route|Specialist route": {
+      "decision": "Change \"Spezialistenpfad\" → \"Spezialberatung\" (status label \"Spezialberatung nötig\"): neither owners nor advisers say \"Pfad\". Applied in ui.ts, text.ts, narrative-template.ts, landing-copy.ts."
+    },
+    "Action plan|Priority actions": {
+      "decision": "Keep \"Vorrangige Maßnahmen\": plain German; \"Prioritäre\" is bureaucratic."
+    }
+  }
+}

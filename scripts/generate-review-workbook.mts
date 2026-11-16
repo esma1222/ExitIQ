@@ -1,5 +1,7 @@
 // Content-owner review workbook, generated from the live catalogue.
 // Usage: npm run gen:review   (writes docs/review/YYMMDD_ExitIQ_Content review catalogue ..._DRAFT.xlsx)
+//        npm run gen:review:signoff   (adds --signoff docs/review/signoff-v1.2.json: fills the Review,
+//        Comment and Decision columns and the Read me sign-off fields, writes ..._SIGNED OFF.xlsx)
 import ExcelJS from 'exceljs';
 import JSZip from 'jszip';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -12,7 +14,34 @@ import { PACKAGES } from '../src/model/packages';
 import { REPORT_TEXT } from '../src/model/text';
 import { DISPLAY_COVERAGE_MIN, DOMAIN_LOCAL_COVERAGE_MIN } from '../src/model/scoring';
 
-const out = process.argv[2] ?? 'docs/review';
+const argv = process.argv.slice(2);
+const signoffAt = argv.indexOf('--signoff');
+const signoffPath = signoffAt >= 0 ? argv[signoffAt + 1] : undefined;
+if (signoffAt >= 0 && !signoffPath) throw new Error('--signoff needs the path to the sign-off JSON');
+const positional = argv.filter((_, i) => signoffAt < 0 || (i !== signoffAt && i !== signoffAt + 1));
+const out = positional[0] ?? 'docs/review';
+
+/** Sign-off file: one decision per row and sheet, keyed as documented in docs/review/signoff-v1.2.json. */
+type Decision = { review: 'Approved' | 'Change needed' | 'Discuss'; comment: string };
+interface Signoff {
+  catalogueVersion: string;
+  reviewer: string;
+  sheets: Record<string, Record<string, Decision>>;
+  terms: Record<string, { decision: string }>;
+}
+const signoff: Signoff | null = signoffPath ? JSON.parse(readFileSync(signoffPath, 'utf8')) : null;
+const missing: string[] = [];
+const used = new Set<string>();
+function decisionFor(sheetName: string, key: string): Decision | null {
+  if (!signoff) return null;
+  const d = signoff.sheets[sheetName]?.[key];
+  if (!d) { missing.push(`${sheetName}: ${key}`); return null; }
+  if (!['Approved', 'Change needed', 'Discuss'].includes(d.review)) throw new Error(`Invalid review value for ${sheetName}: ${key}`);
+  used.add(`${sheetName}\u0000${key}`);
+  return d;
+}
+const minHeights: [ExcelJS.Worksheet, number, number][] = [];
+const discussCount = () => signoff ? Object.values(signoff.sheets).flatMap((x) => Object.values(x)).filter((d) => d.review === 'Discuss').length : 0;
 const NAVY = 'FF002336', NAVY_2 = 'FF003E5F', GREY_1 = 'FFF2F3F4', GREY_2 = 'FFCBD2D6', GREY_4 = 'FF324E5E', WHITE = 'FFFFFFFF';
 const F = (o: Partial<ExcelJS.Font> = {}) => ({ name: 'Aptos', size: 11, color: { argb: NAVY }, ...o });
 const wb = new ExcelJS.Workbook();
@@ -29,7 +58,7 @@ function sheet(name: string, title: string, widths: number[], header: string[] |
   ws.getRow(1).height = 30; ws.getRow(2).height = 30;
   ws.addImage(logo, { tl: { col: 0.1, row: 0.15 }, ext: { width: 152, height: 56 } });
   const t = ws.getCell(1, 3); t.value = title; t.font = F({ size: 18, bold: true }); t.alignment = { vertical: 'bottom' };
-  const s = ws.getCell(2, 3); s.value = `ExitIQ ${CATALOGUE_VERSION}, created ${date}. Draft for review.`; s.font = F({ color: { argb: GREY_4 } }); s.alignment = { vertical: 'top' };
+  const s = ws.getCell(2, 3); s.value = `ExitIQ ${CATALOGUE_VERSION}, created ${date}. ${signoff ? 'Signed off.' : 'Draft for review.'}`; s.font = F({ color: { argb: GREY_4 } }); s.alignment = { vertical: 'top' };
   for (let c = 1; c <= widths.length; c++) ws.getCell(3, c).border = { bottom: { style: 'thin', color: { argb: NAVY } } };
   ws.getRow(3).height = 6;
   if (header) {
@@ -38,7 +67,12 @@ function sheet(name: string, title: string, widths: number[], header: string[] |
   }
   return ws;
 }
-function row(ws: ExcelJS.Worksheet, r: number, vals: (string | number | null)[], opts: { zebra?: boolean; numCols?: number[]; reviewCols?: number[] } = {}) {
+function row(ws: ExcelJS.Worksheet, r: number, vals: (string | number | null)[], opts: { zebra?: boolean; numCols?: number[]; reviewCols?: number[]; key?: string } = {}) {
+  const dec = opts.key != null && opts.reviewCols?.length ? decisionFor(ws.name, opts.key) : null;
+  if (dec) {
+    vals = [...vals]; vals[opts.reviewCols![0] - 1] = dec.review; vals[opts.reviewCols![0]] = dec.comment;
+    minHeights.push([ws, r, longest([dec.comment], Math.max(10, (ws.getColumn(opts.reviewCols![0] + 1).width ?? 30) - 2)) * 15]);
+  }
   vals.forEach((v, i) => {
     const c = ws.getCell(r, i + 1); c.value = v; c.font = F(); c.alignment = { vertical: 'top', wrapText: true, horizontal: opts.numCols?.includes(i + 1) ? 'right' : undefined };
     c.border = { bottom: { style: 'thin', color: { argb: GREY_2 } } };
@@ -59,11 +93,16 @@ const lines: [string, string][] = [
   ['How to review', 'For each line choose Approved, Change needed or Discuss in the "Review" column and write the change in "Comment". Do not change the IDs.'],
   ['German terms to check first', 'See the sheet "Terms to check": wording choices made during translation that need an M&A professional\'s decision.'],
   ['Status of the parameters', 'Weights, answer anchors, coverage thresholds and priority rules are proposed v1 parameters (expert assumptions), not validated buyer benchmarks.'],
-  ['Reviewer', ''], ['Date', ''], ['Overall decision', ''],
+  ['Reviewer', signoff ? signoff.reviewer : ''],
+  ['Date', signoff ? date : ''],
+  ['Overall decision', signoff ? (discussCount() ? 'Approved with points to discuss' : 'Approved for launch') : ''],
 ];
 let r = 5;
-for (const [k, v] of lines) { row(rm, r, [k, v]); rm.getCell(r, 1).font = F({ bold: true }); rm.getRow(r).height = Math.max(20, longest([v], 95) * 15); r++; }
-rm.getCell(10, 2).dataValidation = { type: 'list', allowBlank: true, formulae: ['"Approved,Approved with changes,Not approved"'] };
+for (const [k, v] of lines) {
+  row(rm, r, [k, v]); rm.getCell(r, 1).font = F({ bold: true }); rm.getRow(r).height = Math.max(20, longest([v], 95) * 15);
+  if (k === 'Overall decision') rm.getCell(r, 2).dataValidation = { type: 'list', allowBlank: true, formulae: ['"Approved for launch,Approved with points to discuss,Not approved"'] };
+  r++;
+}
 r++;
 rm.getCell(r, 1).value = 'Sources: ExitIQ catalogue in the application code (src/model/catalogue.ts, src/i18n/catalogue-de.ts), ' + CATALOGUE_VERSION + '.';
 rm.getCell(r, 1).font = F({ size: 9, color: { argb: GREY_4 } });
@@ -77,7 +116,7 @@ QUESTIONS.forEach((q, i) => {
   const de = DE.questions[q.id];
   const dim = DIMENSIONS.find((x) => x.key === q.domain[0])!.name;
   const vals = [q.id, chapterOf(q.domain), dim, DOMAIN_NAMES[q.domain], q.localWeight, ROUTE_LABELS[q.route], q.name, q.question, ...q.anchors, de.name, de.question, ...de.anchors, '', ''];
-  row(qs, r, vals, { zebra: i % 2 === 1, numCols: [5], reviewCols: [17] });
+  row(qs, r, vals, { zebra: i % 2 === 1, numCols: [5], reviewCols: [17], key: q.id });
   qs.getRow(r).height = Math.max(30, longest([q.question, ...q.anchors, de.question, ...de.anchors], 30) * 15);
   r++;
 });
@@ -89,7 +128,7 @@ const vs = sheet('Variants', 'Context-specific wording', [6, 14, 60, 60, 14, 30]
 r = 6;
 for (const q of QUESTIONS) for (const [k, v] of Object.entries(q.variants ?? {})) {
   const dv = (DE.questions[q.id].variants as Record<string, string> | undefined)?.[k] ?? '';
-  row(vs, r, [q.id, k, v ?? '', dv, '', ''], { reviewCols: [5] }); vs.getRow(r).height = 45; r++;
+  row(vs, r, [q.id, k, v ?? '', dv, '', ''], { reviewCols: [5], key: `${q.id}|${k}` }); vs.getRow(r).height = 45; r++;
 }
 
 // 3. Discovery
@@ -100,7 +139,7 @@ DISCOVERY.forEach((s, i) => {
   const de = DE.discovery[s.id];
   const opts = 'options' in s ? s.options.map((o) => discoveryOptionLabel('en', s.id, o)).join('\n') : '';
   const dopts = de.options?.join('\n') ?? '';
-  row(ds, r, [s.id, s.kind, s.kind === 'control' ? s.control : '', s.title ?? '(uses the scored question)', opts, de.title ?? '(uses the scored question)', dopts, '', ''], { zebra: i % 2 === 1, reviewCols: [8] });
+  row(ds, r, [s.id, s.kind, s.kind === 'control' ? s.control : '', s.title ?? '(uses the scored question)', opts, de.title ?? '(uses the scored question)', dopts, '', ''], { zebra: i % 2 === 1, reviewCols: [8], key: s.id });
   ds.getRow(r).height = Math.max(45, ('options' in s ? s.options.length : 2) * 15 + 6);
   r++;
 });
@@ -119,7 +158,7 @@ const setupRows: string[][] = [
   ['Confirmed facts', SE.fundingGap, SE.fundingGapWhy, SD.fundingGap, SD.fundingGapWhy],
 ];
 r = 6;
-setupRows.forEach((x, i) => { row(ss, r, [...x, '', ''], { zebra: i % 2 === 1, reviewCols: [6] }); ss.getRow(r).height = Math.max(30, longest(x.slice(1), 44) * 15); r++; });
+setupRows.forEach((x, i) => { row(ss, r, [...x, '', ''], { zebra: i % 2 === 1, reviewCols: [6], key: `${x[0]}|${x[1]}` }); ss.getRow(r).height = Math.max(30, longest(x.slice(1), 44) * 15); r++; });
 
 // 4. Weights
 const profiles = Object.keys(PROFILE_WEIGHTS) as (keyof typeof PROFILE_WEIGHTS)[];
@@ -128,7 +167,7 @@ const wh = ['Dimension', 'Domain', ...profiles.map((p) => `${PNAME[p]} (in %)`),
 const wsh = sheet('Weights', 'Domain weights per weighting profile', [26, 34, 14, 14, 14, 14, 14, 30], wh, false);
 r = 6;
 for (const dim of DIMENSIONS) {
-  for (const dom of dim.domains) { row(wsh, r, [dim.name, `${dom} ${DOMAIN_NAMES[dom]}`, ...profiles.map((p) => PROFILE_WEIGHTS[p][dom]), '', ''], { numCols: [3, 4, 5, 6], reviewCols: [7] }); r++; }
+  for (const dom of dim.domains) { row(wsh, r, [dim.name, `${dom} ${DOMAIN_NAMES[dom]}`, ...profiles.map((p) => PROFILE_WEIGHTS[p][dom]), '', ''], { numCols: [3, 4, 5, 6], reviewCols: [7], key: dom }); r++; }
   row(wsh, r, [dim.name, 'Total', ...profiles.map((p) => dim.domains.reduce((t, x) => t + PROFILE_WEIGHTS[p][x], 0)), '', ''], { numCols: [3, 4, 5, 6] });
   for (let c = 1; c <= 6; c++) wsh.getCell(r, c).font = F({ bold: true });
   r += 2;
@@ -140,9 +179,9 @@ const rs = sheet('Rules', 'Thresholds, evidence and risk rules', [30, 90, 14, 30
 const rules: [string, string][] = [
   ['Index shown from', `${Math.round(DISPLAY_COVERAGE_MIN * 100)}% weighted answer coverage per dimension, and every domain at least ${Math.round(DOMAIN_LOCAL_COVERAGE_MIN * 100)}% answered (by local weight).`],
   ['Answer points', '0, 50 or 100 per question. Unknown, internal confirmation, adviser review, prefer not to answer and requested N/A are open, never zero.'],
-  ['Evidence support', 'Self-report 0; dated reference with named owner and date 0.5; reviewed by an authorised reviewer 1. Evidence never changes the readiness answer.'],
+  ['Evidence support', 'Self-report 0; dated reference with named owner and date 0.5; reviewed by an authorized reviewer 1. Evidence never changes the readiness answer.'],
   ['R01 Liquidity', 'Confirmed acute payment pressure: specialist route, no standard readiness conclusion.'],
-  ['R02 Authority', 'Approvals not mapped (Q04 = 0) and a launch planned within six months: critical prerequisite.'],
+  ['R02 Authority', 'Approvals not mapped (Q04 = 0) and a launch planned within six months: critical prerequisite. Q04 open (unknown or needs review) with a launch within six months: review.'],
   ['R03 Essential rights', 'Ownership or essential IP undocumented (Q32 or Q33 = 0): critical legal review. Unknown alone only creates a review item.'],
   ['R04 Tax timing', 'Critical only when a tax adviser has confirmed a restriction or deadline that affects the timetable (setup: confirmed facts = yes). Review when historical restrictions are not reviewed (Q28 = 0 or adviser review), or when past reorganizations are reported (yes or not sure) and Q28 is below 100. Never asserts a tax charge.'],
   ['R05 Separation', 'Separation active and essential group services without continuity plan (Q46 = 0): critical prerequisite.'],
@@ -155,7 +194,7 @@ const rules: [string, string][] = [
   ['Next steps', 'At most three: critical prerequisites first, then work packages by impact (sum of effective weight x missing points), then open questions.'],
 ];
 r = 6;
-rules.forEach(([k, v], i) => { row(rs, r, [k, v, '', ''], { zebra: i % 2 === 1, reviewCols: [3] }); rs.getRow(r).height = Math.max(20, longest([v], 95) * 15); r++; });
+rules.forEach(([k, v], i) => { row(rs, r, [k, v, '', ''], { zebra: i % 2 === 1, reviewCols: [3], key: k }); rs.getRow(r).height = Math.max(20, longest([v], 95) * 15); r++; });
 
 // 6. Work packages
 const ph = ['Work package', 'Workstream', 'Questions', 'Suggested owner', 'Output required', 'Review', 'Comment'];
@@ -164,7 +203,7 @@ const P = REPORT_TEXT.en;
 r = 6;
 PACKAGES.forEach((p, i) => {
   const t = P.packages[p.key];
-  row(ps, r, [t.name, P.workstreams[p.workstream], p.controls.join(', '), t.owner, t.output, '', ''], { zebra: i % 2 === 1, reviewCols: [6] });
+  row(ps, r, [t.name, P.workstreams[p.workstream], p.controls.join(', '), t.owner, t.output, '', ''], { zebra: i % 2 === 1, reviewCols: [6], key: t.name });
   ps.getRow(r).height = Math.max(30, longest([t.output], 60) * 15); r++;
 });
 
@@ -188,7 +227,28 @@ const terms: string[][] = [
   ['Action plan', 'Priority actions', 'Vorrangige Maßnahmen', 'Alternative "Prioritäre Maßnahmen".'],
 ];
 r = 6;
-terms.forEach((x, i) => { row(ts, r, [...x, ''], { zebra: i % 2 === 1 }); ts.getRow(r).height = Math.max(30, longest([x[2], x[3]], 40) * 15); r++; });
+terms.forEach((x, i) => {
+  const key = `${x[0]}|${x[1]}`;
+  let decision = '';
+  if (signoff) {
+    const t = signoff.terms[key];
+    if (!t) missing.push(`Terms to check: ${key}`); else { decision = t.decision; used.add(`Terms to check\u0000${key}`); }
+  }
+  row(ts, r, [...x, decision], { zebra: i % 2 === 1 }); ts.getRow(r).height = Math.max(30, longest([x[2], x[3]], 40) * 15, longest([decision], 28) * 15); r++;
+});
+
+if (signoff) {
+  if (signoff.catalogueVersion !== CATALOGUE_VERSION) throw new Error(`Sign-off is for ${signoff.catalogueVersion}, catalogue is ${CATALOGUE_VERSION}`);
+  const unused = [
+    ...Object.entries(signoff.sheets).flatMap(([sh, rows]) => Object.keys(rows).filter((k) => !used.has(`${sh}\u0000${k}`)).map((k) => `${sh}: ${k}`)),
+    ...Object.keys(signoff.terms).filter((k) => !used.has(`Terms to check\u0000${k}`)).map((k) => `Terms to check: ${k}`),
+  ];
+  if (missing.length || unused.length) {
+    throw new Error(`Sign-off does not match the workbook.${missing.length ? `\nNo decision for:\n  ${missing.join('\n  ')}` : ''}${unused.length ? `\nUnknown keys:\n  ${unused.join('\n  ')}` : ''}`);
+  }
+}
+
+for (const [ws, rr, h] of minHeights) if ((ws.getRow(rr).height ?? 0) < h) ws.getRow(rr).height = h;
 
 wb.views = [{ x: 0, y: 0, width: 20000, height: 12000, firstSheet: 0, activeTab: 0, visibility: 'visible' }];
 const buf = await wb.xlsx.writeBuffer();
@@ -198,6 +258,6 @@ zip.file('xl/styles.xml', st.replace(/(<fonts[^>]*>\s*<font>[\s\S]*?<name val=")
 const th1 = zip.file('xl/theme/theme1.xml');
 if (th1) zip.file('xl/theme/theme1.xml', (await th1.async('string')).replace(/(<a:(?:major|minor)Font>\s*<a:latin typeface=")[^"]+(")/g, '$1Aptos$2'));
 const version = CATALOGUE_VERSION.replace(/^.*-(v[\d.]+)$/, '$1');
-const name = `${out}/${yymmdd}_ExitIQ_Content review catalogue ${version}_DRAFT.xlsx`;
+const name = `${out}/${yymmdd}_ExitIQ_Content review catalogue ${version}_${signoff ? 'SIGNED OFF' : 'DRAFT'}.xlsx`;
 writeFileSync(name, await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }));
 console.log(name);

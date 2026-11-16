@@ -66,7 +66,7 @@ const T = {
   },
   de: {
     positive: POSITIVE_DE,
-    specialist: 'Zuerst ist ein Spezialistenpfad nötig. Eine Standardaussage zur Readiness entfällt, bis er geklärt ist; Ihre Antworten bleiben erhalten.',
+    specialist: 'Zuerst ist eine Spezialberatung nötig. Eine Standardaussage zur Readiness entfällt, bis diese erfolgt ist; Ihre Antworten bleiben erhalten.',
     criticalFirst: (titles: string[]) => `Klären Sie ${titles.length === 1 ? 'eine kritische Voraussetzung' : `${titles.length} kritische Voraussetzungen`} vor jeder anderen Vorbereitung: ${titles.join('; ')}.`,
     proceed: (pkgs: string[]) => `Die Vorbereitung kann bei der bekannten Arbeit weitergehen, beginnend mit ${pkgs.join(' und ')}.`,
     proceedAfter: (pkgs: string[]) => `Danach kann die Vorbereitung mit ${pkgs.join(' und ')} weitergehen.`,

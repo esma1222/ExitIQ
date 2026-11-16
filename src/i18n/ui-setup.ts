@@ -53,14 +53,14 @@ const en: SetupText = {
 };
 
 const de: SetupText = {
-  econLabel: 'Wird das Unternehmen derzeit auf Gewinn geführt, oder investiert es bewusst in Wachstum und macht dabei Verluste?',
-  econWhy: 'Wird nicht bewertet. Es bestimmt nur die Formulierung der Frage zur Wirtschaftlichkeit, damit bewusste Wachstumsinvestitionen nicht als Schwäche gelten.',
+  econLabel: 'Wird das Unternehmen derzeit gewinnorientiert geführt, oder investiert es bewusst in Wachstum und nimmt dabei Verluste in Kauf?',
+  econWhy: 'Wird nicht bewertet. Die Angabe bestimmt nur die Formulierung der Frage zur Wirtschaftlichkeit, damit bewusste Wachstumsinvestitionen nicht als Schwäche gelten.',
   econAria: 'Wirtschaftlichkeit',
   sector: 'Branche',
   sectorPlaceholder: 'Zum Beispiel Spezialchemie',
   trigWhy: {
     restructuring: 'Ein Steuerberater prüft, ob frühere Schritte Zeitpunkt oder Struktur eines Verkaufs beschränken. Das ist eine Prüfung, keine Feststellung, dass Steuern anfallen.',
-    cross_border_ops: 'Ergänzt die Abstimmung der steuerlichen Arbeit über die beteiligten Länder.',
+    cross_border_ops: 'Ergänzt die Koordination der steuerlichen Arbeit über die beteiligten Länder hinweg.',
   },
   confirmedLabel: 'Bestätigte Fakten (optional)',
   confirmedWhy: 'Beantworten Sie nur, was bestätigt ist. „Ja“ macht den Punkt zu einer kritischen Voraussetzung in Ihrem Plan, „Nicht sicher“ nimmt ihn zur Prüfung auf.',

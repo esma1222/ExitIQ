@@ -22,7 +22,7 @@ const AI_ENABLED = (import.meta.env.VITE_AI_SUMMARY as string | undefined)?.trim
 
 const TEXT = {
   en: {
-    intro: 'Your result in a few paragraphs: what can proceed, what needs clarification first and who should act first. It draws only on the figures and actions above and adds no judgement of its own.',
+    intro: 'Your result in a few paragraphs: what can proceed, what needs clarification first and who should act first. It draws only on the figures and actions above and adds no judgment of its own.',
     sourceRules: 'Written from your answers by fixed rules.',
     sourceAi: (d: string) => `Written by AI from your stored result of ${d}; not reviewed by atares.`,
     notAdvice: 'Not legal, tax or financial advice.',

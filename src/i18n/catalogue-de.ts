@@ -36,7 +36,7 @@ const questions: Record<string, QuestionText> = {
     name: 'Zeitplan und Vorbereitung',
     question: 'Wie gut berücksichtigt Ihr geplanter Transaktionszeitplan die erforderlichen Vorbereitungsarbeiten und Abhängigkeiten?',
     anchors: [
-      'Wir haben weder einen geplanten Zeitplan noch eine festgelegte Abfolge der Vorbereitung.',
+      'Wir haben weder einen angestrebten Zeitplan noch eine festgelegte Abfolge der Vorbereitung.',
       'Wir haben einen Zeitplan, Abhängigkeiten und Vorbereitungsschritte sind aber noch nicht vollständig geprüft.',
       'Wir haben den Zeitplan sowie die dafür nötigen Vorbereitungsschritte und Abhängigkeiten dokumentiert.',
     ],
@@ -303,10 +303,10 @@ const questions: Record<string, QuestionText> = {
     evidenceRequest: ev('die Anforderungen, die Beteiligten und den Umsetzungszeitplan'),
   },
   Q25: {
-    name: 'Steuerlicher Workstream',
+    name: 'Steuerlicher Arbeitsstrang',
     question: 'Haben Sie einen transaktionserfahrenen Steuerberater mandatiert und den Umfang seiner Prüfung vereinbart?',
     anchors: [
-      'Weder ein Berater noch ein verantwortlicher steuerlicher Workstream ist bestimmt.',
+      'Weder ein Berater noch ein verantwortlicher steuerlicher Arbeitsstrang ist bestimmt.',
       'Ein Berater ist benannt, der Umfang ist aber nicht vereinbart.',
       'Ein verantwortlicher Berater und der Umfang für die Transaktion sind vereinbart.',
     ],
@@ -441,7 +441,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q37: {
     name: 'Regulatorische Kontinuität',
-    question: 'Haben Sie geprüft, ob wesentliche Lizenzen und behördliche Genehmigungen über die Transaktion hinweg fortbestehen?',
+    question: 'Haben Sie geprüft, ob wesentliche Erlaubnisse und behördliche Genehmigungen über die Transaktion hinweg fortbestehen?',
     anchors: [
       'Die Anforderungen an die Kontinuität sind nicht geprüft.',
       'Die Anforderungen sind bekannt, die Umsetzung ist unvollständig.',
@@ -607,7 +607,7 @@ const questions: Record<string, QuestionText> = {
   },
   Q52: {
     name: 'Koordination grenzüberschreitender Steuern',
-    question: 'Wie wirksam sind die steuerlichen Workstreams der Transaktion über die relevanten Jurisdiktionen hinweg koordiniert?',
+    question: 'Wie wirksam sind die steuerlichen Arbeitsstränge der Transaktion über die relevanten Jurisdiktionen hinweg koordiniert?',
     anchors: [
       'Für relevante Jurisdiktionen fehlt eine koordinierte Abdeckung.',
       'Berater sind benannt, Umfang oder Abhängigkeiten sind offen.',
