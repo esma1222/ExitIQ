@@ -43,7 +43,45 @@ function setHealth(online: boolean, d?: string) {
   healthListeners.forEach((l) => l(health));
 }
 
+// ── save failures (test report: "record save failures") ─────────────────────
+// A failure cannot be reported while the database is unreachable, so failed
+// online writes are counted in this browser and reported once, as one 'save'
+// event, after online saving works again (see takeSaveFailures in store.ts).
+
+const FAILURES_KEY = 'exitiq-save-failures';
+
+function readFailures(): number {
+  try {
+    const n = Number(localStorage.getItem(FAILURES_KEY) ?? 0);
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeFailures(n: number) {
+  try {
+    if (n > 0) localStorage.setItem(FAILURES_KEY, String(n));
+    else localStorage.removeItem(FAILURES_KEY);
+  } catch {
+    /* storage blocked: the count is best effort */
+  }
+}
+
+/** Failed online writes recorded since the last report. */
+export function saveFailures(): number {
+  return readFailures();
+}
+
+/** Returns the recorded failure count and clears it. */
+export function takeSaveFailures(): number {
+  const n = readFailures();
+  if (n) writeFailures(0);
+  return n;
+}
+
 function setStatus(s: SyncStatus, d?: string) {
+  if (s === 'error' || s === 'local-only') writeFailures(readFailures() + 1);
   status = s;
   detail = d;
   listeners.forEach((l) => l(s, d));
@@ -252,6 +290,24 @@ export function saveResult(id: string, snapshot: ResultSnapshot): Promise<true |
   });
 }
 
+/** Who resolved a task and how (brief s.8). Stored in tasks.resolution. */
+export interface TaskResolution { note: string; by: string; at: string }
+
+/** User follow-up on a task: status, the agreed due date (YYYY-MM-DD) and, once done, the resolution. */
+export interface TaskMetaInput { status: string; dueDate: string | null; resolution: TaskResolution | null }
+
+/** Writes the user's follow-up fields. The derived fields (title, suggested timing, ...) are never touched here. */
+export function setTaskMeta(id: string, taskKey: string, meta: TaskMetaInput): Promise<true | null> {
+  return enqueue(async () => {
+    const { error } = await supabase.from('tasks').update({
+      status: meta.status, agreed_due_date: meta.dueDate, resolution: meta.resolution,
+    }).eq('assessment_id', id).eq('task_key', taskKey);
+    if (error) throw error;
+    return true as const;
+  });
+}
+
+/** Kept for older callers: writes the status only. */
 export function setTaskStatus(id: string, taskKey: string, taskStatus: string): Promise<true | null> {
   return enqueue(async () => {
     const { error } = await supabase.from('tasks').update({ status: taskStatus }).eq('assessment_id', id).eq('task_key', taskKey);
@@ -269,18 +325,53 @@ export function deleteAssessment(id: string) {
 
 type EventName = 'stage_view' | 'assessment_start' | 'theme_complete' | 'route_change' | 'save' | 'resume' | 'result_view' | 'contact_request' | 'export';
 
+// ── entry channel ────────────────────────────────────────────────────────────
+// A click on a landing-page call to action leaves a marker for this tab. The
+// first assessment_start event carries it as its channel when no utm_source
+// is present, so landing entries can be told apart from direct ones.
+
+const ENTRY_KEY = 'exitiq-entry';
+export const LANDING_CTA_CHANNEL = 'landing_cta';
+
+export function markLandingEntry() {
+  try {
+    sessionStorage.setItem(ENTRY_KEY, LANDING_CTA_CHANNEL);
+  } catch {
+    /* storage blocked: the entry is simply not recorded */
+  }
+}
+
+/** Reads and clears the entry marker. */
+function takeEntry(): string | null {
+  try {
+    const v = sessionStorage.getItem(ENTRY_KEY);
+    if (v) sessionStorage.removeItem(ENTRY_KEY);
+    return v;
+  } catch {
+    return null;
+  }
+}
+
+/** Channel for an event: utm_source wins; the landing marker is used (once) for assessment_start. */
+export function eventChannel(event: EventName, search: string | null): string | null {
+  const utm = search ? new URLSearchParams(search).get('utm_source') : null;
+  if (utm) return utm.slice(0, 60);
+  return event === 'assessment_start' ? takeEntry()?.slice(0, 60) ?? null : null;
+}
+
 /** Minimal analytics (section 20): no answer text, tax details or evidence. Best effort, never blocks. */
 export function track(event: EventName, assessmentId: string | null, meta: { stage?: string; profile?: string | null } = {}) {
   if (!remoteAvailable()) return;
   const w = typeof window !== 'undefined' ? window.innerWidth : 1200;
   const device = w < 640 ? 'mobile' : w < 1024 ? 'tablet' : 'desktop';
-  const params = typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;
+  const search = typeof location !== 'undefined' ? location.search : null;
+  const params = search != null ? new URLSearchParams(search) : null;
   void ensureUser().then((uid) => {
     if (!uid) return;
     // Query builders are lazy: without .then() the request is never sent.
     void supabase.from('analytics_events').insert({
-      assessment_id: assessmentId, event, stage: meta.stage ?? null, broad_context: meta.profile ?? null, device,
-      channel: params?.get('utm_source')?.slice(0, 60) ?? null, is_internal: params?.has('internal') ?? false,
+      assessment_id: assessmentId, event, stage: meta.stage?.slice(0, 40) ?? null, broad_context: meta.profile ?? null, device,
+      channel: eventChannel(event, search), is_internal: params?.has('internal') ?? false,
     }).then(() => undefined, () => undefined);
   });
 }
@@ -292,6 +383,8 @@ export interface RemoteAssessment {
   uiState: Record<string, unknown>;
   answers: AnswerMap;
   answerIds: Record<string, string>;
+  /** Follow-up on tasks as stored in the tasks table, by task key. */
+  tasks: Record<string, TaskMetaInput>;
   updatedAt: string;
 }
 
@@ -301,9 +394,10 @@ export async function loadLatest(): Promise<RemoteAssessment | null> {
   if (!sess.session) return null;
   const { data: a, error } = await supabase.from('assessments').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle();
   if (error || !a) return null;
-  const [{ data: ans }, { data: ev }] = await Promise.all([
+  const [{ data: ans }, { data: ev }, { data: tk }] = await Promise.all([
     supabase.from('current_answers').select('*').eq('assessment_id', a.id),
     supabase.from('evidence_refs').select('*').eq('assessment_id', a.id).order('created_at', { ascending: true }),
+    supabase.from('tasks').select('task_key,status,agreed_due_date,resolution').eq('assessment_id', a.id),
   ]);
   const answers: AnswerMap = {};
   const answerIds: Record<string, string> = {};
@@ -320,7 +414,11 @@ export async function loadLatest(): Promise<RemoteAssessment | null> {
     const target = answers[e.question_id];
     if (target) target.evidence = { reference: e.reference, ownerRole: e.owner_role ?? '', asOfDate: e.as_of_date, reviewStatus: e.review_status, reviewerId: e.reviewer_id, reviewedAt: e.reviewed_at };
   }
-  return { id: a.id, ctx: a.context, diag, uiState: a.ui_state ?? {}, answers, answerIds, updatedAt: a.updated_at };
+  const tasks: Record<string, TaskMetaInput> = {};
+  for (const r of tk ?? []) {
+    tasks[r.task_key] = { status: r.status, dueDate: r.agreed_due_date ?? null, resolution: (r.resolution as TaskResolution | null) ?? null };
+  }
+  return { id: a.id, ctx: a.context, diag, uiState: a.ui_state ?? {}, answers, answerIds, tasks, updatedAt: a.updated_at };
 }
 
 export interface RemoteSnapshot {

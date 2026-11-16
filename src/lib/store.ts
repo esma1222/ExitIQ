@@ -11,6 +11,21 @@ import * as remote from './remote';
 
 export type { Screen } from './journey';
 export type TaskStatus = 'open' | 'in_progress' | 'done';
+export type TaskResolution = remote.TaskResolution;
+
+/**
+ * The user's follow-up on one task (brief s.8): status, an optional agreed due
+ * date (YYYY-MM-DD, the user's own date; the tool's proposal stays "suggested
+ * timing") and, once done, an optional short resolution note.
+ */
+export interface TaskMeta { status: TaskStatus; dueDate: string | null; resolution: TaskResolution | null }
+
+export const RESOLUTION_NOTE_MAX = 300;
+export const RESOLUTION_BY_MAX = 120;
+
+export function taskMetaOf(s: Pick<State, 'tasks'>, key: string): TaskMeta {
+  return s.tasks[key] ?? { status: 'open', dueDate: null, resolution: null };
+}
 
 export interface RouteChange { at: string; added: RouteCode[]; removed: RouteCode[]; deactivated: string[]; reactivated: string[] }
 export interface SnapshotSummary { at: string; profile: string | null; indices: (number | null)[] }
@@ -31,7 +46,10 @@ export interface State {
   /** Detailed assessment: step through answered questions too, instead of only unresolved ones. */
   reviewAll: boolean;
   routeChange: RouteChange | null;
-  taskStatus: Record<string, TaskStatus>;
+  /** Follow-up per task key. Saves before Nov 2026 held only `taskStatus`; load() migrates them. */
+  tasks: Record<string, TaskMeta>;
+  /** Chapters (index) whose questions all have a response; each is reported once. */
+  completedChapters: number[];
   lastSnapshot: SnapshotSummary | null;
   previousSnapshot: SnapshotSummary | null;
   startedAt: string | null;
@@ -51,7 +69,7 @@ export function blankContext(): AssessmentContext {
 function blank(): State {
   return {
     v: 1, journey: 2, remoteId: null, answerIds: {}, screen: 'context', resumeTo: null, ctx: blankContext(), answers: {}, diag: {},
-    dIdx: 0, qIdx: 0, reviewAll: false, routeChange: null, taskStatus: {}, lastSnapshot: null, previousSnapshot: null, startedAt: null, savedAt: null,
+    dIdx: 0, qIdx: 0, reviewAll: false, routeChange: null, tasks: {}, completedChapters: [], lastSnapshot: null, previousSnapshot: null, startedAt: null, savedAt: null,
   };
 }
 
@@ -59,13 +77,42 @@ function load(): State {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return blank();
-    const s = JSON.parse(raw) as State;
+    const s = JSON.parse(raw) as State & { taskStatus?: Record<string, TaskStatus> };
     if (s.v !== 1) return blank();
-    const merged: State = { ...blank(), ...s, ctx: { ...blankContext(), ...s.ctx, company: { ...blankContext().company, ...s.ctx?.company } } };
+    const { taskStatus, ...rest } = s;
+    const merged: State = {
+      ...blank(), ...rest, ctx: { ...blankContext(), ...s.ctx, company: { ...blankContext().company, ...s.ctx?.company } },
+      tasks: migrateTasks(s.tasks, taskStatus),
+    };
     return upgradeScreens(merged, s.journey === 2);
   } catch {
     return blank();
   }
+}
+
+const TASK_STATUSES: TaskStatus[] = ['open', 'in_progress', 'done'];
+const SPLIT_TASKS = ['Q:Q27', 'Q:Q28'];
+
+/** Task follow-up from a save: the current `tasks` map, or the older status-only map. Invalid entries are dropped. */
+export function migrateTasks(tasks: unknown, legacy?: Record<string, unknown> | null): Record<string, TaskMeta> {
+  const out: Record<string, TaskMeta> = {};
+  for (const [k, v] of Object.entries(legacy ?? {})) {
+    if (!TASK_STATUSES.includes(v as TaskStatus)) continue;
+    // Q27 and Q28 gaps were split into company and seller tasks (catalogue v1.2): an old status applies to both, and the key stays for the open-question task.
+    const keys = SPLIT_TASKS.includes(k) ? [k, `${k}:company`, `${k}:seller`] : [k];
+    for (const key of keys) out[key] = { status: v as TaskStatus, dueDate: null, resolution: null };
+  }
+  if (tasks && typeof tasks === 'object') {
+    for (const [k, v] of Object.entries(tasks as Record<string, Partial<TaskMeta>>)) {
+      if (!v || typeof v !== 'object') continue;
+      out[k] = {
+        status: TASK_STATUSES.includes(v.status as TaskStatus) ? (v.status as TaskStatus) : 'open',
+        dueDate: typeof v.dueDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v.dueDate) ? v.dueDate : null,
+        resolution: v.resolution && typeof v.resolution === 'object' ? v.resolution : null,
+      };
+    }
+  }
+  return out;
 }
 
 /** Old saves name screens of the previous order; map them onto the current journey. */
@@ -129,15 +176,30 @@ const STAGE: Record<Screen, remote.Stage> = {
   summary: 'DEEP_ASSESSMENT', deep: 'DEEP_ASSESSMENT', result: 'RESULT', saved: 'SAVED',
 };
 
+/**
+ * Section 18 state for the assessments row: SAVED marks a pause; otherwise a
+ * specialist route (SPECIALIST_PATH) and, in the setup summary and detailed
+ * assessment, modules whose applicability is still open (APPLICABILITY_PENDING)
+ * interrupt the normal sequence.
+ */
+export function rowStage(screen: Screen, hasSpecialist: boolean, hasPending: boolean): remote.Stage {
+  if (screen === 'saved') return 'SAVED';
+  if (hasSpecialist) return 'SPECIALIST_PATH';
+  if (hasPending && (screen === 'deep' || screen === 'summary')) return 'APPLICABILITY_PENDING';
+  return STAGE[screen];
+}
+
 function rowInput(s: State): remote.AssessmentRowInput {
   const routes = resolveRoutes(s.ctx);
   const resume = s.screen === 'saved' ? s.resumeTo ?? 'context' : s.screen;
   const resumeStage = STAGE[resume] as remote.AssessmentRowInput['resumeStage'];
-  let stage = STAGE[s.screen];
-  if (s.screen === 'result' && specialistReasons(s.ctx).length) stage = 'SPECIALIST_PATH';
+  const pending = pendingModules(routes);
+  const stage = rowStage(s.screen, specialistReasons(s.ctx).length > 0, pending.length > 0);
+  // Task follow-up lives in the tasks table; ui_state keeps only the compact status map (size-limited column).
+  const taskStatus = Object.fromEntries(Object.entries(s.tasks).map(([k, m]) => [k, m.status]));
   return {
-    stage, resumeStage, ctx: s.ctx, diag: s.diag, uiState: { journey: 2, screen: s.screen, resumeTo: s.resumeTo, dIdx: s.dIdx, qIdx: s.qIdx, taskStatus: s.taskStatus },
-    activeModules: activeModules(routes), pendingModules: pendingModules(routes),
+    stage, resumeStage, ctx: s.ctx, diag: s.diag, uiState: { journey: 2, screen: s.screen, resumeTo: s.resumeTo, dIdx: s.dIdx, qIdx: s.qIdx, taskStatus },
+    activeModules: activeModules(routes), pendingModules: pending,
   };
 }
 
@@ -232,11 +294,11 @@ async function reconcileAll(): Promise<boolean> {
   write({ ...state, answerIds: ids });
 
   if (state.lastSnapshot && !snap.hasResult) {
-    const { score, ...snapshot } = buildResult(state.ctx, state.answers);
+    const { score, ...snapshot } = buildResult(state.ctx, state.answers, undefined, 'en', state.diag);
     if (!(await remote.saveResult(id, { ...snapshot, dimensions: score.dimensions }))) return false;
   }
-  for (const [key, st] of Object.entries(state.taskStatus)) {
-    if (!(await remote.setTaskStatus(id, key, st))) return false;
+  for (const [key, m] of Object.entries(state.tasks)) {
+    if (!(await remote.setTaskMeta(id, key, m))) return false;
   }
   return true;
 }
@@ -246,6 +308,11 @@ async function reconcileAll(): Promise<boolean> {
 let lastOnline: boolean | null = null;
 remote.onBackupHealth((h) => {
   if (lastOnline === false && h.online === true && hasProgress()) void syncAll();
+  // Failed online saves are counted locally; once saving works, one event reports how many there were.
+  if (h.online === true) {
+    const n = remote.takeSaveFailures();
+    if (n) remote.track('save', state.remoteId, { stage: `SAVE_RECOVERED:${n}` });
+  }
   lastOnline = h.online;
 });
 
@@ -362,9 +429,31 @@ export function setPosition(extra: Partial<Pick<State, 'dIdx' | 'qIdx' | 'review
   scheduleAssessmentSave();
 }
 
+/** Applies a change to the follow-up of one or more tasks (a work package sets all of its tasks). */
+export function updateTasks(keys: string[], patch: Partial<TaskMeta>) {
+  const tasks = { ...state.tasks };
+  for (const k of keys) {
+    const cur = taskMetaOf(state, k);
+    const next: TaskMeta = { ...cur, ...patch };
+    // A resolution belongs to a finished task; reopening it drops the note.
+    if (next.status !== 'done') next.resolution = null;
+    tasks[k] = next;
+  }
+  write(touch({ tasks }));
+  const id = state.remoteId;
+  if (id) keys.forEach((k) => void remote.setTaskMeta(id, k, state.tasks[k]));
+}
+
 export function setTaskStatus(key: string, s: TaskStatus) {
-  write(touch({ taskStatus: { ...state.taskStatus, [key]: s } }));
-  if (state.remoteId) void remote.setTaskStatus(state.remoteId, key, s);
+  updateTasks([key], { status: s });
+}
+
+/** Records chapters that now have a response for every question. Each chapter is reported once. */
+export function markChaptersComplete(chapters: number[]) {
+  const fresh = chapters.filter((c) => !state.completedChapters.includes(c));
+  if (!fresh.length) return;
+  write({ ...state, completedChapters: [...state.completedChapters, ...fresh].sort((a, b) => a - b) });
+  fresh.forEach((c) => remote.track('theme_complete', state.remoteId, { stage: `CHAPTER:${c + 1}`, profile: state.ctx.profile }));
 }
 
 export function dismissRouteChange() {
@@ -373,7 +462,7 @@ export function dismissRouteChange() {
 
 /** Called when the action plan is shown: stores a versioned snapshot when the result changed. */
 export function recordResult() {
-  const { score, ...snapshot } = buildResult(state.ctx, state.answers);
+  const { score, ...snapshot } = buildResult(state.ctx, state.answers, undefined, 'en', state.diag);
   const r = { ...snapshot, dimensions: score.dimensions };
   const indices = r.dimensions.map((d) => d.displayIndex);
   const summary: SnapshotSummary = { at: r.generatedAt, profile: r.profile, indices };
@@ -401,11 +490,11 @@ export async function hydrateFromRemote(): Promise<boolean> {
   try {
     const r = await remote.loadLatest();
     if (!r) return false;
-    const ui = r.uiState as Partial<State>;
+    const ui = r.uiState as Partial<State> & { taskStatus?: unknown };
     const loaded: State = {
       ...blank(), remoteId: r.id, answerIds: r.answerIds, ctx: { ...blankContext(), ...r.ctx }, answers: r.answers, diag: r.diag,
       screen: 'saved', resumeTo: ((ui.resumeTo ?? ui.screen ?? 'context') as Screen), dIdx: ui.dIdx ?? 0, qIdx: ui.qIdx ?? 0,
-      taskStatus: (ui.taskStatus as State['taskStatus']) ?? {}, startedAt: r.updatedAt, savedAt: r.updatedAt,
+      tasks: { ...migrateTasks(null, ui.taskStatus as Record<string, unknown> | undefined), ...migrateTasks(r.tasks) }, startedAt: r.updatedAt, savedAt: r.updatedAt,
     };
     write(upgradeScreens(loaded, ui.journey === 2));
     return true;

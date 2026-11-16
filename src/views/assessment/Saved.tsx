@@ -87,7 +87,7 @@ export function Saved() {
         )}
         {confirm === 'new' && (
           <span style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            {t.startOverQ}
+            {t.startOverQ(backup === 'on')}
             <button type="button" className="btn btn-lime btn-sm" onClick={() => startNew()}>{t.startNew}</button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirm(null)}>{t.cancel}</button>
           </span>

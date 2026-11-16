@@ -5,6 +5,11 @@
 import { useLang, type Lang } from '../lib/i18n';
 import type { TriggerKey } from '../model/types';
 
+/** Ends a sentence with one period, also when it already ends in "a.m." or "p.m.". */
+export function sentence(s: string): string {
+  return s.endsWith('.') ? s : `${s}.`;
+}
+
 const en = {
   // Saving and online backup
   savedBrowserAt: (time: string) => `Saved on this browser · ${time}`,
@@ -89,11 +94,23 @@ const en = {
   openEarlier: (n: number) => `${n} question${n === 1 ? '' : 's'} earlier in the list still ${n === 1 ? 'needs' : 'need'} an answer.`,
   goFirstOpen: 'Go to the first one',
   allHaveResponse: 'Every question now has a response.',
+  chapterNote: (chapter: string, c: { total: number; full: number; work: number; notApplicable: number; open: number }) => {
+    const parts = [
+      c.full ? `${c.full} at full preparation` : '',
+      c.work ? `${c.work} ${c.work === 1 ? 'needs' : 'need'} work` : '',
+      c.notApplicable ? `${c.notApplicable} not applicable` : '',
+      c.open ? `${c.open} still open` : '',
+    ].filter(Boolean);
+    return `${chapter}: ${c.total} ${c.total === 1 ? 'question' : 'questions'} with a response; ${parts.join(', ')}.`;
+  },
+  chapterNoteLabel: 'Chapter summary',
+  contributorLine: (who: string) => `Suggested contributor: ${who}`,
+  chapterQuestions: 'Questions in this chapter',
 
   // Saved
   savedTitle: 'Your progress is saved on this browser.',
   savedLead: (answered: number, open: number, when: string | null) =>
-    `${answered} question${answered === 1 ? '' : 's'} answered${open ? `, ${open} open response${open === 1 ? '' : 's'}` : ''}${when ? `, last saved ${when}` : ''}. Come back in the same browser to continue where you left off.`,
+    `${sentence(`${answered} question${answered === 1 ? '' : 's'} answered${open ? `, ${open} open response${open === 1 ? '' : 's'}` : ''}${when ? `, last saved ${when}` : ''}`)} Come back in the same browser to continue where you left off.`,
   onBrowser: 'On this browser',
   savedYes: 'Saved',
   onlineBackup: 'Online backup',
@@ -183,10 +200,22 @@ const de: JourneyText = {
   openEarlier: (n) => `${n} ${n === 1 ? 'Frage' : 'Fragen'} weiter vorne in der Liste ${n === 1 ? 'braucht' : 'brauchen'} noch eine Antwort.`,
   goFirstOpen: 'Zur ersten davon',
   allHaveResponse: 'Jede Frage hat jetzt eine Rückmeldung.',
+  chapterNote: (chapter, c) => {
+    const parts = [
+      c.full ? `${c.full} vollständig vorbereitet` : '',
+      c.work ? `${c.work} mit Handlungsbedarf` : '',
+      c.notApplicable ? `${c.notApplicable} nicht anwendbar` : '',
+      c.open ? `${c.open} noch offen` : '',
+    ].filter(Boolean);
+    return `${chapter}: ${c.total} ${c.total === 1 ? 'Frage' : 'Fragen'} mit Rückmeldung; ${parts.join(', ')}.`;
+  },
+  chapterNoteLabel: 'Kapitelüberblick',
+  contributorLine: (who) => `Vorgeschlagene Ansprechperson: ${who}`,
+  chapterQuestions: 'Fragen in diesem Kapitel',
 
   savedTitle: 'Ihr Fortschritt ist in diesem Browser gespeichert.',
   savedLead: (answered, open, when) =>
-    `${answered} ${answered === 1 ? 'Frage' : 'Fragen'} beantwortet${open ? `, ${open} offene ${open === 1 ? 'Rückmeldung' : 'Rückmeldungen'}` : ''}${when ? `, zuletzt gespeichert am ${when}` : ''}. Kehren Sie im selben Browser zurück, um dort weiterzumachen, wo Sie aufgehört haben.`,
+    `${sentence(`${answered} ${answered === 1 ? 'Frage' : 'Fragen'} beantwortet${open ? `, ${open} offene ${open === 1 ? 'Rückmeldung' : 'Rückmeldungen'}` : ''}${when ? `, zuletzt gespeichert am ${when}` : ''}`)} Kehren Sie im selben Browser zurück, um dort weiterzumachen, wo Sie aufgehört haben.`,
   onBrowser: 'In diesem Browser',
   savedYes: 'Gespeichert',
   onlineBackup: 'Online-Sicherung',

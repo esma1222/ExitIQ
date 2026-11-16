@@ -176,3 +176,28 @@ export function earlierFact(qid: string, ctx: AssessmentContext, diag: Diagnosti
     default: return null;
   }
 }
+
+// ── chapter completion (brief s.2: one short observation after a theme) ──────
+
+export interface ChapterSummary { chapter: number; total: number; full: number; work: number; notApplicable: number; open: number }
+
+/** Chapters (indices) in which every question has a response; an answer awaiting reconfirmation does not count. */
+export function completeChapters(list: { q: QuestionDef; chapter: number }[], answers: AnswerMap): number[] {
+  const chapters = [...new Set(list.map((x) => x.chapter))];
+  return chapters.filter((c) => list.filter((x) => x.chapter === c).every((x) => !needsVisit(answers[x.q.id])));
+}
+
+/** Factual counts for a chapter from recorded answers only: full preparation, needs work, not applicable, still open. */
+export function chapterSummary(list: { q: QuestionDef; chapter: number }[], answers: AnswerMap, chapter: number): ChapterSummary {
+  const s: ChapterSummary = { chapter, total: 0, full: 0, work: 0, notApplicable: 0, open: 0 };
+  for (const x of list) {
+    if (x.chapter !== chapter) continue;
+    s.total++;
+    const a = answers[x.q.id];
+    if (!isAnswered(a)) s.open++;
+    else if (a!.status === 'not_applicable_confirmed') s.notApplicable++;
+    else if (a!.points === 100) s.full++;
+    else s.work++;
+  }
+  return s;
+}

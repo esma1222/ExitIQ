@@ -158,7 +158,6 @@ const en = {
   basedOn: (ids: string) => `Based on ${ids}`,
   areasTitle: 'Areas that need more detail',
   continueTitle: 'Continue to the detailed assessment',
-  continueBody: (left: number) => `Your first answers highlight the areas worth exploring. Continue to review the supporting figures, ownership arrangements, tax preparation and practical steps. ${left} questions remain, grouped into six chapters. You can pause at any time; each question names who is best placed to answer it.`,
   saveReturn: 'Save and return',
   continuePrep: 'Continue preparation',
 
@@ -206,7 +205,7 @@ const en = {
   backToStart: 'Back to the start page',
   resume: 'Resume assessment',
   startNewLink: 'Start a new assessment',
-  startOverQ: 'Start over in this browser? Your current assessment stays stored online if online saving is on.',
+  startOverQ: (online: boolean) => `Start over in this browser?${online ? ' Your current assessment stays stored online.' : ' Your current answers are removed from this browser.'}`,
   startNew: 'Start new',
 
   // Result
@@ -453,7 +452,6 @@ const de: UIText = {
   basedOn: (ids) => `Auf Basis von ${ids}`,
   areasTitle: 'Bereiche, die mehr Detail brauchen',
   continueTitle: 'Weiter zur Detailbewertung',
-  continueBody: (left) => `Ihre ersten Antworten zeigen, welche Bereiche sich näher anzusehen lohnen. Fahren Sie fort, um Kennzahlen, Eigentumsverhältnisse, steuerliche Vorbereitung und praktische Schritte zu prüfen. ${left} Fragen sind noch offen, gegliedert in sechs Kapitel. Sie können jederzeit pausieren; jede Frage nennt, wer sie am besten beantworten kann.`,
   saveReturn: 'Speichern und später fortsetzen',
   continuePrep: 'Vorbereitung fortsetzen',
 
@@ -501,7 +499,7 @@ const de: UIText = {
   backToStart: 'Zurück zur Startseite',
   resume: 'Selbsteinschätzung fortsetzen',
   startNewLink: 'Neue Selbsteinschätzung beginnen',
-  startOverQ: 'In diesem Browser neu beginnen? Ihre aktuelle Selbsteinschätzung bleibt online gespeichert, sofern Online-Speichern aktiv ist.',
+  startOverQ: (online) => `In diesem Browser neu beginnen?${online ? ' Ihre aktuelle Selbsteinschätzung bleibt online gespeichert.' : ' Ihre aktuellen Antworten werden aus diesem Browser entfernt.'}`,
   startNew: 'Neu beginnen',
 
   // Result

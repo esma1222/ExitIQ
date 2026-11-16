@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { navigate } from '../App';
 import { Bar, Brand, CheckboxGroup, Chip, LangSwitch, RadioGroup } from '../components/ui';
 import { hasProgress, useAssessment } from '../lib/store';
+import { markLandingEntry } from '../lib/remote';
 import { useLang, type Lang } from '../lib/i18n';
 import { imprintUrl, privacyUrl } from '../lib/links';
 import { COPY } from './landing-copy';
@@ -21,6 +22,11 @@ export default function Landing() {
   }, [lang]);
 
   const start = () => navigate('/assessment');
+  // A call to action starts the funnel: the first assessment_start event reports channel 'landing_cta'.
+  const startCta = () => {
+    markLandingEntry();
+    start();
+  };
 
   return (
     <div style={{ background: 'var(--white)' }}>
@@ -41,7 +47,7 @@ export default function Landing() {
       </header>
 
       <main id="main">
-      <Hero lang={lang} onStart={start} />
+      <Hero lang={lang} onStart={startCta} />
 
       <section aria-label="Promises" style={{ background: 'var(--navy)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="wrap grid-auto" style={{ padding: '28px 24px', color: 'var(--white)', ['--min' as string]: '220px', gap: 20 }}>
@@ -96,7 +102,7 @@ export default function Landing() {
         <div className="wrap section" style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
           <h2 className="h2" style={{ color: 'var(--lime)', maxWidth: 800 }}>{t.closeTitle}</h2>
           <p className="lead" style={{ color: 'rgba(255,255,255,0.86)', maxWidth: 620, fontSize: 16 }}>{t.closeSub}</p>
-          <div><button type="button" className="btn btn-lime btn-lg" onClick={start}>{t.cta} <span aria-hidden="true">→</span></button></div>
+          <div><button type="button" className="btn btn-lime btn-lg" onClick={startCta}>{t.cta} <span aria-hidden="true">→</span></button></div>
           {t.assessmentLang && <p className="muted-light" style={{ margin: 0, fontSize: 14 }}>{t.assessmentLang}</p>}
           <footer style={{ marginTop: 56, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,0.12)', display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 560 }}>

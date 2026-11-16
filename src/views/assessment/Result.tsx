@@ -1,19 +1,24 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { navigate } from '../../App';
 import { Bar, pct } from '../../components/ui';
-import { dimensionName, domainName, localOptions, profileText, routeLabel } from '../../i18n/localize';
+import { dimensionName, domainName, localOptions, localQuestionById, profileText, routeLabel } from '../../i18n/localize';
 import { useT, type UIText } from '../../i18n/ui';
-import { useReportT } from '../../i18n/ui-report';
+import { useReportT, type ReportUIText } from '../../i18n/ui-report';
 import { fileDate, formatDate, useLang, type Lang } from '../../lib/i18n';
 import { DIMENSIONS, PROFILES } from '../../model/catalogue';
 import { HORIZON_OPTIONS, OBJECTIVE_OPTIONS, PERIMETER_OPTIONS, type Opt } from '../../model/options';
-import { buildPlanView, controlStateLabel, type Category } from '../../model/packages';
+import { buildPlanView, controlState, controlStateLabel, type Category } from '../../model/packages';
 import { buildResult, buyerInvestigation, statedStrengths } from '../../model/plan';
 import type { DimensionResult } from '../../model/scoring';
 import { REPORT_TEXT } from '../../model/text';
 import type { Profile } from '../../model/types';
 import { track } from '../../lib/remote';
-import { deleteEverything, go, recordResult, setTaskStatus, useAssessment, type TaskStatus } from '../../lib/store';
+import {
+  RESOLUTION_BY_MAX, RESOLUTION_NOTE_MAX, deleteEverything, go, recordResult, taskMetaOf, updateTasks, useAssessment, type TaskStatus,
+} from '../../lib/store';
+import { taxContext } from '../../lib/taxContext';
+import type { PlanView } from '../../model/packages';
+import { isKnown } from '../../model/scoring';
 import { deepList } from './Deep';
 import Narrative from './Narrative';
 import { CONTACT_EMAIL, contactMailto } from '../../lib/links';
@@ -50,7 +55,7 @@ export function Result() {
   const rt = useReportT();
   const RT = REPORT_TEXT[lang];
   // Rendered in the user's language. recordResult() stores the canonical English snapshot.
-  const r = useMemo(() => buildResult(s.ctx, s.answers, undefined, lang), [s.ctx, s.answers, lang]);
+  const r = useMemo(() => buildResult(s.ctx, s.answers, undefined, lang, s.diag), [s.ctx, s.answers, lang, s.diag]);
   const plan = useMemo(() => buildPlanView(r, lang), [r, lang]);
   const buyer = useMemo(() => buyerInvestigation(s.diag, r.score, lang), [s.diag, r.score, lang]);
   const stated = useMemo(() => statedStrengths(s.diag, lang), [s.diag, lang]);
@@ -95,7 +100,7 @@ export function Result() {
     try {
       const { exportActionPlanXlsx } = await import('../../lib/exportXlsx');
       await exportActionPlanXlsx({
-        result: r, lang, context: chips, taxStatusLabel: t.taxStatus, dimStatusLabel: t.dimStatus, taskStatus: s.taskStatus,
+        result: r, lang, context: chips, taxStatusLabel: t.taxStatus, dimStatusLabel: t.dimStatus, tasks: s.tasks,
         plan, buyer, ctx: s.ctx, answers: s.answers, taxScopeLabel: t.taxScope,
       });
       track('export', s.remoteId, { stage: 'RESULT' });
@@ -143,13 +148,12 @@ export function Result() {
   const pkgs = showAllPkgs ? plan.packages : plan.packages.slice(0, 5);
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   const statusSelect = (keys: string[], name: string) => {
-    const vals = keys.map((k) => s.taskStatus[k] ?? 'open');
-    const value: TaskStatus = vals.every((v) => v === 'done') ? 'done' : vals.every((v) => v === 'open') ? 'open' : 'in_progress';
+    const value = groupStatus(s, keys);
     return (
       <>
         <span className="print-only task-print-status">{t.taskStatus[value]}</span>
         <select className="input input-light no-print" aria-label={rt.statusOf(name)} value={value}
-          onChange={(e) => keys.forEach((k) => setTaskStatus(k, e.target.value as TaskStatus))}>
+          onChange={(e) => updateTasks(keys, { status: e.target.value as TaskStatus })}>
           <option value="open">{t.taskStatus.open}</option>
           <option value="in_progress">{t.taskStatus.in_progress}</option>
           <option value="done">{t.taskStatus.done}</option>
@@ -159,6 +163,8 @@ export function Result() {
   };
   const anyEvidence = r.strengths.some((x) => (r.score.controls[x.id]?.evidenceFactor ?? 0) > 0);
   const q25 = r.score.controls.Q25;
+  const tax = taxContext(lang, s.ctx);
+  const followUp = (keys: string[], name: string) => <FollowUp keys={keys} name={name} lang={lang} rt={rt} status={groupStatus(s, keys)} meta={taskMetaOf(s, keys[0])} />;
 
   return (
     <main style={{ flex: 1 }}>
@@ -260,6 +266,14 @@ export function Result() {
               </div>
             </SectionHead>
 
+            {r.activeModules.includes('SEPARATION') && filter === 'all' && (
+              <CarveOutPanel r={r} plan={plan} lang={lang} rt={rt} openQuestion={openQuestion}
+                openPackage={() => { setShowAllPkgs(true); setTimeout(() => scrollTo('pkg-separation'), 0); }} />
+            )}
+            {r.activeModules.includes('PRIMARY_CAPITAL') && filter === 'all' && (
+              <FundingPanel r={r} s={s} lang={lang} rt={rt} openQuestion={openQuestion} />
+            )}
+
             {show('critical') && (
               <div className="plan-block" aria-labelledby="cat-critical">
                 <h3 className="plan-h" id="cat-critical"><span className="cat-dot cat-critical" aria-hidden="true" />{RT.category.critical} · {plan.critical.length}</h3>
@@ -268,7 +282,7 @@ export function Result() {
                   <div className="task-list">
                     {plan.critical.map((task) => {
                       const qid = task.sourceQuestionIds[0];
-                      const meta = [task.dimension, task.domain, task.sourceQuestionIds.join(', ') || null].filter(Boolean).join(' · ');
+                      const meta = [task.dimension, task.domain, [...new Set(task.sourceQuestionIds)].join(', ') || null].filter(Boolean).join(' · ');
                       return (
                         <div key={task.key} className="task">
                           <span className="pill task-pill" style={{ background: 'var(--red-strong)', color: 'var(--white)' }}>{task.label}</span>
@@ -278,7 +292,7 @@ export function Result() {
                             <span className="task-next">{t.nextStep(task.action)}</span>
                             <div className="task-facts">
                               <span>{t.suggestedOwner(task.accountableRole)}</span>
-                              <span>{task.suggestedTiming}</span>
+                              <span>{rt.timingSuggested(task.suggestedTiming)}</span>
                             </div>
                             {meta && <span className="task-meta">{meta}</span>}
                           </div>
@@ -286,6 +300,7 @@ export function Result() {
                             {statusSelect([task.key], task.title)}
                             {qid && <button type="button" className="link-btn no-print" onClick={() => openQuestion(qid)}>{rt.openQuestion}</button>}
                           </div>
+                          {followUp([task.key], task.title)}
                         </div>
                       );
                     })}
@@ -334,6 +349,7 @@ export function Result() {
                         <div><dt>{rt.timingLabel}</dt><dd>{p.tasks[0].suggestedTiming}</dd></div>
                       </dl>
                     </div>
+                    {followUp(p.tasks.map((x) => x.key), p.name)}
                     <div className="pkg-controls">
                       <span className="pkg-label">{rt.linkedControls}</span>
                       <div className="ctl-list">
@@ -366,7 +382,7 @@ export function Result() {
                         {plan.reviews.map((task) => (
                           <div key={task.key} className="clarify-row clarify-review">
                             <span className="pill clarify-pill">{task.label}</span>
-                            <span className="clarify-text"><b>{task.title}.</b> {task.reason}{task.sourceQuestionIds.length > 0 && task.ruleId !== 'APP' && <span className="ids"> {task.sourceQuestionIds.join(', ')}</span>}</span>
+                            <span className="clarify-text"><b>{task.title}.</b> {task.reason}{task.sourceQuestionIds.length > 0 && task.ruleId !== 'APP' && <span className="ids"> {[...new Set(task.sourceQuestionIds)].join(', ')}</span>}</span>
                             <span className="clarify-act no-print">
                               {task.ruleId === 'APP'
                                 ? <button type="button" className="link-btn" onClick={() => go('specialist')}>{rt.clarifySetup}</button>
@@ -474,6 +490,11 @@ export function Result() {
 
           <section id="sec-tax" className="rsec" aria-labelledby="tax-title" style={{ scrollMarginTop: headerH + 64 }}>
             <SectionHead n={6} id="tax-title" title={rt.taxTitle} sub={rt.taxSub} />
+            <dl className="tax-juris">
+              <div><dt>{rt.taxCompanyCountry}</dt><dd>{tax.country ?? rt.taxNotStated}</dd></div>
+              <div><dt>{rt.taxSellerResidence}</dt><dd>{tax.residence ?? rt.taxNotStated}</dd></div>
+            </dl>
+            <p className="tax-notice" role="note">{rt.taxLocalNotice}</p>
             <div className="tax-cols">
               <div className="tax-context">{rt.taxSpecialist(q25 ? controlStateLabel(lang, q25) : rt.taxNotApplicable)}</div>
               {(['company', 'company_seller', 'seller', 'cross_border'] as const).map((scope) => {
@@ -542,6 +563,128 @@ export function Result() {
         </div>
       </div>
     </main>
+  );
+}
+
+type ResultT = ReturnType<typeof buildResult>;
+type AssessmentState = ReturnType<typeof useAssessment>;
+
+/** One status for a group of tasks (a work package): done when all are done, open when all are open. */
+function groupStatus(s: AssessmentState, keys: string[]): TaskStatus {
+  const vals = keys.map((k) => taskMetaOf(s, k).status);
+  return vals.every((v) => v === 'done') ? 'done' : vals.every((v) => v === 'open') ? 'open' : 'in_progress';
+}
+
+/**
+ * Brief s.8 follow-up: the user's agreed due date and, once done, who resolved
+ * the task and how. Text fields save when they lose focus.
+ */
+function FollowUp({ keys, name, lang, rt, status, meta }: {
+  keys: string[]; name: string; lang: Lang; rt: ReportUIText; status: TaskStatus; meta: ReturnType<typeof taskMetaOf>;
+}) {
+  const id = `fu-${keys[0].replace(/[^A-Za-z0-9_-]/g, '_')}`;
+  const [by, setBy] = useState(meta.resolution?.by ?? '');
+  const [note, setNote] = useState(meta.resolution?.note ?? '');
+  useEffect(() => { setBy(meta.resolution?.by ?? ''); setNote(meta.resolution?.note ?? ''); }, [meta.resolution?.by, meta.resolution?.note]);
+  const commit = () => {
+    const b = by.trim().slice(0, RESOLUTION_BY_MAX);
+    const n = note.trim().slice(0, RESOLUTION_NOTE_MAX);
+    if (b === (meta.resolution?.by ?? '') && n === (meta.resolution?.note ?? '')) return;
+    updateTasks(keys, { resolution: b || n ? { by: b, note: n, at: meta.resolution?.at ?? new Date().toISOString().slice(0, 10) } : null });
+  };
+  const due = meta.dueDate ? formatDate(lang, new Date(`${meta.dueDate}T12:00:00`)) : null;
+  const res = status === 'done' ? meta.resolution : null;
+  const resDate = res?.at ? formatDate(lang, new Date(`${res.at.slice(0, 10)}T12:00:00`)) : '';
+  return (
+    <div className="follow">
+      <div className="follow-row no-print">
+        <label className="follow-field follow-due" htmlFor={`${id}-due`}>
+          <span>{rt.dueLabel}</span>
+          <input id={`${id}-due`} className="input input-light" type="date" value={meta.dueDate ?? ''} aria-label={rt.dueAria(name)}
+            onChange={(e) => updateTasks(keys, { dueDate: e.target.value || null })} />
+        </label>
+        {status === 'done' && (
+          <>
+            <label className="follow-field follow-by" htmlFor={`${id}-by`}>
+              <span>{rt.resolvedByLabel}</span>
+              <input id={`${id}-by`} className="input input-light" maxLength={RESOLUTION_BY_MAX} placeholder={rt.resolvedByPlaceholder}
+                value={by} onChange={(e) => setBy(e.target.value)} onBlur={commit} />
+            </label>
+            <label className="follow-field follow-note" htmlFor={`${id}-note`}>
+              <span>{rt.resolutionLabel}</span>
+              <input id={`${id}-note`} className="input input-light" maxLength={RESOLUTION_NOTE_MAX} placeholder={rt.resolutionPlaceholder}
+                value={note} onChange={(e) => setNote(e.target.value)} onBlur={commit} />
+            </label>
+          </>
+        )}
+      </div>
+      {(due || res) && (
+        <p className="print-only follow-print">
+          {[due ? rt.duePrint(due) : null, res ? rt.resolutionPrint(res.by, res.note, resDate) : null].filter(Boolean).join(' · ')}
+        </p>
+      )}
+    </div>
+  );
+}
+
+const DAY1 = ['Q46', 'Q47', 'Q48'] as const;
+
+/** SEPARATION route: the separation work presented as a carve-out plan with its Day 1 dependencies. */
+function CarveOutPanel({ r, plan, lang, rt, openQuestion, openPackage }: {
+  r: ResultT; plan: PlanView; lang: Lang; rt: ReportUIText; openQuestion: (id: string) => void; openPackage: () => void;
+}) {
+  const pkg = plan.packages.find((p) => p.key === 'separation');
+  const deps = DAY1.filter((id) => r.score.applicable.some((q) => q.id === id));
+  return (
+    <section className="route-panel" aria-labelledby="carve-title">
+      <div className="route-panel-head">
+        <h3 id="carve-title">{rt.carveTitle}</h3>
+        <p>{rt.carveSub}</p>
+      </div>
+      <span className="pkg-label">{rt.carveDay1}</span>
+      <ul className="day1">
+        {deps.map((id) => (
+          <li key={id} className={`day1-row ctl-${controlStateOf(r, id)}`}>
+            <span className="ids">{id}</span>
+            <span className="day1-name"><b>{rt.carveDeps[id]}</b> <span>{localQuestionById(lang, id).name}</span></span>
+            <span className="day1-state">{controlStateLabel(lang, r.score.controls[id])}</span>
+            <button type="button" className="link-btn no-print" onClick={() => openQuestion(id)}>{rt.openQuestion}</button>
+          </li>
+        ))}
+      </ul>
+      <p className="route-panel-foot">
+        {pkg ? <button type="button" className="link-btn no-print" onClick={openPackage}>{rt.carvePackage}</button> : rt.carveNoPackage}
+      </p>
+    </section>
+  );
+}
+
+const controlStateOf = (r: ResultT, id: string) => controlState(r.score.controls[id]);
+
+/** PRIMARY_CAPITAL route: company funding and seller proceeds kept apart, from the Q55 answer. No amounts. */
+function FundingPanel({ r, s, lang, rt, openQuestion }: {
+  r: ResultT; s: AssessmentState; lang: Lang; rt: ReportUIText; openQuestion: (id: string) => void;
+}) {
+  const a = s.answers.Q55;
+  const q = localQuestionById(lang, 'Q55');
+  const known = !!a && isKnown(a) && a.points != null;
+  const stateText = known ? q.anchors[(a.points as number) / 50] : a ? controlStateLabel(lang, r.score.controls.Q55) : rt.fundingNotAnswered;
+  return (
+    <section className="route-panel" aria-labelledby="funding-title">
+      <div className="route-panel-head">
+        <h3 id="funding-title">{rt.fundingTitle}</h3>
+        <p>{rt.fundingSub}</p>
+      </div>
+      <div className="funding-cols">
+        <div><b>{rt.fundingCompany}</b><span>{rt.fundingCompanyText}</span></div>
+        <div><b>{rt.fundingSeller}</b><span>{rt.fundingSellerText}</span></div>
+      </div>
+      <div className={`funding-state ctl-${controlStateOf(r, 'Q55')}`}>
+        <span className="pkg-label">{rt.fundingState}</span>
+        <span>{stateText}</span>
+        <button type="button" className="link-btn no-print" onClick={() => openQuestion('Q55')}>{rt.openQuestion}</button>
+      </div>
+    </section>
   );
 }
 

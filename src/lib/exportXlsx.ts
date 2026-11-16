@@ -1,6 +1,10 @@
 // Branded Excel export of the action plan (replaces the plain CSV, which
 // cannot carry a logo or formatting). exceljs is loaded only when the user
 // exports, so it does not weigh on the page itself.
+//
+// buildActionPlanWorkbook() is pure apart from the optional logo fetch: it
+// takes the result and returns the workbook bytes, so it is unit-tested in
+// node. exportActionPlanXlsx() wraps it with the browser download.
 
 import type { Lang } from './i18n';
 import { fileDate, formatDate, formatTime } from './i18n';
@@ -15,9 +19,15 @@ import { REPORT_TEXT } from '../model/text';
 import type { AnswerMap, AssessmentContext } from '../model/types';
 import { chapterTitle, dimensionName, domainName, localOptions, localQuestion, profileText, routeLabel, statusLabel } from '../i18n/localize';
 import { dimensionOf } from '../model/catalogue';
+import { taxContext } from './taxContext';
 
 type Result = ResultSnapshot & { score: ScoreResult };
+
+/** Source question ids without repeats (split tasks such as Q27:company and Q27:seller share one question). */
+const qids = (x: { sourceQuestionIds: string[] }) => [...new Set(x.sourceQuestionIds)].join(', ');
 export type TaskStatusKey = 'open' | 'in_progress' | 'done';
+/** The user's follow-up on a task, as kept by the store (structurally typed so this module never imports the store). */
+export interface TaskFollowUp { status: TaskStatusKey; dueDate: string | null; resolution: { note: string; by: string; at: string } | null }
 
 const NAVY = 'FF002336';
 const NAVY_2 = 'FF003E5F';
@@ -45,6 +55,11 @@ const TEXT = {
     noRisks: 'No critical prerequisites or open review items based on the answers.',
     taxHead: ['Level', 'Item', 'Status'],
     tax: 'Tax workstream',
+    taxCountry: 'Company country',
+    taxResidence: 'Seller tax residence',
+    taxNotStated: 'Not stated',
+    taxNotice: 'ExitIQ asks generic tax preparation questions only. Jurisdiction-specific rules are not assessed, and local tax advice is required in each relevant country.',
+    resolvedBy: (by: string) => `Resolved by ${by}`,
     statusList: ['Open', 'In progress', 'Done'],
     scope: 'Assessment scope',
     scopeRows: ['Perspective', 'Objectives', 'Perimeter', 'Horizon', 'Active modules', 'Pending modules'],
@@ -66,7 +81,7 @@ const TEXT = {
     clarifyHead: ['Workstream', 'Count', 'Questions'],
     reviews: 'Reviews and open facts',
     specialist: (s: string) => `Specialist review (Q25, transaction tax adviser): ${s}`,
-    planHead: ['No.', 'Category', 'Work package', 'Workstream', 'Title', 'Reason', 'Action', 'Suggested owner', 'Timing', 'Depends on', 'Waiting for', 'Evidence required', 'Dimension', 'Area', 'Questions', 'Status'],
+    planHead: ['No.', 'Category', 'Work package', 'Workstream', 'Title', 'Reason', 'Action', 'Suggested owner', 'Suggested timing', 'Depends on', 'Waiting for', 'Evidence required', 'Dimension', 'Area', 'Questions', 'Status', 'Agreed due date', 'Resolution'],
     answers: 'Answers',
     answersTitle: 'Answer audit: every applicable question, plus answers kept outside the current scope',
     answerHead: ['ID', 'Workstream', 'Chapter', 'Dimension', 'Area', 'Question', 'Applicability', 'Answer status', 'Chosen answer', 'Points', 'Evidence level', 'Evidence reference', 'Evidence owner', 'Evidence date', 'Effective weight'],
@@ -99,6 +114,11 @@ const TEXT = {
     noRisks: 'Aus den Antworten ergeben sich keine kritischen Voraussetzungen oder offenen Prüfpunkte.',
     taxHead: ['Ebene', 'Punkt', 'Status'],
     tax: 'Steuerlicher Arbeitsstrang',
+    taxCountry: 'Sitzland des Unternehmens',
+    taxResidence: 'Steuerliche Ansässigkeit der Verkäufer',
+    taxNotStated: 'Keine Angabe',
+    taxNotice: 'ExitIQ stellt nur allgemeine Fragen zur steuerlichen Vorbereitung. Länderspezifische Regeln werden nicht geprüft; in jedem relevanten Land ist eine lokale steuerliche Beratung erforderlich.',
+    resolvedBy: (by: string) => `Erledigt durch ${by}`,
     statusList: ['Offen', 'In Arbeit', 'Erledigt'],
     scope: 'Umfang der Selbsteinschätzung',
     scopeRows: ['Perspektive', 'Ziele', 'Transaktionsumfang', 'Zeithorizont', 'Aktive Module', 'Offene Module'],
@@ -120,7 +140,7 @@ const TEXT = {
     clarifyHead: ['Arbeitsstrang', 'Anzahl', 'Fragen'],
     reviews: 'Prüfungen und offene Fakten',
     specialist: (s: string) => `Prüfung durch Spezialisten (Q25, transaktionserfahrener Steuerberater): ${s}`,
-    planHead: ['Nr.', 'Kategorie', 'Arbeitspaket', 'Arbeitsstrang', 'Titel', 'Begründung', 'Maßnahme', 'Vorgeschlagene Verantwortung', 'Zeitpunkt', 'Hängt ab von', 'Wartet auf', 'Erforderlicher Nachweis', 'Dimension', 'Bereich', 'Fragen', 'Status'],
+    planHead: ['Nr.', 'Kategorie', 'Arbeitspaket', 'Arbeitsstrang', 'Titel', 'Begründung', 'Maßnahme', 'Vorgeschlagene Verantwortung', 'Vorgeschlagener Zeitpunkt', 'Hängt ab von', 'Wartet auf', 'Erforderlicher Nachweis', 'Dimension', 'Bereich', 'Fragen', 'Status', 'Vereinbarter Termin', 'Erledigung'],
     answers: 'Antworten',
     answersTitle: 'Antwortprotokoll: alle zutreffenden Fragen sowie Antworten, die außerhalb des aktuellen Umfangs aufbewahrt sind',
     answerHead: ['ID', 'Arbeitsstrang', 'Kapitel', 'Dimension', 'Bereich', 'Frage', 'Anwendbarkeit', 'Antwortstatus', 'Gewählte Antwort', 'Punkte', 'Nachweisstufe', 'Nachweis', 'Verantwortlich für Nachweis', 'Stand des Nachweises', 'Effektives Gewicht'],
@@ -166,6 +186,7 @@ async function asAptosWorkbook(buf: ArrayBuffer): Promise<ArrayBuffer> {
 }
 
 async function logoDataUrl(): Promise<string | null> {
+  if (typeof fetch !== 'function' || typeof FileReader === 'undefined') return null;
   try {
     // Original atares logo from the MarCom library (via the atares-house-style brand assets), never redrawn.
     const blob = await (await fetch('/media/atares-logo-full-navy.png')).blob();
@@ -187,22 +208,28 @@ export interface ExportInput {
   taxStatusLabel: Record<TaxRow['status'], string>;
   taxScopeLabel: Record<TaxRow['scope'], string>;
   dimStatusLabel: Record<string, string>;
-  taskStatus: Record<string, TaskStatusKey>;
+  /** Follow-up per task key (status, agreed due date, resolution). */
+  tasks: Record<string, TaskFollowUp>;
   plan: PlanView;
   buyer: BuyerItem[];
   ctx: AssessmentContext;
   answers: AnswerMap;
+  /** Logo as a data URL. Omitted: fetched from /media in the browser. null: no logo (tests, node). */
+  logo?: string | null;
+  /** Creation date shown in the masthead (defaults to now). */
+  now?: Date;
 }
 
-export async function exportActionPlanXlsx({ result: r, lang, context, taxStatusLabel, taxScopeLabel, dimStatusLabel, taskStatus, plan, buyer, ctx, answers }: ExportInput) {
+/** Builds the three-sheet workbook (overview, action plan, answers) and returns the .xlsx bytes. */
+export async function buildActionPlanWorkbook({ result: r, lang, context, taxStatusLabel, taxScopeLabel, dimStatusLabel, tasks, plan, buyer, ctx, answers, logo: logoIn, now = new Date() }: ExportInput): Promise<ArrayBuffer> {
   const t = TEXT[lang];
   const ExcelJS = (await import('exceljs')).default;
   const wb = new ExcelJS.Workbook();
   wb.creator = 'ExitIQ by atares';
-  wb.created = new Date();
-  const logo = await logoDataUrl();
+  wb.created = now;
+  const logo = logoIn === undefined ? await logoDataUrl() : logoIn;
   const logoId = logo ? wb.addImage({ base64: logo, extension: 'png' }) : null;
-  const date = formatDate(lang);
+  const date = formatDate(lang, now);
 
   type Ws = ReturnType<typeof wb.addWorksheet>;
   const thin = { style: 'thin' as const, color: { argb: GREY_2 } };
@@ -385,7 +412,7 @@ export async function exportActionPlanXlsx({ result: r, lang, context, taxStatus
       bodyCell(ov, row, 1, x.title, { bold: true, fill: RED_PALE });
       ov.mergeCells(row, 2, row, 5);
       bodyCell(ov, row, 2, x.action, { fill: RED_PALE });
-      bodyCell(ov, row, 6, x.sourceQuestionIds.join(', '), { fill: RED_PALE });
+      bodyCell(ov, row, 6, qids(x), { fill: RED_PALE });
       fitHeight(row, [[x.title, 28], [x.action, 90]]);
       row++;
     }
@@ -446,6 +473,11 @@ export async function exportActionPlanXlsx({ result: r, lang, context, taxStatus
 
   sectionTitle(ov, row++, t.tax);
   const q25 = r.score.controls.Q25;
+  const tc = taxContext(lang, ctx);
+  kvRows([t.taxCountry, t.taxResidence], [tc.country ?? t.taxNotStated, tc.residence ?? t.taxNotStated]);
+  ov.mergeCells(row, 1, row, 6);
+  bodyCell(ov, row, 1, t.taxNotice, { fill: GREY_1 });
+  fitHeight(row++, [[t.taxNotice, 95]]);
   ov.mergeCells(row, 1, row, 6);
   bodyCell(ov, row++, 1, t.specialist(q25 ? controlStateLabel(lang, q25) : t.none));
   headerRow(ov, row++, t.taxHead);
@@ -473,7 +505,8 @@ export async function exportActionPlanXlsx({ result: r, lang, context, taxStatus
   // ── Sheet 2: action plan, one row per task in report order ──────────────
   const ws = wb.addWorksheet(t.tasks, { views: [{ state: 'frozen', ySplit: 5, showGridLines: false, activeCell: 'A1', topLeftCell: 'A6' }], pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: '5:5', margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 } } });
   const head = t.planHead;
-  ws.columns = [6, 18, 26, 18, 30, 40, 40, 22, 16, 12, 14, 34, 18, 22, 12, 12].map((width) => ({ width }));
+  ws.columns = [6, 18, 26, 18, 30, 40, 40, 22, 16, 12, 14, 34, 18, 22, 12, 12, 14, 36].map((width) => ({ width }));
+  const statusCol = head.indexOf(t.planHead[15]) + 1;
   masthead(ws, head.length);
   headerRow(ws, 5, head);
   const statusLabels = t.statusList;
@@ -483,18 +516,23 @@ export async function exportActionPlanXlsx({ result: r, lang, context, taxStatus
     const w = k ? WORKSTREAM_OF_PACKAGE[k] : x.sourceQuestionIds[0] ? workstreamOf(x.sourceQuestionIds[0]) : null;
     return w ? RT.workstreams[w] : '';
   };
+  const isoDate = (d: string) => formatDate(lang, new Date(`${d.slice(0, 10)}T12:00:00`));
   plan.ordered.forEach(({ task: x, category, packageKey }, i) => {
     const rr = 6 + i;
     const fill = category === 'critical' ? RED_PALE : i % 2 ? GREY_1 : undefined;
+    const f = tasks[x.key];
+    const res = f?.status === 'done' && f.resolution ? f.resolution : null;
+    const resText = res ? [res.by ? t.resolvedBy(res.by) : '', res.note, res.at ? isoDate(res.at) : ''].filter(Boolean).map((x) => x.replace(/\.+$/, '')).join('. ') : '';
     const vals: (string | number)[] = [
       i + 1, RT.category[category], category === 'preparation' ? pkgName(packageKey) : '', wsName(packageKey, x), x.title, x.reason, x.action,
       x.accountableRole, x.suggestedTiming, x.dependencies.join(', '), x.waitingFor.length ? RT.waitingFor(x.waitingFor.join(', ')) : '',
-      x.evidenceRequired ?? '', x.dimension ?? '', x.domain ?? '', x.sourceQuestionIds.join(', '),
-      statusLabels[statusIndex[taskStatus[x.key] ?? 'open']],
+      x.evidenceRequired ?? '', x.dimension ?? '', x.domain ?? '', qids(x),
+      statusLabels[statusIndex[f?.status ?? 'open']],
+      f?.dueDate ? isoDate(f.dueDate) : '', resText,
     ];
     vals.forEach((v, c) => bodyCell(ws, rr, c + 1, v, { fill, bold: c === 4 }));
-    ws.getCell(rr, head.length).dataValidation = { type: 'list', allowBlank: false, formulae: [`"${statusLabels.join(',')}"`] };
-    const longest = Math.max(x.reason.length / 38, x.action.length / 38, (x.evidenceRequired ?? '').length / 31, x.title.length / 28, x.sourceQuestionIds.join(', ').length / 10);
+    ws.getCell(rr, statusCol).dataValidation = { type: 'list', allowBlank: false, formulae: [`"${statusLabels.join(',')}"`] };
+    const longest = Math.max(resText.length / 34, x.reason.length / 38, x.action.length / 38, (x.evidenceRequired ?? '').length / 31, x.title.length / 28, qids(x).length / 10);
     ws.getRow(rr).height = Math.max(30, Math.ceil(longest) * 15);
   });
   ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5 + plan.ordered.length, column: head.length } };
@@ -543,7 +581,13 @@ export async function exportActionPlanXlsx({ result: r, lang, context, taxStatus
   // Open on the first sheet.
   wb.views = [{ x: 0, y: 0, width: 20000, height: 12000, firstSheet: 0, activeTab: 0, visibility: 'visible' }];
 
-  const buf = await asAptosWorkbook((await wb.xlsx.writeBuffer()) as ArrayBuffer);
+  return asAptosWorkbook((await wb.xlsx.writeBuffer()) as ArrayBuffer);
+}
+
+/** Builds the workbook and starts the browser download. */
+export async function exportActionPlanXlsx(input: ExportInput) {
+  const t = TEXT[input.lang];
+  const buf = await buildActionPlanWorkbook(input);
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);

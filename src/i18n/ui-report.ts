@@ -47,7 +47,7 @@ const en = {
   whyItMatters: 'Why it matters',
   outputRequired: 'Output required',
   ownerLabel: 'Suggested owner',
-  timingLabel: 'Timing',
+  timingLabel: 'Suggested timing',
   dependsOn: 'Depends on',
   linkedControls: 'Linked questions',
   impact: (rank: number) => `Impact rank ${rank}`,
@@ -77,6 +77,40 @@ const en = {
   taxSub: 'One workstream with company, seller and cross-border responsibilities. Structure alternatives (Q27) and historical restrictions (Q28) affect both the company and the sellers. This measures preparation and specialist review; it is not tax advice and gives no tax efficiency score.',
   taxSpecialist: (status: string) => `Specialist review (Q25, transaction tax adviser): ${status}`,
   taxNotApplicable: 'not part of this assessment',
+  taxCompanyCountry: 'Company country',
+  taxSellerResidence: 'Seller tax residence',
+  taxNotStated: 'Not stated',
+  taxLocalNotice: 'ExitIQ asks generic tax preparation questions only. Jurisdiction-specific rules are not assessed, and local tax advice is required in each relevant country.',
+
+  // Task follow-up (brief s.8)
+  timingSuggested: (x: string) => `Suggested timing: ${x}`,
+  dueLabel: 'Agreed due date',
+  dueAria: (name: string) => `Agreed due date for ${name}`,
+  duePrint: (d: string) => `Agreed due date: ${d}`,
+  resolvedByLabel: 'Resolved by',
+  resolvedByPlaceholder: 'Name or role',
+  resolutionLabel: 'How it was resolved (optional)',
+  resolutionPlaceholder: 'In one or two sentences',
+  resolutionPrint: (by: string, note: string, date: string) => `Resolved${by ? ` by ${by}` : ''}${date ? ` on ${date}` : ''}${note ? `: ${note}` : ''}`,
+  followNote: 'The agreed due date is your own; the tool only suggests timing.',
+
+  // Primary capital route (Q55)
+  fundingTitle: 'Company funding and seller proceeds',
+  fundingSub: 'New money for the company and payments to selling shareholders are separate matters for an investor. No amounts are shown or needed here.',
+  fundingCompany: 'Company funding',
+  fundingCompanyText: 'Primary capital: what the company needs and how it will use the funds.',
+  fundingSeller: 'Seller proceeds',
+  fundingSellerText: 'Secondary proceeds: any payment to selling shareholders, kept apart from the company’s funding plan.',
+  fundingState: 'Your answer (Q55)',
+  fundingNotAnswered: 'Not answered yet. Answer Q55 to show how the two are separated.',
+
+  // Separation route
+  carveTitle: 'Carve-out plan',
+  carveSub: 'Your setup includes separating the business from its group. Day 1 dependencies are what the business needs from its first day on its own: group services, systems and transitional arrangements.',
+  carveDay1: 'Day 1 dependencies',
+  carveDeps: { Q46: 'Shared services', Q47: 'Systems', Q48: 'Transitional arrangements' } as Record<'Q46' | 'Q47' | 'Q48', string>,
+  carvePackage: 'See the separation work package',
+  carveNoPackage: 'No open preparation work in the separation package.',
 };
 
 export type ReportUIText = typeof en;
@@ -121,7 +155,7 @@ const de: ReportUIText = {
   whyItMatters: 'Warum es wichtig ist',
   outputRequired: 'Erforderliches Ergebnis',
   ownerLabel: 'Vorgeschlagene Verantwortung',
-  timingLabel: 'Zeitpunkt',
+  timingLabel: 'Vorgeschlagener Zeitpunkt',
   dependsOn: 'Hängt ab von',
   linkedControls: 'Zugehörige Fragen',
   impact: (rank) => `Wirkung Rang ${rank}`,
@@ -151,6 +185,37 @@ const de: ReportUIText = {
   taxSub: 'Ein Arbeitsstrang mit Zuständigkeiten auf Ebene der Gesellschaft, der Verkäufer und grenzüberschreitend. Strukturalternativen (Q27) und frühere Beschränkungen (Q28) betreffen sowohl die Gesellschaft als auch die Verkäufer. Gemessen werden Vorbereitung und Prüfung durch Spezialisten; das ist keine Steuerberatung und keine Bewertung der steuerlichen Effizienz.',
   taxSpecialist: (status) => `Prüfung durch Spezialisten (Q25, transaktionserfahrener Steuerberater): ${status}`,
   taxNotApplicable: 'nicht Teil dieser Selbsteinschätzung',
+  taxCompanyCountry: 'Sitzland des Unternehmens',
+  taxSellerResidence: 'Steuerliche Ansässigkeit der Verkäufer',
+  taxNotStated: 'Keine Angabe',
+  taxLocalNotice: 'ExitIQ stellt nur allgemeine Fragen zur steuerlichen Vorbereitung. Länderspezifische Regeln werden nicht geprüft; in jedem relevanten Land ist eine lokale steuerliche Beratung erforderlich.',
+
+  timingSuggested: (x) => `Vorgeschlagener Zeitpunkt: ${x}`,
+  dueLabel: 'Vereinbarter Termin',
+  dueAria: (name) => `Vereinbarter Termin für ${name}`,
+  duePrint: (d) => `Vereinbarter Termin: ${d}`,
+  resolvedByLabel: 'Erledigt durch',
+  resolvedByPlaceholder: 'Name oder Rolle',
+  resolutionLabel: 'Wie es erledigt wurde (optional)',
+  resolutionPlaceholder: 'In ein bis zwei Sätzen',
+  resolutionPrint: (by, note, date) => `Erledigt${by ? ` durch ${by}` : ''}${date ? ` am ${date}` : ''}${note ? `: ${note}` : ''}`,
+  followNote: 'Der vereinbarte Termin ist Ihre eigene Festlegung; das Tool schlägt nur einen Zeitpunkt vor.',
+
+  fundingTitle: 'Finanzierung des Unternehmens und Erlöse der Verkäufer',
+  fundingSub: 'Neues Kapital für das Unternehmen und Zahlungen an verkaufende Gesellschafter sind für einen Investor getrennte Themen. Beträge werden hier weder gezeigt noch benötigt.',
+  fundingCompany: 'Finanzierung des Unternehmens',
+  fundingCompanyText: 'Primärkapital: was das Unternehmen braucht und wofür es die Mittel einsetzt.',
+  fundingSeller: 'Erlöse der Verkäufer',
+  fundingSellerText: 'Sekundärerlöse: Zahlungen an verkaufende Gesellschafter, getrennt vom Finanzierungsplan des Unternehmens.',
+  fundingState: 'Ihre Antwort (Q55)',
+  fundingNotAnswered: 'Noch nicht beantwortet. Beantworten Sie Q55, um zu zeigen, wie beides getrennt ist.',
+
+  carveTitle: 'Carve-out-Plan',
+  carveSub: 'Ihre Einstellungen umfassen die Herauslösung des Geschäfts aus seiner Gruppe. Abhängigkeiten für Tag 1 sind das, was das Geschäft ab seinem ersten eigenständigen Tag braucht: Leistungen der Gruppe, Systeme und Übergangsvereinbarungen.',
+  carveDay1: 'Abhängigkeiten für Tag 1',
+  carveDeps: { Q46: 'Gemeinsame Leistungen (Shared Services)', Q47: 'Systeme', Q48: 'Übergangsvereinbarungen' },
+  carvePackage: 'Zum Arbeitspaket Separierung',
+  carveNoPackage: 'Im Arbeitspaket Separierung ist keine Vorbereitungsarbeit offen.',
 };
 
 export const UI_REPORT: Record<Lang, ReportUIText> = { en, de };

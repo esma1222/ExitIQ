@@ -1,17 +1,19 @@
 import { TrackQuestion } from './TrackQuestion';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Bar } from '../../components/ui';
 import { CHAPTERS } from '../../model/catalogue';
 import { chapterTitle, discoveryOptionLabel, domainName, localOptions, localQuestion, routeLabel, statusLabel } from '../../i18n/localize';
 import { useT } from '../../i18n/ui';
 import { useJT, type JourneyText } from '../../i18n/ui-journey';
 import { useLang, type Lang } from '../../lib/i18n';
-import { deepList, earlierFact, isAnswered, needsVisit, nextIndex, nextUnresolved, progressCounts, type EarlierFact } from '../../lib/journey';
+import {
+  chapterSummary, completeChapters, deepList, earlierFact, isAnswered, needsVisit, nextIndex, nextUnresolved, progressCounts, type EarlierFact,
+} from '../../lib/journey';
 import { LIQUIDITY_OPTIONS, OBJECTIVE_OPTIONS } from '../../model/options';
-import { questionText, resolveRoutes } from '../../model/routing';
+import { questionHelp, questionText, resolveRoutes } from '../../model/routing';
 import { hasConflict, isKnown } from '../../model/scoring';
 import type { Answer, EvidenceRef, QuestionDef } from '../../model/types';
-import { go, setEvidence, setPosition, useAssessment } from '../../lib/store';
+import { go, markChaptersComplete, setEvidence, setPosition, useAssessment } from '../../lib/store';
 import { ControlAnswer } from './AnswerControls';
 
 // Kept here for existing imports (Result.tsx); the list itself lives in lib/journey.
@@ -58,6 +60,8 @@ export function Deep() {
   const next = nextIndex(list, s.answers, qi, s.reviewAll);
   const openBefore = s.reviewAll ? [] : list.map((x, k) => ({ ...x, k })).filter((x) => x.k < qi && needsVisit(s.answers[x.q.id]));
   const fact = earlierFact(q.id, s.ctx, s.diag);
+  const note = useChapterNote(list, s.answers, chapter);
+  const help = questionHelp(q, s.ctx, lang);
 
   return (
     <div className="deep-grid">
@@ -79,7 +83,6 @@ export function Deep() {
               <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 14, fontWeight: 700 }}>
                 <span>{chapterTitle(lang, j)}</span><span style={{ fontWeight: 500, color: 'rgba(255,255,255,0.74)', whiteSpace: 'nowrap' }}>{t.nOfM(n, items.length)}</span>
               </span>
-              <Bar dark value={(n / items.length) * 100} color="var(--teal)" label={t.nOfMAnswered(n, items.length)} />
             </button>
           );
         })}
@@ -98,21 +101,30 @@ export function Deep() {
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span className="kicker">{t.chapterKicker(chapter + 1, CHAPTERS.length, chapterTitle(lang, chapter))}</span>
-            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.74)' }}>{t.domainProgress(domainName(lang, q.domain), theme.filter(done).length, theme.length)}</span>
           </div>
         </div>
-        <div className="mini-map" aria-label={t.miniMapAria}>
-          {chItems.map((x) => (
-            <button key={x.q.id} type="button" title={`${x.q.id} ${localQuestion(lang, x.q).name}`} aria-label={`${x.q.id} ${localQuestion(lang, x.q).name}`} aria-current={x.k === qi}
-              onClick={() => setPosition({ qIdx: x.k })} style={{ background: dotColor(s.answers[x.q.id]), outline: x.k === qi ? '2px solid var(--white)' : 'none', outlineOffset: 2 }} />
-          ))}
-        </div>
+        {/* Secondary measures: the answered count in the side panel is the one primary progress measure. */}
+        <details className="deep-secondary">
+          <summary>{jt.chapterQuestions} · {t.domainProgress(domainName(lang, q.domain), theme.filter(done).length, theme.length)}</summary>
+          <div className="mini-map" aria-label={t.miniMapAria}>
+            {chItems.map((x) => (
+              <button key={x.q.id} type="button" title={`${x.q.id} ${localQuestion(lang, x.q).name}`} aria-label={`${x.q.id} ${localQuestion(lang, x.q).name}`} aria-current={x.k === qi}
+                onClick={() => setPosition({ qIdx: x.k })} style={{ background: dotColor(s.answers[x.q.id]), outline: x.k === qi ? '2px solid var(--white)' : 'none', outlineOffset: 2 }} />
+            ))}
+          </div>
+        </details>
+
+        {note && (
+          <p className="chapter-note" role="status">
+            <span className="chapter-note-label">{jt.chapterNoteLabel}</span> {jt.chapterNote(chapterTitle(lang, note.chapter), note)}
+          </p>
+        )}
 
         <section key={q.id} className="q-card fade-up" aria-labelledby="deep-q">
           <div className="q-head">
             <span className="q-name">{ql.name}</span>
             <h1 id="deep-q" className="q-title">{questionText(q, s.ctx, lang)}</h1>
-            {ql.help && <p className="q-help">{ql.help}</p>}
+            {help && <p className="q-help">{help}</p>}
             {fact && (
               <p className="told-earlier"><span className="told-label">{jt.toldEarlier}</span> {factText(fact, lang, jt)}</p>
             )}
@@ -130,16 +142,12 @@ export function Deep() {
             </div>
           )}
           <ControlAnswer q={q} ctx={s.ctx} answer={a} />
-          <div className="two-col" style={{ gap: 18, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 16 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.74)' }}>{t.suggestedContributor}</span>
-              <span style={{ fontSize: 15 }}>{ql.contributor}</span>
+          {a && isKnown(a) && (
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 16 }}>
+              <EvidenceEditor key={q.id} q={q} answer={a} />
             </div>
-            {a && isKnown(a) ? <EvidenceEditor key={q.id} q={q} answer={a} /> : (
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', alignSelf: 'end' }}>{t.evidenceAfter}</div>
-            )}
-          </div>
-          <p className="q-meta">{q.id}{q.route !== 'CORE' ? ` · ${routeLabel(lang, q.route)}` : ''}</p>
+          )}
+          <p className="q-meta">{jt.contributorLine(ql.contributor)} · {q.id}{q.route !== 'CORE' ? ` · ${routeLabel(lang, q.route)}` : ''}</p>
         </section>
 
         {next < 0 && openBefore.length > 0 && (
@@ -157,6 +165,35 @@ export function Deep() {
       </div>
     </div>
   );
+}
+
+/**
+ * Brief s.2: one short factual note when the last open question of a chapter
+ * gets a response in this visit. Chapters already complete on arrival are
+ * recorded (and reported once) without a note.
+ */
+function useChapterNote(list: ReturnType<typeof deepList>, answers: Parameters<typeof completeChapters>[1], current: number) {
+  const done = completeChapters(list, answers);
+  const key = done.join(',');
+  const seen = useRef<Set<number> | null>(null);
+  const [note, setNote] = useState<ReturnType<typeof chapterSummary> | null>(null);
+  useEffect(() => {
+    const before = seen.current;
+    seen.current = new Set(done);
+    markChaptersComplete(done);
+    if (!before) return;
+    const fresh = done.filter((c) => !before.has(c));
+    if (fresh.length) setNote(chapterSummary(list, answers, fresh[fresh.length - 1]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  // The note stays while the person is on that chapter or the next one.
+  useEffect(() => {
+    if (!note) return;
+    const following = list.find((x) => x.chapter > note.chapter)?.chapter ?? note.chapter;
+    if (current !== note.chapter && current !== following) setNote(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, note]);
+  return note;
 }
 
 /** Section 7: evidence is separate from answer points. 0.5 needs a dated reference with a named role; 1 needs an authorised reviewer. */
