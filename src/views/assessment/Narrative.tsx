@@ -15,6 +15,11 @@ import { templateNarrative } from '../../model/narrative-template';
 // figures. When progress is saved online, the user can additionally ask for an
 // AI-written version; if that fails or is rejected, the rules-based one stays.
 
+// The AI rewrite is switched off until an Anthropic API key is set in Supabase
+// (Edge Functions → Secrets → ANTHROPIC_API_KEY). To offer it, set
+// VITE_AI_SUMMARY=on on Vercel and redeploy.
+const AI_ENABLED = (import.meta.env.VITE_AI_SUMMARY as string | undefined)?.trim().toLowerCase() === 'on';
+
 const TEXT = {
   en: {
     intro: 'Your result in a few paragraphs: what can proceed, what needs clarification first and who should act first. It draws only on the figures and actions above and adds no judgement of its own.',
@@ -122,7 +127,7 @@ export default function Narrative({ result, view }: { result: ResultSnapshot & {
         {ai.k === 'done' && !aiCurrent && <span style={{ color: 'var(--grey-4)' }}>{t.stale}</span>}
         {ai.k === 'working' && <span role="status">{t.working}</span>}
         {ai.k === 'error' && <span role="status" style={{ color: 'var(--grey-4)' }}>{t.aiFailed[ai.reason]}</span>}
-        {online && ai.k !== 'working' && !aiCurrent && (
+        {AI_ENABLED && online && ai.k !== 'working' && !aiCurrent && (
           <button type="button" className="btn btn-sm btn-outline" onClick={runAi}>{t.aiButton}</button>
         )}
         {aiCurrent && <button type="button" className="link-btn" onClick={() => setAi({ k: 'none' })}>{t.rulesButton}</button>}

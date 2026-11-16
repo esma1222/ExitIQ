@@ -42,7 +42,7 @@ To set up a project (or check one):
    npx supabase functions deploy generate-narrative
    ```
 
-   Then Dashboard → Edge Functions → Secrets → add `ANTHROPIC_API_KEY`. Without it the button reports that the summary is unavailable and everything else works.
+   Then Dashboard → Edge Functions → Secrets → add `ANTHROPIC_API_KEY`, set `VITE_AI_SUMMARY=on` on Vercel and redeploy. The "Rewrite with AI" button is hidden unless `VITE_AI_SUMMARY=on`; the rules-based summary is always shown.
 6. **Legal links**: the imprint and privacy notice open in an in-app dialog (also at `/imprint` and `/privacy`). To link elsewhere instead, set `VITE_IMPRINT_URL` / `VITE_PRIVACY_URL` (plus `_DE` variants) on Vercel and redeploy.
 7. **Check the advisors**: Dashboard → Advisors (security and performance) after the migration.
 
