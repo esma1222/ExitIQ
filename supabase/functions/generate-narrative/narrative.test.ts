@@ -67,7 +67,7 @@ describe('output schema and prompt', () => {
   });
   it('asks for German in German', () => {
     expect(systemPrompt('de')).toContain('German');
-    expect(systemPrompt('en')).toContain('British English');
+    expect(systemPrompt('en')).toContain('American English');
   });
 });
 

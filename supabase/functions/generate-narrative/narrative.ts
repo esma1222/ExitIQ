@@ -125,7 +125,7 @@ export const OUTPUT_SCHEMA = {
 export function systemPrompt(lang: Lang): string {
   const language = lang === 'de'
     ? 'Write in German. Use the formal "Sie", plain business German as used by German M&A advisers.'
-    : 'Write in British English, in plain business language.';
+    : 'Write in American English, in plain business language.';
   return [
     'You write the short written summary of an ExitIQ exit readiness self-assessment for the business owner or transaction lead who completed it. ExitIQ is a structured self-assessment by atares, an M&A advisory boutique.',
     'You receive a JSON object of facts computed by a deterministic scoring model. The facts are the only source you may use. The scores, statuses, risks and tasks are final: never recalculate, reinterpret or contradict them.',
