@@ -9,7 +9,7 @@ const TEXT = {
   en: { title: { imprint: 'Imprint', privacy: 'Privacy Policy' }, tab: { imprint: 'Imprint', privacy: 'Privacy' }, close: 'Close', note: '' },
   de: {
     title: { imprint: 'Impressum', privacy: 'Datenschutzerklärung' }, tab: { imprint: 'Impressum', privacy: 'Datenschutz' }, close: 'Schließen',
-    note: 'Diese rechtlichen Hinweise liegen derzeit auf Englisch vor.',
+    note: 'Das Impressum liegt derzeit auf Englisch vor.',
   },
 };
 
@@ -71,7 +71,7 @@ export function LegalDialog() {
               <button key={v} type="button" role="tab" aria-selected={tab === v} className="legal-tab" onClick={() => pick(v)}>{t.tab[v]}</button>
             ))}
           </div>
-          {t.note && <p className="legal-note">{t.note}</p>}
+          {t.note && tab === 'imprint' && <p className="legal-note">{t.note}</p>}
           <div role="tabpanel" className="legal-text">
             {tab === 'imprint' ? <ImprintContent /> : <PrivacyContent />}
           </div>

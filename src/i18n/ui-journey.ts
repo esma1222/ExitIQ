@@ -28,7 +28,7 @@ const en = {
   toDiscovery: 'Continue to discovery',
   toSummary: 'Back to the setup summary',
   privacyTitle: 'How your answers are stored',
-  privacyShort: 'Your answers are saved in this browser and, when online backup works, in the ExitIQ database run by atares, linked to an anonymous session. Nothing goes to an AI service unless you ask for a written summary, and you can delete everything at any time.',
+  privacyShort: 'Your answers are saved in this browser and, when online backup works, in the ExitIQ database run by atares, linked to an anonymous session. Nothing goes to an AI service, and you can delete everything at any time.',
   privacyMore: 'Full details',
   privacyNotice: 'Privacy notice',
 
@@ -140,7 +140,7 @@ const de: JourneyText = {
   toDiscovery: 'Weiter zum Einstieg',
   toSummary: 'Zurück zur Übersicht der Einstellungen',
   privacyTitle: 'Wie Ihre Antworten gespeichert werden',
-  privacyShort: 'Ihre Antworten werden in diesem Browser und, sofern die Online-Sicherung funktioniert, in der von atares betriebenen ExitIQ-Datenbank gespeichert, verknüpft mit einer anonymen Sitzung. An einen KI-Dienst geht nur etwas, wenn Sie eine schriftliche Zusammenfassung anfordern, und Sie können jederzeit alles löschen.',
+  privacyShort: 'Ihre Antworten werden in diesem Browser und, sofern die Online-Sicherung funktioniert, in der von atares betriebenen ExitIQ-Datenbank gespeichert, verknüpft mit einer anonymen Sitzung. An einen KI-Dienst geht nichts, und Sie können jederzeit alles löschen.',
   privacyMore: 'Alle Details',
   privacyNotice: 'Datenschutzerklärung',
 

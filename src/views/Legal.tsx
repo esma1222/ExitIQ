@@ -1,7 +1,13 @@
+import { Fragment, type ReactNode } from 'react';
+import { useLang } from '../lib/i18n';
+
 // Imprint and privacy notice for the ExitIQ tool, shown in the legal dialog
 // (LegalDialog.tsx), styled like exitiq.atares.team.
-// The legal text is reproduced exactly as supplied by atares (English). It is
-// not translated or reworded here: legal wording is owned by atares.
+// The imprint is reproduced exactly as supplied by atares (English).
+// The privacy notice describes what this version of the tool actually does
+// (EN and DE). Keep it in step with the code: if the AI summary
+// (VITE_AI_SUMMARY) or CAPTCHA (Cloudflare Turnstile) is switched on, add
+// Anthropic or Cloudflare to section VI before release.
 
 export function ImprintContent() {
   return (
@@ -40,91 +46,144 @@ export function ImprintContent() {
   );
 }
 
+type Block = string | { list: string[] };
+interface Section { h: string; body: Block[] }
+
+const EMAIL = /([\w.+-]+@[\w-]+\.[\w.]+)/g;
+
+/** Plain text with email addresses turned into mailto links. */
+function linked(text: string): ReactNode {
+  return text.split(EMAIL).map((part, i) =>
+    i % 2 === 1 ? <a key={i} href={`mailto:${part}`}>{part}</a> : <Fragment key={i}>{part}</Fragment>);
+}
+
+const PRIVACY: Record<'en' | 'de', { lead: string; sections: Section[]; updated: string }> = {
+  en: {
+    lead: 'This notice explains, in accordance with Art. 13 GDPR, how personal data is processed when you use the ExitIQ self-assessment operated by atares GmbH.',
+    sections: [
+      { h: 'I. Controller and data protection officer', body: [
+        'The controller within the meaning of Art. 4 (7) GDPR is atares GmbH, Prinz-Ludwig-Str. 7, 80333 Munich, Germany, info@atares.team, +49 89 388881-0.',
+        'Data protection officer: Bugl & Kollegen Gesellschaft für Datenschutz und Informationssicherheit mbH, Eifelstraße 55, 93057 Regensburg, Germany, kontakt@buglundkollegen.de.',
+        'For all questions about ExitIQ, please write to exitiq@atares.team.',
+      ] },
+      { h: 'II. What data we process', body: [
+        { list: [
+          'your details about the business and the transaction, for example ownership, management, objectives, timing, specialist topics, seller type and tax residence, and optional details such as business model, sector, revenue and headcount band and country;',
+          'your answers to the discovery and assessment questions, including short optional text for “Other” and evidence references you enter (reference, responsible role, date);',
+          'your action plan: the status of each task and, if you enter them, an agreed due date and a short note on how and by whom a task was resolved;',
+          'the computed result (readiness indices, coverage, risks, tasks) with the model version;',
+          'your email address, only if you ask to continue on another device;',
+          'minimal usage events without answer content: which screen or question was shown, device class (mobile, tablet, desktop) and campaign source.',
+        ] },
+        'Please do not enter names of other people in free-text fields unless this is necessary.',
+      ] },
+      { h: 'III. Purposes and legal bases', body: [
+        'We process this data to provide the self-assessment, save your progress and produce your result and action plan at your request (Art. 6 (1) (b) GDPR). Continuing on another device is processed at your request on the same basis. Usage events serve our legitimate interest in improving the tool (Art. 6 (1) (f) GDPR). If you write to us, we process your message to answer it (Art. 6 (1) (b) and (f) GDPR).',
+      ] },
+      { h: 'IV. Accessing the tool (server log data)', body: [
+        'When you open the tool, your browser technically transmits data to our hosting provider: IP address, date and time of the request, the content requested, HTTP status code, volume of data transferred, referring website, browser, operating system and language setting. This data is processed on the basis of our legitimate interest in security and stability (Art. 6 (1) (f) GDPR) and deleted after 14 days at the latest.',
+      ] },
+      { h: 'V. Anonymous session and storage in your browser', body: [
+        'ExitIQ does not use accounts or passwords. Each visitor receives an anonymous session so that only you can access your assessment. Your browser’s local storage keeps your progress, your language choice and this session. These entries are technically necessary for the tool (Sec. 25 (2) TDDDG); no tracking cookies are set and no third-party analytics service is used, so no cookie banner is required. You can delete the entries in your browser at any time.',
+        'If you have previously visited www.atares.team, a cookie set there by the Leadfeeder service (“_lfa”) may for technical reasons be transmitted when the tool runs under an atares.team address. The tool does not set, read or use that cookie. Information about it can be found in the privacy policy of www.atares.team.',
+      ] },
+      { h: 'VI. Service providers', body: [
+        'We use the following providers as processors under Art. 28 GDPR:',
+        { list: [
+          'Vercel Inc. (USA): hosting and delivery of the tool, including the server log data described in section IV;',
+          'Supabase (servers in the EU, Ireland): database and anonymous sign-in, including the email address for continuing on another device and the confirmation email sent for it.',
+        ] },
+        'Where processing takes place outside the EU/EEA, in particular in the USA, it is safeguarded by EU standard contractual clauses or certification under the EU-US Data Privacy Framework. You can request a copy of these safeguards via exitiq@atares.team.',
+        'Your answers are not sent to any AI service. The written summary in the action plan is created by fixed rules in your browser.',
+      ] },
+      { h: 'VII. Reports and contact', body: [
+        'Reports are downloaded directly in your browser as PDF or Excel files; ExitIQ does not send reports by email and does not collect newsletter subscriptions. If you choose to contact atares, you write a normal email to exitiq@atares.team, which we process to answer your enquiry.',
+      ] },
+      { h: 'VIII. Automated evaluation', body: [
+        'Your result is calculated automatically from your answers by fixed rules and is non-binding guidance. There is no solely automated decision producing legal effects concerning you within the meaning of Art. 22 GDPR; any firm assessment is always made as part of personal advice.',
+      ] },
+      { h: 'IX. Retention', body: [
+        'Your assessment is kept until you delete it in the tool (action plan or save screen) or ask us to delete it. Server log data is deleted after 14 days at the latest. Usage events contain no answer content and are kept for evaluating the tool. Statutory retention obligations remain unaffected.',
+      ] },
+      { h: 'X. Your rights', body: [
+        'You have the right of access (Art. 15 GDPR), to rectification or erasure (Art. 16, 17 GDPR), to restriction of processing (Art. 18 GDPR), to notification of recipients (Art. 19 GDPR), to data portability (Art. 20 GDPR) and to object (Art. 21 GDPR). You can withdraw consent at any time with effect for the future (Art. 7 (3) GDPR), and you have the right to lodge a complaint with a supervisory authority (Art. 77 GDPR).',
+        'To exercise your rights, an informal message to exitiq@atares.team or to our data protection officer is sufficient. The supervisory authority responsible for us is the Bavarian State Office for Data Protection Supervision (BayLDA), Promenade 18, 91522 Ansbach, Germany.',
+        'This notice applies to the ExitIQ tool. A separate privacy policy applies to our main website atares.team, available in its footer.',
+      ] },
+    ],
+    updated: 'Last updated: November 16, 2026',
+  },
+  de: {
+    lead: 'Diese Erklärung informiert nach Art. 13 DSGVO darüber, wie personenbezogene Daten bei der Nutzung der ExitIQ-Selbsteinschätzung der atares GmbH verarbeitet werden.',
+    sections: [
+      { h: 'I. Verantwortlicher und Datenschutzbeauftragter', body: [
+        'Verantwortlicher im Sinne von Art. 4 Nr. 7 DSGVO ist die atares GmbH, Prinz-Ludwig-Str. 7, 80333 München, info@atares.team, +49 89 388881-0.',
+        'Datenschutzbeauftragter: Bugl & Kollegen Gesellschaft für Datenschutz und Informationssicherheit mbH, Eifelstraße 55, 93057 Regensburg, kontakt@buglundkollegen.de.',
+        'Für alle Fragen zu ExitIQ schreiben Sie bitte an exitiq@atares.team.',
+      ] },
+      { h: 'II. Welche Daten wir verarbeiten', body: [
+        { list: [
+          'Ihre Angaben zum Unternehmen und zur Transaktion, zum Beispiel Eigentümer, Führung, Ziele, Zeitrahmen, Spezialthemen, Art und steuerliche Ansässigkeit der Verkäufer sowie optional Geschäftsmodell, Branche, Umsatz- und Mitarbeiterspanne und Land;',
+          'Ihre Antworten auf die Einstiegs- und Detailfragen, einschließlich kurzer freiwilliger Texte bei „Sonstiges“ und eingetragener Nachweisangaben (Fundstelle, verantwortliche Rolle, Datum);',
+          'Ihren Maßnahmenplan: den Status jeder Aufgabe und, sofern Sie diese eintragen, ein vereinbartes Fälligkeitsdatum und eine kurze Notiz, wie und von wem eine Aufgabe erledigt wurde;',
+          'das berechnete Ergebnis (Readiness-Indizes, Abdeckung, Risiken, Aufgaben) mit der Modellversion;',
+          'Ihre E-Mail-Adresse, nur wenn Sie auf einem anderen Gerät weiterarbeiten möchten;',
+          'minimale Nutzungsereignisse ohne Antwortinhalte: angezeigter Bildschirm oder angezeigte Frage, Geräteklasse (Mobil, Tablet, Desktop) und Kampagnenquelle.',
+        ] },
+        'Bitte tragen Sie in Freitextfelder nur dann Namen anderer Personen ein, wenn dies erforderlich ist.',
+      ] },
+      { h: 'III. Zwecke und Rechtsgrundlagen', body: [
+        'Wir verarbeiten diese Daten, um die Selbsteinschätzung bereitzustellen, Ihren Fortschritt zu speichern und Ihr Ergebnis und Ihren Maßnahmenplan auf Ihren Wunsch zu erstellen (Art. 6 Abs. 1 lit. b DSGVO). Das Weiterarbeiten auf einem anderen Gerät erfolgt auf Ihren Wunsch auf derselben Grundlage. Nutzungsereignisse dienen unserem berechtigten Interesse an der Verbesserung des Tools (Art. 6 Abs. 1 lit. f DSGVO). Schreiben Sie uns, verarbeiten wir Ihre Nachricht zur Beantwortung (Art. 6 Abs. 1 lit. b und f DSGVO).',
+      ] },
+      { h: 'IV. Aufruf des Tools (Server-Logdaten)', body: [
+        'Beim Aufruf des Tools übermittelt Ihr Browser technisch bedingt Daten an unseren Hosting-Anbieter: IP-Adresse, Datum und Uhrzeit der Anfrage, abgerufene Inhalte, HTTP-Statuscode, übertragene Datenmenge, verweisende Website, Browser, Betriebssystem und Spracheinstellung. Die Verarbeitung erfolgt auf Grundlage unseres berechtigten Interesses an Sicherheit und Stabilität (Art. 6 Abs. 1 lit. f DSGVO); die Daten werden spätestens nach 14 Tagen gelöscht.',
+      ] },
+      { h: 'V. Anonyme Sitzung und Speicherung im Browser', body: [
+        'ExitIQ verwendet keine Konten und keine Passwörter. Jede Besucherin und jeder Besucher erhält eine anonyme Sitzung, damit nur Sie auf Ihre Selbsteinschätzung zugreifen können. Im lokalen Speicher Ihres Browsers liegen Ihr Fortschritt, Ihre Sprachwahl und diese Sitzung. Diese Einträge sind für den Betrieb technisch erforderlich (§ 25 Abs. 2 TDDDG); es werden keine Tracking-Cookies gesetzt und kein Analysedienst Dritter eingesetzt, daher ist kein Cookie-Banner erforderlich. Sie können die Einträge jederzeit in Ihrem Browser löschen.',
+        'Wenn Sie zuvor www.atares.team besucht haben, kann ein dort vom Dienst Leadfeeder gesetztes Cookie („_lfa“) technisch bedingt mitübertragen werden, wenn das Tool unter einer atares.team-Adresse läuft. Das Tool setzt, liest oder nutzt dieses Cookie nicht. Informationen dazu finden Sie in der Datenschutzerklärung von www.atares.team.',
+      ] },
+      { h: 'VI. Dienstleister', body: [
+        'Wir setzen folgende Auftragsverarbeiter nach Art. 28 DSGVO ein:',
+        { list: [
+          'Vercel Inc. (USA): Hosting und Auslieferung des Tools, einschließlich der in Abschnitt IV beschriebenen Server-Logdaten;',
+          'Supabase (Server in der EU, Irland): Datenbank und anonyme Anmeldung, einschließlich der E-Mail-Adresse für das Weiterarbeiten auf einem anderen Gerät und der dafür versandten Bestätigungs-E-Mail.',
+        ] },
+        'Soweit eine Verarbeitung außerhalb der EU/des EWR stattfindet, insbesondere in den USA, ist sie durch EU-Standardvertragsklauseln oder eine Zertifizierung nach dem EU-US Data Privacy Framework abgesichert. Eine Kopie dieser Garantien erhalten Sie über exitiq@atares.team.',
+        'Ihre Antworten werden an keinen KI-Dienst übermittelt. Die schriftliche Zusammenfassung im Maßnahmenplan wird nach festen Regeln in Ihrem Browser erstellt.',
+      ] },
+      { h: 'VII. Berichte und Kontakt', body: [
+        'Berichte werden direkt in Ihrem Browser als PDF- oder Excel-Datei heruntergeladen; ExitIQ versendet keine Berichte per E-Mail und erhebt keine Newsletter-Anmeldungen. Wenn Sie atares kontaktieren möchten, schreiben Sie eine normale E-Mail an exitiq@atares.team, die wir zur Beantwortung Ihrer Anfrage verarbeiten.',
+      ] },
+      { h: 'VIII. Automatisierte Auswertung', body: [
+        'Ihr Ergebnis wird nach festen Regeln automatisch aus Ihren Antworten berechnet und ist eine unverbindliche Orientierung. Eine ausschließlich automatisierte Entscheidung mit rechtlicher Wirkung im Sinne von Art. 22 DSGVO findet nicht statt; eine belastbare Einschätzung erfolgt stets im Rahmen einer persönlichen Beratung.',
+      ] },
+      { h: 'IX. Speicherdauer', body: [
+        'Ihre Selbsteinschätzung wird gespeichert, bis Sie sie im Tool löschen (Maßnahmenplan oder Speicherseite) oder uns um Löschung bitten. Server-Logdaten werden spätestens nach 14 Tagen gelöscht. Nutzungsereignisse enthalten keine Antwortinhalte und werden zur Auswertung des Tools aufbewahrt. Gesetzliche Aufbewahrungspflichten bleiben unberührt.',
+      ] },
+      { h: 'X. Ihre Rechte', body: [
+        'Sie haben das Recht auf Auskunft (Art. 15 DSGVO), Berichtigung oder Löschung (Art. 16, 17 DSGVO), Einschränkung der Verarbeitung (Art. 18 DSGVO), Unterrichtung der Empfänger (Art. 19 DSGVO), Datenübertragbarkeit (Art. 20 DSGVO) und Widerspruch (Art. 21 DSGVO). Eine Einwilligung können Sie jederzeit mit Wirkung für die Zukunft widerrufen (Art. 7 Abs. 3 DSGVO), und Sie haben das Recht auf Beschwerde bei einer Aufsichtsbehörde (Art. 77 DSGVO).',
+        'Zur Ausübung Ihrer Rechte genügt eine formlose Nachricht an exitiq@atares.team oder an unseren Datenschutzbeauftragten. Die für uns zuständige Aufsichtsbehörde ist das Bayerische Landesamt für Datenschutzaufsicht (BayLDA), Promenade 18, 91522 Ansbach.',
+        'Diese Erklärung gilt für das ExitIQ-Tool. Für unsere Website atares.team gilt eine eigene Datenschutzerklärung, abrufbar im Footer der Website.',
+      ] },
+    ],
+    updated: 'Stand: 16.11.2026',
+  },
+};
+
 export function PrivacyContent() {
+  const p = PRIVACY[useLang()];
   return (
     <>
-      <p className="legal-lead">This notice explains, in accordance with Art. 13 GDPR, how personal data is processed when you use the ExitIQ tool operated by atares GmbH. Personal data is any information relating to you (e.g. name, email address, details about your company, your questionnaire answers).</p>
-
-      <h2>I. Controller and data protection officer</h2>
-      <p>The controller within the meaning of Art. 4 (7) GDPR is</p>
-      <p>
-        atares GmbH (renamed on 9 Nov 2023 from Proventis Partners GmbH)<br />
-        Prinz-Ludwig-Str. 7<br />
-        80333 Munich, Germany<br />
-        <a href="mailto:info@atares.team">info@atares.team</a><br />
-        +49 89 388881-0
-      </p>
-      <p>
-        You can reach our data protection officer at:<br />
-        Bugl &amp; Kollegen Gesellschaft für Datenschutz und Informationssicherheit mbH<br />
-        Eifelstraße 55<br />
-        93057 Regensburg, Germany<br />
-        Email: <a href="mailto:kontakt@buglundkollegen.de">kontakt@buglundkollegen.de</a>
-      </p>
-
-      <h2>II. What data we process in the ExitIQ tool</h2>
-      <p>When you use the tool we process:</p>
-      <ul>
-        <li>details about your company (name, sector, legal/ownership structure, country, revenue and headcount range, optional exact headcount and free-text notes);</li>
-        <li>your answers to the qualification and assessment questions;</li>
-        <li>if you request the report or contact us: your name, email address, your phone number if you request a call back, and the content of your enquiry.</li>
-      </ul>
-
-      <h2>III. Purposes and legal bases</h2>
-      <p>We process this data to produce and display your exit-readiness assessment, to send you the report by email on request, and to respond to your enquiries. Providing the tool and producing the assessment take place at your request (Art. 6 (1) (b) GDPR). Sending the report by email is based on your consent (Art. 6 (1) (a) GDPR), which you give when requesting it and can withdraw at any time with effect for the future. Call-back and contact requests to our advisory team are processed as a pre-contractual measure taken at your request (Art. 6 (1) (b) GDPR) and on the basis of our legitimate interest in responding to your enquiry (Art. 6 (1) (f) GDPR).</p>
-
-      <h2>IV. Accessing the tool (server log data)</h2>
-      <p>For purely informational use we collect only the data your browser technically transmits to our server: IP address, date and time of the request, the content requested, access status/HTTP status code, volume of data transferred, referring website, and your browser, operating system and language setting. This data is stored on the basis of our legitimate interest (Art. 6 (1) (f) GDPR) to ensure security and stability, and is deleted after 14 days at the latest.</p>
-
-      <h2>V. Local storage in your browser</h2>
-      <p>The tool stores a few technically necessary entries in your browser's local storage (a random session identifier, your language preference and the acknowledgement of the intro notice). These entries exist solely so the tool works; no tracking takes place through them (Sec. 25 (2) of the German TDDDG), so no cookie banner is required. You can delete them at any time via your browser.</p>
-      <p>For privacy-friendly audience measurement the tool uses Vercel Web Analytics, a cookieless analytics service provided by our hosting provider Vercel Inc. (USA). It records only aggregated, anonymous usage statistics (e.g. page views, referrer, approximate region, browser and device type). It sets no cookies, performs no cross-device recognition, and stores no personal data that identifies you. The legal basis is our legitimate interest in improving the tool (Art. 6 (1) (f) GDPR); because no information is accessed on your device, neither consent under Sec. 25 (2) TDDDG nor a cookie banner is required. Any third-country transfer is safeguarded by EU standard contractual clauses or the EU-US Data Privacy Framework.</p>
-      <p>Beyond this, the tool does not embed any further analytics or tracking services. If you have previously visited the main website www.atares.team, a cookie set there domain-wide by the Leadfeeder service ("_lfa") may for technical reasons also be transmitted to this tool's server. This tool does not set, read or use that cookie in any way. Information about this service can be found in the privacy policy of the main website (www.atares.team).</p>
-
-      <h2>VI. Hosting and processors</h2>
-      <p>We use the following providers as processors under Art. 28 GDPR:</p>
-      <ul>
-        <li>Vercel (Vercel Inc., USA) for hosting and delivery of the tool and for the cookieless "Web Analytics" audience measurement;</li>
-        <li>Supabase (hosting and database, servers in the EU) to store the data entered in the tool;</li>
-        <li>Anthropic (AI service "Claude") to generate the assessment report automatically;</li>
-        <li>Resend (email delivery provider) to send the report and confirmation emails.</li>
-      </ul>
-      <p>Where processing takes place outside the EU/EEA (in particular in the USA), it is safeguarded by EU standard contractual clauses or certification under the EU-US Data Privacy Framework. You can request a copy of these safeguards via <a href="mailto:exitiq@atares.team">exitiq@atares.team</a>.</p>
-
-      <h2>VII. Newsletter</h2>
-      <p>The ExitIQ tool does not collect newsletter subscriptions itself and processes no personal data for that purpose. On the results page we only provide a link to the atares newsletter subscription page. If you subscribe there, the sign-up and the associated processing of your data (including the double opt-in process and dispatch via the newsletter platform "MailChimp") are carried out by atares on its main website and are governed by the privacy policy available there (www.atares.team). No data is transmitted to atares for this purpose via the ExitIQ tool.</p>
-
-      <h2>VIII. User account</h2>
-      <p>You can optionally create an account to save your assessments and revisit them later. For this we process your email address, your name and your password (stored exclusively as a cryptographic hash). The legal basis is the performance of the usage relationship (Art. 6 (1) (b) GDPR). The data is stored until you delete your account, which you can request at any time via <a href="mailto:exitiq@atares.team">exitiq@atares.team</a>.</p>
-
-      <h2>IX. Automated evaluation</h2>
-      <p>The report is generated automatically from the information you provide and serves solely as non-binding guidance. There is no solely automated decision producing legal effects concerning you within the meaning of Art. 22 GDPR; any firm assessment is always made as part of personal advice.</p>
-
-      <h2>X. Retention</h2>
-      <p>We retain your data only for as long as necessary for the purposes described. The following periods apply and are enforced technically by an automated deletion routine:</p>
-      <ul>
-        <li>server log data: deleted after 14 days at the latest;</li>
-        <li>assessment data without a user account (company details, answers, result): deleted 12 months after the last activity;</li>
-        <li>lead data (name and email address from a report request): until withdrawal, at the latest 24 months after the last contact;</li>
-        <li>user account: until you delete your account (see section VIII).</li>
-      </ul>
-      <p>Statutory retention obligations remain unaffected. Independently of these periods, you may request deletion of your data at any time.</p>
-
-      <h2>XI. Your rights</h2>
-      <p>You have the following rights vis-à-vis the controller:</p>
-      <ul>
-        <li>right of access (Art. 15 GDPR);</li>
-        <li>right to rectification or erasure (Art. 16, 17 GDPR);</li>
-        <li>right to restriction of processing (Art. 18 GDPR);</li>
-        <li>right to notification of recipients about rectification, erasure or restriction of processing (Art. 19 GDPR);</li>
-        <li>right to data portability (Art. 20 GDPR);</li>
-        <li>right to object (Art. 21 GDPR);</li>
-        <li>right to withdraw consent with future effect; the lawfulness of processing carried out before withdrawal remains unaffected (Art. 7 (3) GDPR);</li>
-        <li>right to lodge a complaint with a supervisory authority (Art. 77 GDPR).</li>
-      </ul>
-      <p>To exercise your rights, an informal message to <a href="mailto:exitiq@atares.team">exitiq@atares.team</a> or to our data protection officer is sufficient. The supervisory authority responsible for us is the Bavarian State Office for Data Protection Supervision (BayLDA), Promenade 18, 91522 Ansbach, Germany.</p>
-      <p>This notice applies to the ExitIQ tool. A separate privacy policy applies to our main website atares.team, available in its footer.</p>
-      <p className="legal-updated">Last updated: 21 July 2026</p>
+      <p className="legal-lead">{p.lead}</p>
+      {p.sections.map((sec) => (
+        <Fragment key={sec.h}>
+          <h2>{sec.h}</h2>
+          {sec.body.map((b, i) => typeof b === 'string'
+            ? <p key={i}>{linked(b)}</p>
+            : <ul key={i}>{b.list.map((li) => <li key={li}>{linked(li)}</li>)}</ul>)}
+        </Fragment>
+      ))}
+      <p className="legal-updated">{p.updated}</p>
     </>
   );
 }

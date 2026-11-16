@@ -111,7 +111,7 @@ const en = {
   reviewSetup: 'Review setup',
   privacyTitle: 'How your answers are stored',
   privacyLink: 'Read the atares privacy notice',
-  privacyBody: 'Each answer is saved in this browser and in the ExitIQ database run by atares, linked to an anonymous session, so you can pause and return. This is not anonymous: the answers are stored against that session, and they would be linked to you if you later add an email address or contact atares. Nothing is sent to an AI service unless you choose “Write a summary” on the action plan. If you do, your computed result (question references, answer statuses, scores, risks and tasks, without evidence references or seller tax details) is sent to Anthropic’s Claude API to write the text. Contacting atares, report delivery and newsletters are separate, optional choices. You can delete the assessment at any time from the action plan or the save screen; retention otherwise follows the atares privacy notice.',
+  privacyBody: 'Each answer is saved in this browser and in the ExitIQ database run by atares, linked to an anonymous session, so you can pause and return. This is not anonymous: the answers are stored against that session, and they would be linked to you if you later add an email address or contact atares. Nothing is sent to an AI service. Contacting atares is a separate, optional choice. You can delete the assessment at any time from the action plan or the save screen; retention otherwise follows the atares privacy notice.',
 
   // Summary
   summaryKicker: 'Before we start',
@@ -194,7 +194,7 @@ const en = {
   savedTitle: 'Your progress is saved.',
   savedLead: (n: number, when: string | null) => `${n} scored question${n === 1 ? '' : 's'} answered${when ? `, last saved ${when}` : ''}. Come back to this page in the same browser to continue where you left off.`,
   linkTitle: 'Continue on another device (optional)',
-  linkBody: 'Add your email address and confirm it. The confirmation link brings you back to this assessment on any device. Your email is used only for signing in; newsletters and contact with atares are separate choices.',
+  linkBody: 'Add your email address and confirm it. The confirmation link brings you back to this assessment on any device. Your email is used only for signing in; contacting atares is a separate choice.',
   emailLabel: 'Email address',
   emailPlaceholder: 'name@company.com',
   sending: 'Sending…',
@@ -271,7 +271,7 @@ const en = {
   print: 'Save as PDF',
   exportCsv: 'Download as Excel',
   printTitle: 'ExitIQ action plan',
-  adviserQ: 'Would you like an atares adviser to review the gaps with you? Write to us at exitiq@atares.io. This is optional and separate from your result.',
+  adviserQ: 'Would you like an atares adviser to review the gaps with you? Write to us at exitiq@atares.team. This is optional and separate from your result.',
   discuss: 'Discuss with atares',
   navAria: 'Sections of the action plan',
   navReadiness: 'Readiness',
@@ -405,7 +405,7 @@ const de: UIText = {
   reviewSetup: 'Einstellungen prüfen',
   privacyTitle: 'Wie Ihre Antworten gespeichert werden',
   privacyLink: 'Datenschutzerklärung von atares lesen',
-  privacyBody: 'Jede Antwort wird in diesem Browser und in der von atares betriebenen ExitIQ-Datenbank gespeichert und einer anonymen Sitzung zugeordnet, damit Sie pausieren und später fortsetzen können. Das ist nicht anonym: Die Antworten werden zu dieser Sitzung gespeichert und würden Ihnen zugeordnet, wenn Sie später eine E-Mail-Adresse angeben oder atares kontaktieren. An einen KI-Dienst wird nur etwas übermittelt, wenn Sie im Maßnahmenplan „Zusammenfassung erstellen“ wählen. Dann wird Ihr berechnetes Ergebnis (Fragenbezüge, Antwortstatus, Werte, Risiken und Aufgaben, ohne Nachweisangaben und ohne steuerliche Angaben zu den Verkäufern) an die Claude-API von Anthropic gesendet, um den Text zu verfassen. Kontakt mit atares, Berichtsversand und Newsletter sind getrennte, freiwillige Optionen. Sie können die Selbsteinschätzung jederzeit im Maßnahmenplan oder auf der Speicherseite löschen; die Aufbewahrung richtet sich ansonsten nach der Datenschutzerklärung von atares.',
+  privacyBody: 'Jede Antwort wird in diesem Browser und in der von atares betriebenen ExitIQ-Datenbank gespeichert und einer anonymen Sitzung zugeordnet, damit Sie pausieren und später fortsetzen können. Das ist nicht anonym: Die Antworten werden zu dieser Sitzung gespeichert und würden Ihnen zugeordnet, wenn Sie später eine E-Mail-Adresse angeben oder atares kontaktieren. An einen KI-Dienst wird nichts übermittelt. Der Kontakt mit atares ist eine getrennte, freiwillige Entscheidung. Sie können die Selbsteinschätzung jederzeit im Maßnahmenplan oder auf der Speicherseite löschen; die Aufbewahrung richtet sich ansonsten nach der Datenschutzerklärung von atares.',
 
   // Summary
   summaryKicker: 'Bevor es losgeht',
@@ -488,7 +488,7 @@ const de: UIText = {
   savedTitle: 'Ihr Fortschritt ist gespeichert.',
   savedLead: (n, when) => `${n} bewertete ${n === 1 ? 'Frage' : 'Fragen'} beantwortet${when ? `, zuletzt gespeichert am ${when}` : ''}. Kehren Sie im selben Browser auf diese Seite zurück, um dort weiterzumachen, wo Sie aufgehört haben.`,
   linkTitle: 'Auf einem anderen Gerät fortsetzen (optional)',
-  linkBody: 'Geben Sie Ihre E-Mail-Adresse an und bestätigen Sie sie. Der Bestätigungslink führt Sie auf jedem Gerät zu dieser Selbsteinschätzung zurück. Ihre E-Mail-Adresse dient nur der Anmeldung; Newsletter und Kontakt mit atares sind getrennte Entscheidungen.',
+  linkBody: 'Geben Sie Ihre E-Mail-Adresse an und bestätigen Sie sie. Der Bestätigungslink führt Sie auf jedem Gerät zu dieser Selbsteinschätzung zurück. Ihre E-Mail-Adresse dient nur der Anmeldung; der Kontakt mit atares ist eine getrennte Entscheidung.',
   emailLabel: 'E-Mail-Adresse',
   emailPlaceholder: 'name@unternehmen.de',
   sending: 'Wird gesendet…',
@@ -565,7 +565,7 @@ const de: UIText = {
   print: 'Als PDF speichern',
   exportCsv: 'Als Excel herunterladen',
   printTitle: 'ExitIQ Maßnahmenplan',
-  adviserQ: 'Möchten Sie die Lücken mit einem Berater von atares durchgehen? Schreiben Sie uns an exitiq@atares.io. Das ist freiwillig und unabhängig von Ihrem Ergebnis.',
+  adviserQ: 'Möchten Sie die Lücken mit einem Berater von atares durchgehen? Schreiben Sie uns an exitiq@atares.team. Das ist freiwillig und unabhängig von Ihrem Ergebnis.',
   discuss: 'Mit atares besprechen',
   navAria: 'Abschnitte des Maßnahmenplans',
   navReadiness: 'Readiness',

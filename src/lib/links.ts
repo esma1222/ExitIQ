@@ -22,7 +22,7 @@ export function privacyUrl(lang: Lang): string {
 export const ATARES_HOME = HOME;
 
 /** Contact address for "Discuss with atares". */
-export const CONTACT_EMAIL = 'exitiq@atares.io';
+export const CONTACT_EMAIL = 'exitiq@atares.team';
 
 /**
  * mailto link with a short, neutral pre-filled message. It deliberately
