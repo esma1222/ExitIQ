@@ -4,7 +4,8 @@ import ExcelJS from 'exceljs';
 import JSZip from 'jszip';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { CATALOGUE_VERSION, CHAPTERS, DIMENSIONS, DOMAIN_NAMES, PROFILE_WEIGHTS, QUESTIONS, ROUTE_LABELS } from '../src/model/catalogue';
-import { DISCOVERY } from '../src/model/options';
+import { DISCOVERY, TRIGGER_OPTIONS } from '../src/model/options';
+import { SETUP_UI } from '../src/i18n/ui-setup';
 import { DE } from '../src/i18n/catalogue-de';
 import { discoveryOptionLabel } from '../src/i18n/localize';
 import { PACKAGES } from '../src/model/packages';
@@ -54,7 +55,7 @@ const longest = (xs: string[], w: number) => Math.max(1, ...xs.map((x) => Math.c
 const rm = sheet('Read me', 'ExitIQ content review', [28, 90, 2], null, false);
 const lines: [string, string][] = [
   ['Purpose', 'Sign-off of the ExitIQ question catalogue before launch, as the Product and Implementation Brief (section 22) and the MVP test report require. The workbook is generated from the code, so it shows exactly what users see.'],
-  ['What to review', 'Questions: English and German wording of all 55 scored questions and their three answer options (0, 50, 100 points). Discovery: the eight opening screens. Weights, Rules and Work packages: the scoring parameters and the action-plan structure.'],
+  ['What to review', 'Questions: English and German wording of all 55 scored questions and their three answer options (0, 50, 100 points). Discovery: the eight opening screens. Setup v1.2: the six setup questions added in version 1.2. Weights, Rules and Work packages: the scoring parameters and the action-plan structure.'],
   ['How to review', 'For each line choose Approved, Change needed or Discuss in the "Review" column and write the change in "Comment". Do not change the IDs.'],
   ['German terms to check first', 'See the sheet "Terms to check": wording choices made during translation that need an M&A professional\'s decision.'],
   ['Status of the parameters', 'Weights, answer anchors, coverage thresholds and priority rules are proposed v1 parameters (expert assumptions), not validated buyer benchmarks.'],
@@ -104,6 +105,22 @@ DISCOVERY.forEach((s, i) => {
   r++;
 });
 
+// 3b. Setup questions added in v1.2 (unscored, they steer routing and rules)
+const sh = ['Where', 'Question (EN)', 'Explanation (EN)', 'Question (DE)', 'Explanation (DE)', 'Review', 'Comment'];
+const ss = sheet('Setup v1.2', 'Setup questions added in v1.2 (EN and DE)', [18, 40, 46, 40, 46, 14, 30], sh);
+const SE = SETUP_UI.en, SD = SETUP_UI.de;
+const trig = (k: 'restructuring' | 'cross_border_ops') => TRIGGER_OPTIONS.find((o) => o.value === k)!.label;
+const setupRows: string[][] = [
+  ['Company', SE.econLabel, SE.econWhy, SD.econLabel, SD.econWhy],
+  ['Company', SE.sector, SE.sectorPlaceholder, SD.sector, SD.sectorPlaceholder],
+  ['Specialist topics', trig('restructuring'), SE.trigWhy.restructuring, DE.options.trigger?.restructuring ?? '', SD.trigWhy.restructuring],
+  ['Specialist topics', trig('cross_border_ops'), SE.trigWhy.cross_border_ops, DE.options.trigger?.cross_border_ops ?? '', SD.trigWhy.cross_border_ops],
+  ['Confirmed facts', SE.taxConfirmed, SE.taxConfirmedWhy, SD.taxConfirmed, SD.taxConfirmedWhy],
+  ['Confirmed facts', SE.fundingGap, SE.fundingGapWhy, SD.fundingGap, SD.fundingGapWhy],
+];
+r = 6;
+setupRows.forEach((x, i) => { row(ss, r, [...x, '', ''], { zebra: i % 2 === 1, reviewCols: [6] }); ss.getRow(r).height = Math.max(30, longest(x.slice(1), 44) * 15); r++; });
+
 // 4. Weights
 const profiles = Object.keys(PROFILE_WEIGHTS) as (keyof typeof PROFILE_WEIGHTS)[];
 const PNAME: Record<string, string> = { OWNER: 'Owner', CORPORATE: 'Corporate', PE: 'PE', VC: 'VC' };
@@ -127,10 +144,14 @@ const rules: [string, string][] = [
   ['R01 Liquidity', 'Confirmed acute payment pressure: specialist route, no standard readiness conclusion.'],
   ['R02 Authority', 'Approvals not mapped (Q04 = 0) and a launch planned within six months: critical prerequisite.'],
   ['R03 Essential rights', 'Ownership or essential IP undocumented (Q32 or Q33 = 0): critical legal review. Unknown alone only creates a review item.'],
-  ['R04 Tax timing', 'Historical restrictions not reviewed (Q28 = 0 or adviser review): specialist tax review, no assertion of a tax charge.'],
+  ['R04 Tax timing', 'Critical only when a tax adviser has confirmed a restriction or deadline that affects the timetable (setup: confirmed facts = yes). Review when historical restrictions are not reviewed (Q28 = 0 or adviser review), or when past reorganizations are reported (yes or not sure) and Q28 is below 100. Never asserts a tax charge.'],
   ['R05 Separation', 'Separation active and essential group services without continuity plan (Q46 = 0): critical prerequisite.'],
-  ['R06 Funding', 'No usable cash forecast (Q08 = 0) with possible liquidity pressure or growth capital: funding review.'],
-  ['R07 Contradiction', 'Conflicting answers or contributors: excluded from coverage until reconfirmed.'],
+  ['R06 Funding', 'Critical only for a confirmed funding gap before the transaction without an agreed bridge (setup: confirmed facts = yes); "not sure" gives a review. Otherwise review when there is no usable cash forecast (Q08 = 0) with possible liquidity pressure or growth capital.'],
+  ['R07 Contradiction', 'Review with a "Reconfirm" task. Conflicting contributor answers, and objectives not defined (Q01 = 0) while agreed or compared (Q03 or Q05 = 100), are excluded from coverage until one answer changes. Flagged for clarification only: "no known liquidity pressure" with no cash forecast (Q08 = 0), and "no group dependency" with no service continuity plan (Q46 = 0).'],
+  ['Cross-border tax module', 'On when the sellers have a different or multiple tax residence, or the company has material operations, subsidiaries or employees in more than one country. Pending while either is unknown.'],
+  ['Tax actions Q27, Q28', 'A preparation gap gives two actions: one for the company (company tax adviser / CFO) and one for the sellers (sellers’ tax advisers). An open answer stays one clarification.'],
+  ['Q07 wording', 'Growth wording when the business deliberately invests in growth at a loss, or for venture-backed companies; standard wording otherwise.'],
+  ['Strengths', 'Up to three answers at 100 points; when several tie, those matching the strengths named in discovery (E01) come first, then higher weight.'],
   ['Next steps', 'At most three: critical prerequisites first, then work packages by impact (sum of effective weight x missing points), then open questions.'],
 ];
 r = 6;
